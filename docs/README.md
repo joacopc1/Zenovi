@@ -9,6 +9,7 @@ Este directorio conserva el conocimiento del proyecto para que las decisiones no
 - [`ROADMAP.md`](ROADMAP.md): tablero vivo de tareas, decisiones, bloqueos y fases.
 - [`design/design-foundations.md`](design/design-foundations.md): dirección visual monocromática, shell, tipografía y reglas de interfaz.
 - [`design/app-shell.md`](design/app-shell.md): arquitectura de navegación, sidebar, header, rutas y comportamiento responsive del MVP.
+- [`engineering/performance-budget.md`](engineering/performance-budget.md): umbrales de Lighthouse, Core Web Vitals y reglas para evitar renderizado tardío.
 
 ## Versiones editables en Google Docs
 
