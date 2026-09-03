@@ -1,0 +1,21 @@
+# Local secrets
+.env
+.env.local
+.env.*.local
+
+# Keep shareable templates
+!.env.example
+
+# Dependencies and framework output
+node_modules/
+.next/
+out/
+coverage/
+
+# Local tooling
+.DS_Store
+*.log
+.vercel/
+.agents/
+.venv-pdf/
+*.tsbuildinfo

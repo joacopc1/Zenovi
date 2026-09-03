@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zenovi — Shell de aplicación</title>
+    <style>
+      @font-face {
+        font-family: "Instrument Sans";
+        src: url("../../assets/fonts/instrument-sans/InstrumentSans-Regular.ttf") format("truetype");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        src: url("../../assets/fonts/instrument-sans/InstrumentSans-Medium.ttf") format("truetype");
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        src: url("../../assets/fonts/instrument-sans/InstrumentSans-SemiBold.ttf") format("truetype");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        src: url("../../assets/fonts/instrument-sans/InstrumentSans-Bold.ttf") format("truetype");
+        font-weight: 700;
+      }
+
+      :root {
+        --canvas: #f1f0ed;
+        --paper: #fffefc;
+        --ink: #111113;
+        --graphite: #5e5e66;
+        --muted: #8a8a91;
+        --mist: #e8e7e3;
+        --mist-strong: #d2d1cc;
+        --control: #ecebe7;
+        --success: #238a5a;
+        --warning: #a86511;
+        --sidebar: 224px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: "Instrument Sans", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      button { font: inherit; }
+
+      .app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+      .sidebar {
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 16px 14px 14px;
+        border-right: 1px solid rgba(17, 17, 19, .07);
+      }
+      .workspace {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 7px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+      }
+      .workspace:hover { background: rgba(17, 17, 19, .04); }
+      .mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 9px;
+        background: var(--ink);
+        color: white;
+        font-weight: 700;
+        letter-spacing: -.04em;
+      }
+      .workspace-name { display: block; font-size: 14px; font-weight: 600; }
+      .workspace-type { display: block; margin-top: 1px; color: var(--muted); font-size: 11px; }
+      .chevrons { color: var(--muted); font-size: 12px; line-height: .8; }
+
+      .nav { margin-top: 26px; }
+      .nav-section { margin-bottom: 22px; }
+      .nav-label {
+        margin: 0 10px 7px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+      }
+      .nav-item {
+        position: relative;
+        width: 100%;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--graphite);
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .nav-item:hover { background: rgba(17, 17, 19, .035); color: var(--ink); }
+      .nav-item.active { background: rgba(17, 17, 19, .065); color: var(--ink); font-weight: 600; }
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: -4px;
+        width: 7px;
+        height: 7px;
+        border: 2px solid var(--canvas);
+        border-radius: 999px;
+        background: var(--ink);
+      }
+      .icon { width: 17px; height: 17px; flex: 0 0 auto; stroke-width: 1.8; }
+      .nav-spine { position: relative; }
+      .nav-spine::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        left: 18px;
+        top: 18px;
+        bottom: 18px;
+        width: 1px;
+        background: var(--mist-strong);
+      }
+
+      .sidebar-bottom { margin-top: auto; }
+      .connection, .credits {
+        margin: 0 2px 8px;
+        padding: 10px;
+        border-top: 1px solid rgba(17, 17, 19, .07);
+      }
+      .status-row, .credit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .status-name, .credit-name { font-size: 12px; font-weight: 500; }
+      .status-value { color: var(--success); font-size: 11px; }
+      .status-dot { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--success); }
+      .credit-value { color: var(--graphite); font-size: 11px; font-variant-numeric: tabular-nums; }
+      .credit-track { height: 2px; margin-top: 9px; overflow: hidden; background: var(--mist-strong); }
+      .credit-track span { display: block; width: 72%; height: 100%; background: var(--ink); }
+      .profile {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 30px 1fr auto;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 8px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        cursor: pointer;
+      }
+      .profile:hover { background: rgba(17, 17, 19, .04); }
+      .avatar { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #d8d6d0; font-size: 11px; font-weight: 600; }
+      .profile-copy { text-align: left; }
+      .profile-name { display: block; color: var(--ink); font-size: 12px; font-weight: 600; }
+      .profile-role { display: block; margin-top: 1px; color: var(--muted); font-size: 10px; }
+
+      .shell { min-width: 0; padding: 8px 8px 8px 0; }
+      .paper {
+        min-height: calc(100vh - 16px);
+        overflow: hidden;
+        border: 1px solid rgba(17, 17, 19, .07);
+        border-radius: 18px;
+        background: var(--paper);
+      }
+      .header {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        border-bottom: 1px solid rgba(17, 17, 19, .07);
+      }
+      .page-name { font-size: 14px; font-weight: 600; }
+      .header-actions { display: flex; align-items: center; gap: 9px; }
+      .sync { color: var(--muted); font-size: 11px; }
+      .primary {
+        min-height: 34px;
+        padding: 0 14px;
+        border: 1px solid var(--ink);
+        border-radius: 9px;
+        background: var(--ink);
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .primary:hover { background: #2c2c2f; }
+
+      .content { max-width: 1180px; margin: 0 auto; padding: 50px 42px 64px; }
+      .eyebrow { margin: 0 0 9px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      h1 { max-width: 710px; margin: 0; font-size: clamp(34px, 4vw, 52px); line-height: 1.02; letter-spacing: -.045em; }
+      .intro { max-width: 630px; margin: 16px 0 0; color: var(--graphite); font-size: 15px; line-height: 1.55; }
+
+      .signal {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(260px, .7fr);
+        gap: 0;
+        margin-top: 40px;
+        border: 1px solid var(--mist);
+        border-radius: 14px;
+      }
+      .signal::before { content: ""; position: absolute; left: 28px; top: -13px; width: 1px; height: 13px; background: var(--ink); }
+      .signal-main { padding: 27px 28px 30px; }
+      .signal-aside { padding: 27px 28px; border-left: 1px solid var(--mist); }
+      .signal-kicker { display: flex; align-items: center; gap: 8px; color: var(--graphite); font-size: 12px; font-weight: 600; }
+      .signal-node { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
+      .signal h2 { max-width: 620px; margin: 18px 0 11px; font-size: 25px; line-height: 1.18; letter-spacing: -.025em; }
+      .signal p { margin: 0; color: var(--graphite); font-size: 13px; line-height: 1.55; }
+      .aside-label { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+      .aside-action { margin: 13px 0 22px; font-size: 17px; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; }
+      .text-link { padding: 0; border: 0; background: none; color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+
+      .section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-top: 48px; }
+      .section-head h3 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+      .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+      .period { padding: 7px 10px; border: 1px solid var(--mist); border-radius: 8px; background: transparent; color: var(--graphite); font-size: 11px; }
+      .metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 18px; border-top: 1px solid var(--mist); border-bottom: 1px solid var(--mist); }
+      .metric { min-height: 122px; padding: 22px 20px; border-right: 1px solid var(--mist); }
+      .metric:first-child { padding-left: 0; }
+      .metric:last-child { border-right: 0; }
+      .metric-label { color: var(--graphite); font-size: 12px; }
+      .metric-value { margin-top: 14px; font-size: 27px; font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+      .metric-change { margin-top: 7px; color: var(--muted); font-size: 11px; }
+      .metric-change.up { color: var(--success); }
+
+      .recent { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 18px; }
+      .content-card { padding: 10px; border: 1px solid var(--mist); border-radius: 12px; cursor: pointer; }
+      .content-card:hover { border-color: var(--mist-strong); }
+      .thumb { aspect-ratio: 16 / 10; display: flex; align-items: end; padding: 12px; border-radius: 8px; background: #deddd8; }
+      .thumb.dark { background: #202023; color: white; }
+      .thumb.mid { background: #c8c4bb; }
+      .format { padding: 4px 7px; border-radius: 6px; background: rgba(255,255,255,.86); color: var(--ink); font-size: 9px; font-weight: 600; }
+      .thumb.dark .format { background: rgba(255,255,255,.14); color: white; }
+      .card-copy { padding: 13px 3px 4px; }
+      .card-title { overflow: hidden; margin: 0; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+      .card-stats { display: flex; gap: 14px; margin-top: 8px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+      .mobile-nav { display: none; }
+
+      @media (max-width: 980px) {
+        :root { --sidebar: 76px; }
+        .workspace { grid-template-columns: 34px; justify-content: center; }
+        .workspace-copy, .chevrons, .nav-label, .nav-item span, .connection, .credits, .profile-copy, .profile > span:last-child { display: none; }
+        .nav-item { justify-content: center; padding: 0; }
+        .nav-spine::before { left: 37px; }
+        .profile { display: flex; justify-content: center; }
+        .signal { grid-template-columns: 1fr; }
+        .signal-aside { border-top: 1px solid var(--mist); border-left: 0; }
+      }
+      @media (max-width: 720px) {
+        html, body, .app, .shell, .paper { width: 100%; max-width: 100%; min-width: 0; }
+        .app { display: block; }
+        .sidebar { display: none; }
+        .shell { padding: 0; }
+        .paper { min-height: 100vh; border: 0; border-radius: 0; }
+        .header { min-width: 0; padding: 0 20px; }
+        .header-actions { min-width: 34px; }
+        .sync { display: none; }
+        .primary { width: 34px; min-height: 34px; padding: 0; overflow: hidden; font-size: 0; }
+        .primary::after { content: "↗"; font-size: 15px; }
+        .content { min-width: 0; overflow: hidden; padding: 34px 20px 92px; }
+        h1, .intro, .signal, .signal-main, .signal-aside, .section-head { min-width: 0; overflow-wrap: anywhere; }
+        .signal { grid-template-columns: minmax(0, 1fr); }
+        .section-head { align-items: flex-start; flex-direction: column; }
+        .period { width: fit-content; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .metric { min-width: 0; overflow-wrap: anywhere; }
+        .metric:nth-child(2) { border-right: 0; }
+        .metric:nth-child(-n+2) { border-bottom: 1px solid var(--mist); }
+        .metric:nth-child(3) { padding-left: 0; }
+        .recent { grid-template-columns: minmax(0, 1fr); }
+        .mobile-nav {
+          position: fixed;
+          z-index: 10;
+          right: 12px;
+          bottom: 10px;
+          left: 12px;
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          padding: 7px;
+          border: 1px solid rgba(17, 17, 19, .09);
+          border-radius: 14px;
+          background: rgba(255, 254, 252, .96);
+          box-shadow: 0 6px 24px rgba(17, 17, 19, .08);
+          backdrop-filter: blur(12px);
+        }
+        .mobile-nav button {
+          min-height: 43px;
+          padding: 0;
+          border: 0;
+          border-radius: 9px;
+          background: transparent;
+          color: var(--muted);
+          font-size: 10px;
+        }
+        .mobile-nav button.active { background: var(--control); color: var(--ink); font-weight: 600; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="Navegación principal">
+        <button class="workspace" aria-label="Cambiar workspace">
+          <span class="mark">Z</span>
+          <span class="workspace-copy"><span class="workspace-name">Zenovi</span><span class="workspace-type">Marca personal</span></span>
+          <span class="chevrons">⌃<br />⌄</span>
+        </button>
+
+        <nav class="nav">
+          <section class="nav-section">
+            <p class="nav-label">Observar</p>
+            <div class="nav-spine">
+              <button class="nav-item active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 10.5 12 4l8 6.5V20H4Z"/><path d="M9 20v-6h6v6"/></svg><span>Inicio</span></button>
+              <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2"/></svg><span>Analíticas</span></button>
+              <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="m10 9 5 3-5 3Z"/></svg><span>Contenido</span></button>
+            </div>
+          </section>
+
+          <section class="nav-section">
+            <p class="nav-label">Decidir</p>
+            <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 5h14v11H9l-4 4Z"/><path d="M9 9h6m-6 3h4"/></svg><span>Director</span></button>
+          </section>
+
+          <section class="nav-section">
+            <p class="nav-label">Crear</p>
+            <div class="nav-spine">
+              <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16v13H4Z"/><path d="M8 7V4h8v3m-5 5h2"/></svg><span>Baúl</span></button>
+              <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></svg><span>Calendario</span></button>
+            </div>
+          </section>
+
+          <button class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3 4 7v5c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V7Z"/><path d="M9 12h6"/></svg><span>ADN de marca</span></button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="connection"><div class="status-row"><span class="status-name">Instagram</span><span class="status-value"><i class="status-dot"></i>Conectado</span></div></div>
+          <div class="credits"><div class="credit-row"><span class="credit-name">Créditos</span><span class="credit-value">72%</span></div><div class="credit-track"><span></span></div></div>
+          <button class="profile"><span class="avatar">JP</span><span class="profile-copy"><span class="profile-name">Joaco Piñeyro</span><span class="profile-role">Propietario</span></span><span>···</span></button>
+        </div>
+      </aside>
+
+      <main class="shell">
+        <div class="paper">
+          <header class="header">
+            <span class="page-name">Inicio</span>
+            <div class="header-actions"><span class="sync">Actualizado hace 12 min</span><button class="primary">Preguntar al Director</button></div>
+          </header>
+
+          <div class="content">
+            <p class="eyebrow">Brief del jueves</p>
+            <h1>Hay una señal clara en tus primeros segundos.</h1>
+            <p class="intro">Tu último Reel consiguió distribución, pero perdió atención antes de presentar la promesa. Esta es la oportunidad más importante para tu próxima pieza.</p>
+
+            <section class="signal">
+              <div class="signal-main">
+                <div class="signal-kicker"><span class="signal-node"></span>Señal prioritaria · Reel del 2 de septiembre</div>
+                <h2>El 41,9% omitió el video durante los primeros tres segundos.</h2>
+                <p>El alcance fue estable frente a tu referencia, pero el hook tardó en revelar el conflicto. Conservá el encuadre y adelantá la promesa al primer segundo.</p>
+              </div>
+              <aside class="signal-aside">
+                <span class="aside-label">Próxima acción</span>
+                <p class="aside-action">Crear tres variantes de hook para volver a probar la idea.</p>
+                <button class="text-link">Trabajar con el Director →</button>
+              </aside>
+            </section>
+
+            <div class="section-head">
+              <div><h3>Panorama</h3><p>Datos oficiales de Instagram · comparación con los 7 días anteriores</p></div>
+              <button class="period">Últimos 7 días⌄</button>
+            </div>
+            <section class="metrics" aria-label="Métricas principales">
+              <div class="metric"><div class="metric-label">Reproducciones</div><div class="metric-value">1.284</div><div class="metric-change up">↑ 18% vs. periodo anterior</div></div>
+              <div class="metric"><div class="metric-label">Alcance</div><div class="metric-value">892</div><div class="metric-change up">↑ 11% vs. periodo anterior</div></div>
+              <div class="metric"><div class="metric-label">Interacciones</div><div class="metric-value">74</div><div class="metric-change">Sin cambio significativo</div></div>
+              <div class="metric"><div class="metric-label">Seguidores</div><div class="metric-value">3</div><div class="metric-change">Total actual de la cuenta</div></div>
+            </section>
+
+            <div class="section-head">
+              <div><h3>Contenido reciente</h3><p>Ordenado por fecha de publicación</p></div>
+              <button class="text-link">Ver todo →</button>
+            </div>
+            <section class="recent">
+              <article class="content-card"><div class="thumb dark"><span class="format">REEL</span></div><div class="card-copy"><p class="card-title">El error que frena tu oferta</p><div class="card-stats"><span>1.204 views</span><span>41,9% skip</span></div></div></article>
+              <article class="content-card"><div class="thumb mid"><span class="format">CARRUSEL</span></div><div class="card-copy"><p class="card-title">Tres decisiones para vender mejor</p><div class="card-stats"><span>42 views</span><span>6 slides</span></div></div></article>
+              <article class="content-card"><div class="thumb"><span class="format">STORY</span></div><div class="card-copy"><p class="card-title">Secuencia: detrás de escena</p><div class="card-stats"><span>38 views</span><span>4 piezas</span></div></div></article>
+            </section>
+          </div>
+        </div>
+      </main>
+      <nav class="mobile-nav" aria-label="Navegación móvil">
+        <button class="active">Inicio</button>
+        <button>Contenido</button>
+        <button>Director</button>
+        <button>Baúl</button>
+        <button>Más</button>
+      </nav>
+    </div>
+  </body>
+</html>
