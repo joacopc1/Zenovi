@@ -219,7 +219,7 @@ Objetivo: base productiva antes de features.
 - [ ] Configurar error tracking, logs y correlation IDs.
 - [ ] Configurar feature flags.
 - [ ] Crear pipeline CI obligatorio.
-- [-] Establecer controles de rendimiento: presupuesto y protocolo Lighthouse definidos; automatización pendiente de Preview de Vercel.
+- [x] Establecer controles de rendimiento: presupuesto y protocolo local con Lighthouse CLI definidos, sin añadir Lighthouse CI a las dependencias del proyecto.
 - [ ] Crear datos demo seguros.
 
 ## Fase 6 - Construcción MVP

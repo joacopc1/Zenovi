@@ -39,15 +39,17 @@ Una regresión mayor a 5 puntos de Performance o que atraviese un límite de Cor
 
 1. `typecheck`, `lint` y `build` en cada cambio estructural.
 2. Lighthouse manual en Chrome al cerrar cada pantalla importante.
-3. Lighthouse automatizado en pull requests cuando exista una Preview estable de Vercel.
+3. Lighthouse CLI local al cerrar un flujo completo o antes de subir un cambio importante.
 4. Métricas de campo y alertas cuando la beta tenga usuarios reales.
 
 ## Protocolo manual
 
-1. Ejecutar un build de producción.
-2. Abrir la ruta en una ventana incógnita, sin extensiones.
-3. DevTools → Lighthouse → Mobile → Performance, Accessibility y Best Practices.
+1. Ejecutar `npm run build` y luego `npm run start`.
+2. En otra terminal, ejecutar Lighthouse sin instalarlo dentro del proyecto: `npx --yes lighthouse@latest http://localhost:3000 --view`.
+3. Para escritorio, añadir `--preset=desktop`; sin ese parámetro Lighthouse utiliza su emulación móvil.
 4. Ejecutar tres veces y conservar la mediana.
 5. Registrar puntajes, LCP, CLS, TBT y la causa de cualquier regresión.
+
+También se puede usar DevTools → Lighthouse. El CLI resulta más reproducible y puede vivir en la caché de `npx` sin agregarse a `package.json` ni al lockfile de Zenovi.
 
 Las recomendaciones automáticas son evidencia para investigar, no cambios que deban aplicarse ciegamente.
