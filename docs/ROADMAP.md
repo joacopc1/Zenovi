@@ -1,6 +1,6 @@
 # Zenovi - Roadmap operativo
 
-Actualizado: 2026-09-03  
+Actualizado: 2026-09-07
 Estado general: Discovery  
 Objetivo inmediato: decidir viabilidad y congelar el scope del MVP
 
@@ -31,7 +31,7 @@ Cada reunión semanal debe actualizar:
 | Moka/competencia | Evidencia parcial | Prueba funcional con cuenta elegible |
 | Meta | En progreso — Standard Creator validado | Probar Stories, Business, OAuth propio y acceso externo |
 | IA | Arquitectura conceptual | Benchmark real de modelos |
-| UX/UI | Dirección inicial | IA de navegación y wireframes |
+| UX/UI | Shell visual implementado | Navegación responsive y wireframes de flujos |
 | Infraestructura | Recomendación inicial | ADR de stack y ambientes |
 | Seguridad/legal | Baseline definido | Políticas y threat model del MVP |
 | Beta | Concepto | Lista de 20 prospectos para conseguir 10 |
@@ -182,7 +182,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Aprobar scope MVP y lista Won't have.
 - [x] Definir arquitectura de información final del MVP: ciclo Observar → Decidir → Crear, biblioteca unificada de Contenido y sistema separado.
 - [ ] Mapear activación y primer valor.
-- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header y responsive definidos; falta prototipo visual y validar onboarding/conexión.
+- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header y prototipo visual implementados; falta navegación responsive y validar onboarding/conexión.
 - [ ] Wireframe de dashboard.
 - [ ] Wireframe de Reels/detalle.
 - [ ] Wireframe de Stories/secuencia.
@@ -206,7 +206,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 
 Objetivo: base productiva antes de features.
 
-- [ ] Inicializar Next.js/TypeScript.
+- [x] Inicializar Next.js/TypeScript.
 - [ ] Configurar lint, format, typecheck, unit y E2E.
 - [ ] Crear Supabase dev/staging/prod.
 - [ ] Configurar migraciones y tipos.
