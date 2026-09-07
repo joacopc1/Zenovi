@@ -182,7 +182,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Aprobar scope MVP y lista Won't have.
 - [x] Definir arquitectura de información final del MVP: ciclo Observar → Decidir → Crear, biblioteca unificada de Contenido y sistema separado.
 - [ ] Mapear activación y primer valor.
-- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y prototipo visual implementados; falta validar onboarding/conexión.
+- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y preflight de Instagram implementados; faltan estados posteriores a OAuth y validación con usuarios.
 - [ ] Wireframe de dashboard.
 - [ ] Wireframe de Reels/detalle.
 - [ ] Wireframe de Stories/secuencia.
@@ -229,8 +229,8 @@ Objetivo: base productiva antes de features.
 - [ ] Auth Google/email.
 - [ ] Perfil y branding del workspace.
 - [ ] Sidebar/header conectado.
-- [ ] Navegación responsive básica.
-- [ ] Onboarding y preflight de Meta.
+- [x] Navegación responsive básica.
+- [-] Onboarding y preflight de Meta: preflight visual implementado; faltan auth, OAuth real y estados persistidos. Responsable: Joaco/Codex.
 - [ ] Ajustes iniciales.
 
 ### Sprint 2 - Meta y sincronización

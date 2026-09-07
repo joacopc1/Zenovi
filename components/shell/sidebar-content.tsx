@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SidebarNav } from "./sidebar-nav";
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -23,12 +24,16 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <SidebarNav onNavigate={onNavigate} />
 
       <div className="mt-auto text-xs">
-        <div className="border-t border-ink/[0.07] px-2.5 py-3">
-          <div className="flex justify-between">
+        <Link
+          href="/onboarding/instagram"
+          onClick={onNavigate}
+          className="block border-t border-ink/[0.07] px-2.5 py-3 hover:bg-ink/[0.025]"
+        >
+          <div className="flex justify-between gap-3">
             <span>Instagram</span>
-            <span className="text-success">● Conectado</span>
+            <span className="font-semibold text-warning">Configurar →</span>
           </div>
-        </div>
+        </Link>
         <div className="border-t border-ink/[0.07] px-2.5 py-3">
           <div className="flex justify-between">
             <span>Créditos</span>

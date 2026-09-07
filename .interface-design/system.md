@@ -44,6 +44,7 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 - Selector de workspace/marca arriba a la izquierda, con nombre, avatar o logo y chevrons verticales.
 - Perfil del usuario separado del workspace y ubicado al final de la navegación.
 - El selector prepara el modelo mental multi-marca, aunque el MVP permita una sola marca.
+- La navegación móvil sigue abierta: el drawer actual es provisional. Evaluar una bottom navigation/dock con las acciones esenciales antes de congelar el patrón; no trasladar automáticamente toda la sidebar de desktop.
 
 ## Jerarquía y componentes
 
