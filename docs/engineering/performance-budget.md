@@ -1,6 +1,6 @@
 # Zenovi — Presupuesto de rendimiento
 
-Actualizado: 2026-09-03  
+Actualizado: 2026-09-07
 Estado: obligatorio desde el primer shell
 
 ## Objetivo
@@ -53,3 +53,20 @@ Una regresión mayor a 5 puntos de Performance o que atraviese un límite de Cor
 También se puede usar DevTools → Lighthouse. El CLI resulta más reproducible y puede vivir en la caché de `npx` sin agregarse a `package.json` ni al lockfile de Zenovi.
 
 Las recomendaciones automáticas son evidencia para investigar, no cambios que deban aplicarse ciegamente.
+
+## Línea base del app shell
+
+Mediana de tres corridas móviles sobre la build de producción local del 2026-09-07:
+
+| Señal | Resultado |
+|---|---:|
+| Lighthouse Performance | 96 |
+| Lighthouse Accessibility | 100 |
+| Lighthouse Best Practices | 100 |
+| Lighthouse SEO | 100 |
+| FCP | 0,82 s |
+| LCP | 2,05 s |
+| TBT | 211 ms |
+| CLS | 0 |
+
+El TBT supera por 11 ms el objetivo interno. Se mantiene como observación para las próximas pantallas y deberá volver a medirse al incorporar datos, gráficos e interacciones reales.
