@@ -13,3 +13,5 @@ export const DirectorIcon = (props: IconProps) => <Icon {...props}><path d="M5 5
 export const VaultIcon = (props: IconProps) => <Icon {...props}><path d="M4 7h16v13H4Z"/><path d="M8 7V4h8v3m-5 5h2"/></Icon>;
 export const CalendarIcon = (props: IconProps) => <Icon {...props}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></Icon>;
 export const BrandIcon = (props: IconProps) => <Icon {...props}><path d="M12 3 4 7v5c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V7Z"/><path d="M9 12h6"/></Icon>;
+export const MenuIcon = (props: IconProps) => <Icon {...props}><path d="M4 7h16M4 12h16M4 17h16"/></Icon>;
+export const CloseIcon = (props: IconProps) => <Icon {...props}><path d="m6 6 12 12M18 6 6 18"/></Icon>;

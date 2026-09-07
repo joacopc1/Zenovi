@@ -31,7 +31,7 @@ Cada reunión semanal debe actualizar:
 | Moka/competencia | Evidencia parcial | Prueba funcional con cuenta elegible |
 | Meta | En progreso — Standard Creator validado | Probar Stories, Business, OAuth propio y acceso externo |
 | IA | Arquitectura conceptual | Benchmark real de modelos |
-| UX/UI | Shell visual implementado | Navegación responsive y wireframes de flujos |
+| UX/UI | Shell y navegación responsive implementados | Wireframes de onboarding y flujos principales |
 | Infraestructura | Recomendación inicial | ADR de stack y ambientes |
 | Seguridad/legal | Baseline definido | Políticas y threat model del MVP |
 | Beta | Concepto | Lista de 20 prospectos para conseguir 10 |
@@ -182,7 +182,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Aprobar scope MVP y lista Won't have.
 - [x] Definir arquitectura de información final del MVP: ciclo Observar → Decidir → Crear, biblioteca unificada de Contenido y sistema separado.
 - [ ] Mapear activación y primer valor.
-- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header y prototipo visual implementados; falta navegación responsive y validar onboarding/conexión.
+- [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y prototipo visual implementados; falta validar onboarding/conexión.
 - [ ] Wireframe de dashboard.
 - [ ] Wireframe de Reels/detalle.
 - [ ] Wireframe de Stories/secuencia.

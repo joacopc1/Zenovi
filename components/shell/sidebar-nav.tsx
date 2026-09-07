@@ -21,7 +21,7 @@ const groups: NavGroup[] = [
   ]},
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const active = (item: NavItem) => item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -35,7 +35,7 @@ export function SidebarNav() {
               const Icon = item.icon;
               const selected = active(item);
               return (
-                <Link key={item.href} href={item.href} aria-current={selected ? "page" : undefined} className={`relative flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] transition-colors ${selected ? "bg-ink/[0.065] font-semibold text-ink" : "text-graphite hover:bg-ink/[0.035] hover:text-ink"}`}>
+                <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={selected ? "page" : undefined} className={`relative flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] transition-colors ${selected ? "bg-ink/[0.065] font-semibold text-ink" : "text-graphite hover:bg-ink/[0.035] hover:text-ink"}`}>
                   {selected ? <span className="absolute -left-[17px] size-[7px] rounded-full bg-ink ring-2 ring-canvas" /> : null}
                   <Icon className="size-[17px] shrink-0" />
                   <span>{item.label}</span>
@@ -45,7 +45,7 @@ export function SidebarNav() {
           </div>
         </section>
       ))}
-      <Link href="/brand" className="flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] text-graphite transition-colors hover:bg-ink/[0.035] hover:text-ink"><BrandIcon className="size-[17px]"/><span>ADN de marca</span></Link>
+      <Link href="/brand" onClick={onNavigate} className="flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] text-graphite transition-colors hover:bg-ink/[0.035] hover:text-ink"><BrandIcon className="size-[17px]"/><span>ADN de marca</span></Link>
     </nav>
   );
 }
