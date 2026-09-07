@@ -19,3 +19,4 @@ coverage/
 .agents/
 .venv-pdf/
 *.tsbuildinfo
+next-env.d.ts
