@@ -1,27 +1,26 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import {
+  AUTH_INPUT_CLASS,
+  AUTH_PRIMARY_BUTTON_CLASS,
+  AUTH_TEXT_LINK_CLASS,
+} from "./form-styles";
+import { SIGN_IN_FAILURE_MESSAGE } from "@/lib/auth/messages";
 import { createClient } from "@/lib/supabase/client";
-
-type FormStatus =
-  | { kind: "idle" }
-  | { kind: "loading" }
-  | { kind: "success"; message: string }
-  | { kind: "error"; message: string };
 
 type LoginFormProps = {
   initialError?: boolean;
 };
 
-const AUTH_FAILURE_MESSAGE =
-  "No pudimos completar el acceso. Intentá nuevamente.";
-const EMAIL_LINK_MESSAGE =
-  "Si ese correo puede recibir acceso, vas a encontrar un enlace en tu bandeja.";
-
 export function LoginForm({ initialError = false }: LoginFormProps) {
-  const [status, setStatus] = useState<FormStatus>(
+  const router = useRouter();
+  const [status, setStatus] = useState<AuthFeedbackState>(
     initialError
-      ? { kind: "error", message: AUTH_FAILURE_MESSAGE }
+      ? { kind: "error", message: SIGN_IN_FAILURE_MESSAGE }
       : { kind: "idle" },
   );
 
@@ -34,36 +33,35 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
     });
 
     if (error) {
-      setStatus({ kind: "error", message: AUTH_FAILURE_MESSAGE });
+      setStatus({ kind: "error", message: SIGN_IN_FAILURE_MESSAGE });
     }
   }
 
-  async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
+  async function signInWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus({ kind: "loading" });
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
 
-    if (!email) {
-      setStatus({ kind: "error", message: "Ingresá un correo válido." });
+    if (!email || !password) {
+      setStatus({ kind: "error", message: SIGN_IN_FAILURE_MESSAGE });
       return;
     }
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        shouldCreateUser: true,
-      },
+      password,
     });
 
     if (error) {
-      setStatus({ kind: "error", message: AUTH_FAILURE_MESSAGE });
+      setStatus({ kind: "error", message: SIGN_IN_FAILURE_MESSAGE });
       return;
     }
 
-    setStatus({ kind: "success", message: EMAIL_LINK_MESSAGE });
+    router.replace("/");
+    router.refresh();
   }
 
   const isLoading = status.kind === "loading";
@@ -85,12 +83,12 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
         <span className="h-px flex-1 bg-mist" />
       </div>
 
-      <form className="space-y-3" onSubmit={sendMagicLink}>
+      <form className="space-y-3" onSubmit={signInWithPassword}>
         <label className="block text-xs font-semibold text-graphite" htmlFor="email">
           Correo electrónico
         </label>
         <input
-          className="h-11 w-full rounded-control border border-mist-strong bg-control px-3.5 text-sm text-ink placeholder:text-muted hover:border-graphite focus:border-ink focus:outline-none"
+          className={AUTH_INPUT_CLASS}
           id="email"
           name="email"
           type="email"
@@ -99,27 +97,41 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
           disabled={isLoading}
           required
         />
+        <div className="flex items-center justify-between gap-3">
+          <label className="block text-xs font-semibold text-graphite" htmlFor="password">
+            Contraseña
+          </label>
+          <Link className="text-xs font-medium text-graphite underline underline-offset-4" href="/forgot-password">
+            ¿La olvidaste?
+          </Link>
+        </div>
+        <input
+          className={AUTH_INPUT_CLASS}
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Tu contraseña"
+          disabled={isLoading}
+          required
+        />
         <button
-          className="h-11 w-full rounded-control bg-ink px-4 text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+          className={AUTH_PRIMARY_BUTTON_CLASS}
           type="submit"
           disabled={isLoading}
         >
-          {isLoading ? "Conectando…" : "Recibir enlace de acceso"}
+          {isLoading ? "Entrando…" : "Iniciar sesión"}
         </button>
       </form>
 
-      {status.kind === "success" || status.kind === "error" ? (
-        <p
-          className={`rounded-control border px-3 py-2.5 text-xs leading-5 ${
-            status.kind === "success"
-              ? "border-success/20 bg-success/5 text-success"
-              : "border-danger/20 bg-danger/5 text-danger"
-          }`}
-          role="status"
-        >
-          {status.message}
-        </p>
-      ) : null}
+      <AuthFeedback status={status} />
+
+      <p className="text-center text-xs text-graphite">
+        ¿Todavía no tenés cuenta?{" "}
+        <Link className={AUTH_TEXT_LINK_CLASS} href="/register">
+          Crear cuenta
+        </Link>
+      </p>
     </div>
   );
 }

@@ -4,16 +4,17 @@ Estado: decisión de arquitectura para el MVP. Los controles que dependen del pr
 
 ## Alcance actual
 
-- Zenovi ofrece Google OAuth y enlace mágico por correo mediante Supabase Auth.
-- El MVP no incluye contraseñas propias. Agregar contraseña, recuperación o cambio de contraseña exige diseñar antes sus controles contra enumeración, fuerza bruta y abuso.
-- `shouldCreateUser: true` es explícito: el mismo flujo sirve para registro e inicio de sesión sin revelar cuál de los dos ocurrió.
+- Zenovi ofrece Google OAuth y correo más contraseña mediante Supabase Auth.
+- Registro, inicio de sesión y recuperación son flujos separados. La confirmación de correo debe permanecer habilitada.
+- La aplicación exige 12 caracteres como mínimo; el mismo mínimo debe configurarse en Supabase para que también rija sobre llamadas directas a Auth.
 
 ## Respuestas y privacidad
 
-- La interfaz muestra la misma respuesta ante correo existente, correo nuevo y rechazo no accionable del proveedor.
+- El registro devuelve una respuesta genérica tanto para un correo existente como para uno nuevo. La recuperación hace lo mismo exista o no una cuenta.
+- El inicio de sesión no distingue entre correo inexistente, contraseña incorrecta o cuenta todavía no confirmada.
 - El cliente nunca presenta errores crudos de Supabase, identificadores internos ni detalles de configuración.
 - La validación local puede indicar formato de correo inválido porque no revela si existe una cuenta.
-- Los logs no deben registrar tokens, enlaces mágicos, códigos OAuth ni correos completos. Los eventos operativos usarán identificadores internos y un correlation ID.
+- Los logs no deben registrar contraseñas, tokens, enlaces de recuperación, códigos OAuth ni correos completos. Los eventos operativos usarán identificadores internos y un correlation ID.
 
 ## Sesión y callbacks
 
@@ -26,7 +27,7 @@ Estado: decisión de arquitectura para el MVP. Los controles que dependen del pr
 ## Supabase antes de una beta externa
 
 - Confirmación de correo habilitada cuando corresponda al flujo elegido.
-- Caducidad de OTP/enlace mágico de una hora o menos y entropía suficiente.
+- Enlaces de confirmación y recuperación con caducidad de una hora o menos.
 - Rate limits revisados para Auth y endpoints propios.
 - CAPTCHA o protección equivalente activada antes de abrir el registro públicamente.
 - SMTP propio configurado y probado; el servicio de correo de prueba no es infraestructura de producción.

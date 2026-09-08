@@ -32,16 +32,18 @@ export async function updateSession(request: NextRequest) {
   // Keep this immediately after client creation so refresh-token rotation stays in sync.
   const { data } = await supabase.auth.getClaims();
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
-  const isLoginRoute = request.nextUrl.pathname === "/login";
+  const isGuestRoute = ["/login", "/register", "/forgot-password"].includes(
+    request.nextUrl.pathname,
+  );
 
-  if (!data?.claims && !isAuthRoute && !isLoginRoute) {
+  if (!data?.claims && !isAuthRoute && !isGuestRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
     return NextResponse.redirect(loginUrl);
   }
 
-  if (data?.claims && isLoginRoute) {
+  if (data?.claims && isGuestRoute) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/";
     dashboardUrl.search = "";
