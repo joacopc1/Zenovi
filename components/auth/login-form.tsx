@@ -9,8 +9,16 @@ type FormStatus =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 
-export function LoginForm() {
-  const [status, setStatus] = useState<FormStatus>({ kind: "idle" });
+type LoginFormProps = {
+  initialError?: boolean;
+};
+
+export function LoginForm({ initialError = false }: LoginFormProps) {
+  const [status, setStatus] = useState<FormStatus>(
+    initialError
+      ? { kind: "error", message: "El acceso no pudo completarse. Intentá nuevamente." }
+      : { kind: "idle" },
+  );
 
   async function continueWithGoogle() {
     setStatus({ kind: "loading" });

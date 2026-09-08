@@ -1,6 +1,12 @@
 import { LoginForm } from "@/components/auth/login-form";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { error } = await searchParams;
+
   return (
     <main className="flex min-h-screen items-center justify-center py-10">
       <section className="w-[calc(100vw-2.5rem)] min-w-0 max-w-[440px] rounded-panel border border-mist bg-paper p-6 sm:w-[calc(100vw-4rem)] sm:p-8">
@@ -23,7 +29,7 @@ export default function LoginPage() {
           </p>
         </header>
 
-        <LoginForm />
+        <LoginForm initialError={error === "auth_callback"} />
 
         <div className="mt-8 border-t border-mist pt-5" aria-label="Ruta de conexión">
           <ol className="grid grid-cols-3 gap-3 text-[11px] font-medium text-muted">

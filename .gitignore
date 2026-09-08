@@ -17,6 +17,7 @@ coverage/
 *.log
 .vercel/
 .agents/
+supabase/.temp/
 .venv-pdf/
 *.tsbuildinfo
 next-env.d.ts
