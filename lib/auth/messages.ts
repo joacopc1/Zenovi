@@ -10,4 +10,4 @@ export const PASSWORD_RESET_RESULT_MESSAGE =
 export const PASSWORD_UPDATE_FAILURE_MESSAGE =
   "No pudimos actualizar la contraseña. Solicitá un nuevo enlace e intentá otra vez.";
 
-export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MIN_LENGTH = 8;

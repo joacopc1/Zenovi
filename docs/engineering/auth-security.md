@@ -6,7 +6,7 @@ Estado: decisión de arquitectura para el MVP. Los controles que dependen del pr
 
 - Zenovi ofrece Google OAuth y correo más contraseña mediante Supabase Auth.
 - Registro, inicio de sesión y recuperación son flujos separados. La confirmación de correo debe permanecer habilitada.
-- La aplicación exige 12 caracteres como mínimo; el mismo mínimo debe configurarse en Supabase para que también rija sobre llamadas directas a Auth.
+- La aplicación exige 8 caracteres como mínimo; el mismo mínimo se configura en Supabase para que también rija sobre llamadas directas a Auth. No se imponen reglas de composición que incentiven patrones predecibles.
 
 ## Respuestas y privacidad
 
