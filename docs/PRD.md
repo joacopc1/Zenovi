@@ -612,6 +612,7 @@ Requisitos no negociables:
 
 - Mínimo privilegio y autorización progresiva.
 - RLS y aislamiento multi-tenant.
+- Respuestas de autenticación genéricas y equivalentes para impedir enumeración de cuentas; los errores internos no se exponen al cliente.
 - Tokens OAuth cifrados y server-only.
 - Protección CSRF/state/nonce en OAuth.
 - Verificación de webhooks y replay protection.

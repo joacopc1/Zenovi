@@ -13,10 +13,15 @@ type LoginFormProps = {
   initialError?: boolean;
 };
 
+const AUTH_FAILURE_MESSAGE =
+  "No pudimos completar el acceso. Intentá nuevamente.";
+const EMAIL_LINK_MESSAGE =
+  "Si ese correo puede recibir acceso, vas a encontrar un enlace en tu bandeja.";
+
 export function LoginForm({ initialError = false }: LoginFormProps) {
   const [status, setStatus] = useState<FormStatus>(
     initialError
-      ? { kind: "error", message: "El acceso no pudo completarse. Intentá nuevamente." }
+      ? { kind: "error", message: AUTH_FAILURE_MESSAGE }
       : { kind: "idle" },
   );
 
@@ -29,7 +34,7 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
     });
 
     if (error) {
-      setStatus({ kind: "error", message: "No pudimos iniciar con Google. Revisá la configuración del proveedor." });
+      setStatus({ kind: "error", message: AUTH_FAILURE_MESSAGE });
     }
   }
 
@@ -47,15 +52,18 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: true,
+      },
     });
 
     if (error) {
-      setStatus({ kind: "error", message: "No pudimos enviar el enlace. Probá nuevamente." });
+      setStatus({ kind: "error", message: AUTH_FAILURE_MESSAGE });
       return;
     }
 
-    setStatus({ kind: "success", message: "Te enviamos un enlace seguro. Revisá tu correo." });
+    setStatus({ kind: "success", message: EMAIL_LINK_MESSAGE });
   }
 
   const isLoading = status.kind === "loading";

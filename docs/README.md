@@ -10,6 +10,7 @@ Este directorio conserva el conocimiento del proyecto para que las decisiones no
 - [`design/design-foundations.md`](design/design-foundations.md): dirección visual monocromática, shell, tipografía y reglas de interfaz.
 - [`design/app-shell.md`](design/app-shell.md): arquitectura de navegación, sidebar, header, rutas y comportamiento responsive del MVP.
 - [`engineering/performance-budget.md`](engineering/performance-budget.md): umbrales de Lighthouse, Core Web Vitals y reglas para evitar renderizado tardío.
+- [`engineering/auth-security.md`](engineering/auth-security.md): baseline de Auth, prevención de enumeración, sesiones, secretos y gate de RLS.
 
 ## Versiones editables en Google Docs
 

@@ -209,13 +209,13 @@ Objetivo: base productiva antes de features.
 - [x] Inicializar Next.js/TypeScript.
 - [ ] Configurar lint, format, typecheck, unit y E2E.
 - [ ] Crear Supabase dev/staging/prod.
-- [ ] Configurar migraciones y tipos.
+- [-] Configurar migraciones y tipos: migración inicial de Auth/workspace preparada localmente; falta aplicarla al proyecto Zenovi correcto, verificarla y generar tipos.
 - [ ] Configurar Vercel previews/staging/prod.
 - [ ] Configurar dominio y DNS cuando corresponda.
 - [ ] Configurar secretos por ambiente.
 - [ ] Definir ADRs de stack, jobs, IA y storage.
-- [ ] Implementar auth y workspace.
-- [ ] Implementar RLS y tests negativos.
+- [-] Implementar auth y workspace: Google/email y callback implementados; falta aplicar y conectar el modelo persistido de workspace.
+- [-] Implementar RLS y tests negativos: políticas iniciales preparadas; falta aplicar, ejecutar tests cruzados y revisar asesores de Supabase.
 - [ ] Configurar error tracking, logs y correlation IDs.
 - [ ] Configurar feature flags.
 - [ ] Crear pipeline CI obligatorio.
@@ -226,7 +226,7 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 1 - Shell, acceso y onboarding
 
-- [ ] Auth Google/email.
+- [-] Auth Google/email: flujos implementados con respuestas anti-enumeración; falta validación end-to-end y hardening remoto de Supabase.
 - [ ] Perfil y branding del workspace.
 - [ ] Sidebar/header conectado.
 - [x] Navegación responsive básica.
