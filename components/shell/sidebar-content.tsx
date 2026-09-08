@@ -1,25 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { signOut } from "./actions";
 import { SidebarNav } from "./sidebar-nav";
+import { useShellIdentity } from "./shell-identity";
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const identity = useShellIdentity();
+
   return (
     <>
-      <button
+      <div
         className="grid w-full grid-cols-[34px_1fr_auto] items-center gap-2.5 rounded-control p-1.5 text-left hover:bg-ink/[0.04]"
-        aria-label="Cambiar workspace"
+        aria-label="Workspace actual"
       >
         <span className="grid size-[34px] place-items-center rounded-[9px] bg-ink text-sm font-bold text-white">
-          Z
+          {identity.workspaceName[0]?.toLocaleUpperCase("es") ?? "Z"}
         </span>
         <span className="min-w-0">
-          <strong className="block truncate text-sm">Zenovi</strong>
+          <strong className="block truncate text-sm">{identity.workspaceName}</strong>
           <small className="block truncate text-[10px] text-muted">Marca personal</small>
         </span>
-        <span className="text-xs leading-[0.75] text-muted">
-          ⌃
-          <br />⌄
-        </span>
-      </button>
+      </div>
 
       <SidebarNav onNavigate={onNavigate} />
 
@@ -43,16 +45,18 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <span className="block h-full w-[72%] bg-ink" />
           </div>
         </div>
-        <button className="grid w-full grid-cols-[30px_1fr_auto] items-center gap-2 rounded-control p-1.5 text-left hover:bg-ink/[0.04]">
-          <span className="grid size-[30px] place-items-center rounded-full bg-mist-strong text-[10px] font-semibold">
-            JP
-          </span>
-          <span>
-            <strong className="block text-[11px]">Joaco Piñeyro</strong>
-            <small className="text-[9px] text-muted">Propietario</small>
-          </span>
-          <span>···</span>
-        </button>
+        <form action={signOut}>
+          <button className="grid w-full grid-cols-[30px_1fr_auto] items-center gap-2 rounded-control p-1.5 text-left hover:bg-ink/[0.04]" type="submit">
+            <span className="grid size-[30px] place-items-center rounded-full bg-mist-strong text-[10px] font-semibold">
+              {identity.initials}
+            </span>
+            <span className="min-w-0">
+              <strong className="block truncate text-[11px]">{identity.displayName}</strong>
+              <small className="text-[9px] text-muted">Propietario</small>
+            </span>
+            <span className="text-[9px] text-muted">Salir</span>
+          </button>
+        </form>
       </div>
     </>
   );

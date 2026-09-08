@@ -209,12 +209,12 @@ Objetivo: base productiva antes de features.
 - [x] Inicializar Next.js/TypeScript.
 - [ ] Configurar lint, format, typecheck, unit y E2E.
 - [ ] Crear Supabase dev/staging/prod.
-- [-] Configurar migraciones y tipos: migración inicial de Auth/workspace preparada localmente; falta aplicarla al proyecto Zenovi correcto, verificarla y generar tipos.
+- [-] Configurar migraciones y tipos: migración inicial de Auth/workspace aplicada manualmente y verificada con 12/12 controles; falta registrar el historial remoto y generar tipos.
 - [ ] Configurar Vercel previews/staging/prod.
 - [ ] Configurar dominio y DNS cuando corresponda.
 - [ ] Configurar secretos por ambiente.
 - [ ] Definir ADRs de stack, jobs, IA y storage.
-- [-] Implementar auth y workspace: Google/email y callback implementados; falta aplicar y conectar el modelo persistido de workspace.
+- [-] Implementar auth y workspace: Google/email, callback y creación persistida del workspace implementados; falta validación end-to-end remota.
 - [-] Implementar RLS y tests negativos: políticas iniciales preparadas; falta aplicar, ejecutar tests cruzados y revisar asesores de Supabase.
 - [ ] Configurar error tracking, logs y correlation IDs.
 - [ ] Configurar feature flags.
@@ -227,8 +227,8 @@ Objetivo: base productiva antes de features.
 ### Sprint 1 - Shell, acceso y onboarding
 
 - [-] Auth Google/email: flujos implementados con respuestas anti-enumeración; falta validación end-to-end y hardening remoto de Supabase.
-- [ ] Perfil y branding del workspace.
-- [ ] Sidebar/header conectado.
+- [-] Perfil y branding del workspace: nombre y perfil conectados; falta carga de imagen y edición.
+- [-] Sidebar/header conectado: identidad real conectada al shell; faltan estados reales de integración y créditos.
 - [x] Navegación responsive básica.
 - [-] Onboarding y preflight de Meta: preflight visual implementado; faltan auth, OAuth real y estados persistidos. Responsable: Joaco/Codex.
 - [ ] Ajustes iniciales.

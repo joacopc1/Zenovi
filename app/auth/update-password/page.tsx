@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AuthPage } from "@/components/auth/auth-page";
+import { OnboardingFrame } from "@/components/onboarding/onboarding-frame";
 import { UpdatePasswordForm } from "@/components/auth/update-password-form";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,12 +12,13 @@ export default async function UpdatePasswordPage() {
   }
 
   return (
-    <AuthPage
+    <OnboardingFrame
       eyebrow="Nueva credencial"
       title="Elegí una contraseña nueva."
       description="Usá una contraseña larga y distinta de las que empleás en otros servicios."
+      currentStep={1}
     >
       <UpdatePasswordForm />
-    </AuthPage>
+    </OnboardingFrame>
   );
 }

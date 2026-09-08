@@ -26,6 +26,7 @@ Estado: decisión de arquitectura para el MVP. Los controles que dependen del pr
 
 ## Supabase antes de una beta externa
 
+- Verificación pública del 8 de septiembre de 2026: email habilitado, registro abierto y confirmación de correo activa (`mailer_autoconfirm: false`). Google permanece oculto hasta habilitar el proveedor remoto.
 - Confirmación de correo habilitada cuando corresponda al flujo elegido.
 - Enlaces de confirmación y recuperación con caducidad de una hora o menos.
 - Rate limits revisados para Auth y endpoints propios.

@@ -14,9 +14,13 @@ import { createClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
   initialError?: boolean;
+  googleEnabled?: boolean;
 };
 
-export function LoginForm({ initialError = false }: LoginFormProps) {
+export function LoginForm({
+  initialError = false,
+  googleEnabled = false,
+}: LoginFormProps) {
   const router = useRouter();
   const [status, setStatus] = useState<AuthFeedbackState>(
     initialError
@@ -68,20 +72,24 @@ export function LoginForm({ initialError = false }: LoginFormProps) {
 
   return (
     <div className="space-y-5">
-      <button
-        className="flex h-11 w-full items-center justify-center rounded-control border border-mist-strong bg-paper text-sm font-semibold transition-colors hover:bg-control disabled:cursor-wait disabled:opacity-60"
-        type="button"
-        onClick={continueWithGoogle}
-        disabled={isLoading}
-      >
-        Continuar con Google
-      </button>
+      {googleEnabled ? (
+        <>
+          <button
+            className="flex h-11 w-full items-center justify-center rounded-control border border-mist-strong bg-paper text-sm font-semibold transition-colors hover:bg-control disabled:cursor-wait disabled:opacity-60"
+            type="button"
+            onClick={continueWithGoogle}
+            disabled={isLoading}
+          >
+            Continuar con Google
+          </button>
 
-      <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-        <span className="h-px flex-1 bg-mist" />
-        o con correo
-        <span className="h-px flex-1 bg-mist" />
-      </div>
+          <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+            <span className="h-px flex-1 bg-mist" />
+            o con correo
+            <span className="h-px flex-1 bg-mist" />
+          </div>
+        </>
+      ) : null}
 
       <form className="space-y-3" onSubmit={signInWithPassword}>
         <label className="block text-xs font-semibold text-graphite" htmlFor="email">

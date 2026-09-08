@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PreflightConfirmation } from "@/components/onboarding/preflight-confirmation";
+import { getAccountContext } from "@/lib/data/account-context";
 
 export const metadata: Metadata = {
   title: "Conectar Instagram | Zenovi",
@@ -18,7 +20,17 @@ const excludedAccess = [
   "Administrar comentarios o acceder a tu contraseña.",
 ];
 
-export default function InstagramOnboardingPage() {
+export default async function InstagramOnboardingPage() {
+  const account = await getAccountContext();
+
+  if (!account) {
+    redirect("/login");
+  }
+
+  if (!account.workspace) {
+    redirect("/onboarding/workspace");
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-[1180px] flex-col px-5 md:px-10">
       <header className="flex h-16 items-center justify-between border-b border-ink/[0.07]">
