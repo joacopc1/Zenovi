@@ -7,7 +7,9 @@ export function AppHeader({ title }: { title: string }) {
         <MobileNavigation />
         <strong className="text-sm font-semibold">{title}</strong>
       </div>
-      <div className="flex items-center gap-3"><span className="hidden text-[11px] text-muted sm:inline">Datos ilustrativos</span><button className="min-h-8 rounded-control bg-ink px-3.5 text-[11px] font-semibold text-white hover:bg-ink/85">Preguntar al Director</button></div>
+      <button className="min-h-8 rounded-control bg-ink px-3.5 text-[11px] font-semibold text-white hover:bg-ink/85">
+        Preguntar al Director
+      </button>
     </header>
   );
 }
