@@ -25,6 +25,10 @@ export type InstagramDashboardData = {
   sevenDayReach: number;
   sevenDayViews: number;
   sevenDayInteractions: number;
+  previousSevenDayReach: number;
+  previousSevenDayViews: number;
+  previousSevenDayInteractions: number;
+  availableAccountMetrics: string[];
   syncedMediaCount: number;
   totalMediaInteractions: number;
   lastSyncedAt: string | null;
@@ -63,7 +67,8 @@ export async function getInstagramDashboardData(
   if (accountError) throw new Error("No pudimos cargar la cuenta de Instagram.");
   if (!account) return null;
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const [{ data: media, error: mediaError }, { data: accountInsights, error: insightsError }] =
     await Promise.all([
       supabase
@@ -76,9 +81,9 @@ export async function getInstagramDashboardData(
         .limit(50),
       supabase
         .from("instagram_account_insights")
-        .select("metric, value, synced_at")
+        .select("metric, value, end_time, synced_at")
         .eq("social_account_id", account.id)
-        .gte("end_time", sevenDaysAgo),
+        .gte("end_time", fourteenDaysAgo),
     ]);
 
   if (mediaError || insightsError) {
@@ -99,7 +104,7 @@ export async function getInstagramDashboardData(
     mediaInsights = (data ?? []) as InstagramInsightRow[];
   }
 
-  const insightTotals = sumMetrics(accountInsights ?? []);
+  const accountPeriods = summarizeAccountPeriods(accountInsights ?? [], now);
   const mediaMetrics = new Map<string, Map<string, number>>();
 
   for (const insight of mediaInsights) {
@@ -125,9 +130,13 @@ export async function getInstagramDashboardData(
   return {
     username: account.username,
     followers: account.followers_count ?? 0,
-    sevenDayReach: insightTotals.get("reach") ?? 0,
-    sevenDayViews: insightTotals.get("views") ?? 0,
-    sevenDayInteractions: insightTotals.get("total_interactions") ?? 0,
+    sevenDayReach: accountPeriods.current.get("reach") ?? 0,
+    sevenDayViews: accountPeriods.current.get("views") ?? 0,
+    sevenDayInteractions: accountPeriods.current.get("total_interactions") ?? 0,
+    previousSevenDayReach: accountPeriods.previous.get("reach") ?? 0,
+    previousSevenDayViews: accountPeriods.previous.get("views") ?? 0,
+    previousSevenDayInteractions: accountPeriods.previous.get("total_interactions") ?? 0,
+    availableAccountMetrics: [...accountPeriods.available],
     syncedMediaCount: mediaRows.length,
     totalMediaInteractions: rankedMedia.reduce((total, item) => total + item.interactions, 0),
     lastSyncedAt: findLatestTimestamp([
@@ -161,14 +170,26 @@ function findLatestTimestamp(values: (string | null)[]) {
   return timestamps.length > 0 ? new Date(Math.max(...timestamps)).toISOString() : null;
 }
 
-function sumMetrics(rows: { metric: string; value: number | string }[]) {
-  const totals = new Map<string, number>();
+function summarizeAccountPeriods(
+  rows: { metric: string; value: number | string; end_time: string }[],
+  now: Date,
+) {
+  const current = new Map<string, number>();
+  const previous = new Map<string, number>();
+  const available = new Set<string>();
+  const currentBoundary = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const previousBoundary = now.getTime() - 14 * 24 * 60 * 60 * 1000;
 
   for (const row of rows) {
-    totals.set(row.metric, (totals.get(row.metric) ?? 0) + toNumber(row.value));
+    const endTime = new Date(row.end_time).getTime();
+    if (!Number.isFinite(endTime) || endTime < previousBoundary) continue;
+
+    available.add(row.metric);
+    const period = endTime >= currentBoundary ? current : previous;
+    period.set(row.metric, (period.get(row.metric) ?? 0) + toNumber(row.value));
   }
 
-  return totals;
+  return { current, previous, available };
 }
 
 function toNumber(value: number | string) {

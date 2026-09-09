@@ -186,14 +186,14 @@ export async function getInstagramAccountInsights(
   accessToken: string,
 ): Promise<MetaResult<InstagramInsight[]>> {
   const now = Math.floor(Date.now() / 1000);
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60;
+  const fourteenDaysAgo = now - 14 * 24 * 60 * 60;
   const url = new URL(
     `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(accountId)}/insights`,
     INSTAGRAM_GRAPH_ORIGIN,
   );
   url.searchParams.set("metric", "views,reach,total_interactions");
   url.searchParams.set("period", "day");
-  url.searchParams.set("since", String(sevenDaysAgo));
+  url.searchParams.set("since", String(fourteenDaysAgo));
   url.searchParams.set("until", String(now));
 
   const response = await requestMeta(url, {

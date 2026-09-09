@@ -52,25 +52,44 @@ function ConnectedDashboard({
   if (!priority) return null;
 
   const multiplier = priority.reachMultiplier;
+  const availableMetrics = new Set(dashboard.availableAccountMetrics);
   const headline = multiplier
     ? `Tu ${priority.contentLabel} alcanzó ${formatMultiplier(multiplier)} veces más cuentas que tu siguiente pieza.`
     : `Tu ${priority.contentLabel} es la pieza con mayor alcance entre las sincronizadas.`;
   const metrics: Metric[] = [
     {
-      label: "Reproducciones",
-      value: formatNumber(dashboard.sevenDayViews),
-      note: "Últimos 7 días",
+      label: "Visualizaciones",
+      value: formatAccountMetric(dashboard.sevenDayViews, availableMetrics.has("views")),
+      note: formatPeriodComparison(
+        dashboard.sevenDayViews,
+        dashboard.previousSevenDayViews,
+        availableMetrics.has("views"),
+      ),
     },
     {
       label: "Alcance diario",
-      value: formatNumber(dashboard.sevenDayReach),
-      note: "Suma de los últimos 7 días",
+      value: formatAccountMetric(dashboard.sevenDayReach, availableMetrics.has("reach")),
+      note: formatPeriodComparison(
+        dashboard.sevenDayReach,
+        dashboard.previousSevenDayReach,
+        availableMetrics.has("reach"),
+      ),
     },
-    {
-      label: "Interacciones",
-      value: formatNumber(dashboard.totalMediaInteractions),
-      note: `${dashboard.syncedMediaCount} publicaciones sincronizadas`,
-    },
+    availableMetrics.has("total_interactions")
+      ? {
+          label: "Interacciones",
+          value: formatNumber(dashboard.sevenDayInteractions),
+          note: formatPeriodComparison(
+            dashboard.sevenDayInteractions,
+            dashboard.previousSevenDayInteractions,
+            true,
+          ),
+        }
+      : {
+          label: "Interacciones de contenido",
+          value: formatNumber(dashboard.totalMediaInteractions),
+          note: `${dashboard.syncedMediaCount} publicaciones sincronizadas`,
+        },
     {
       label: "Seguidores",
       value: formatNumber(dashboard.followers),
@@ -202,6 +221,22 @@ function formatNumber(value: number) {
 
 function formatMultiplier(value: number) {
   return new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 }).format(value);
+}
+
+function formatAccountMetric(value: number, available: boolean) {
+  return available ? formatNumber(value) : "—";
+}
+
+function formatPeriodComparison(current: number, previous: number, available: boolean) {
+  if (!available) return "Instagram no devolvió este dato";
+  if (previous === 0) {
+    return current === 0 ? "Sin actividad en los últimos 7 días" : "Sin base comparable anterior";
+  }
+
+  const change = ((current - previous) / previous) * 100;
+  if (Math.abs(change) < 0.5) return "Sin cambio vs. 7 días anteriores";
+
+  return `${change > 0 ? "Subió" : "Bajó"} ${formatNumber(Math.abs(change))}% vs. 7 días anteriores`;
 }
 
 function formatSyncDate(value: string) {
