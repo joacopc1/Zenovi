@@ -6,6 +6,7 @@ import {
 } from "@/lib/meta/api";
 import { getInstagramOAuthConfig } from "@/lib/meta/config";
 import { digestInstagramOAuthState } from "@/lib/meta/oauth";
+import { syncInstagramConnection } from "@/lib/meta/sync";
 import { encryptMetaToken } from "@/lib/meta/token-crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -125,22 +126,26 @@ export async function GET(request: NextRequest) {
   }
 
   const encryptedToken = encryptMetaToken(longToken.data.accessToken);
-  const { error: accountError } = await admin.from("social_accounts").upsert(
-    {
-      connection_id: connection.id,
-      provider: "instagram",
-      provider_account_id: profile.data.id,
-      username: profile.data.username,
-      account_type: profile.data.accountType,
-      profile_picture_url: profile.data.profilePictureUrl,
-      followers_count: profile.data.followersCount,
-      follows_count: profile.data.followsCount,
-      media_count: profile.data.mediaCount,
-    },
-    { onConflict: "connection_id" },
-  );
+  const { data: socialAccount, error: accountError } = await admin
+    .from("social_accounts")
+    .upsert(
+      {
+        connection_id: connection.id,
+        provider: "instagram",
+        provider_account_id: profile.data.id,
+        username: profile.data.username,
+        account_type: profile.data.accountType,
+        profile_picture_url: profile.data.profilePictureUrl,
+        followers_count: profile.data.followersCount,
+        follows_count: profile.data.followsCount,
+        media_count: profile.data.mediaCount,
+      },
+      { onConflict: "connection_id" },
+    )
+    .select("id, provider_account_id")
+    .single();
 
-  if (accountError) {
+  if (accountError || !socialAccount) {
     await markConnectionFailure(admin, attempt, "account_persistence_failed", "failed");
     return redirectWithError(request, attempt.redirect_path, "account_unavailable");
   }
@@ -162,6 +167,23 @@ export async function GET(request: NextRequest) {
   if (!(await setConnectionStatus(admin, attempt.workspace_id, "account_resolved"))) {
     await markConnectionFailure(admin, attempt, "connection_finalize_failed", "failed");
     return redirectWithError(request, attempt.redirect_path, "connection_unavailable");
+  }
+
+  if (!(await setConnectionStatus(admin, attempt.workspace_id, "initial_sync_queued"))) {
+    await markConnectionFailure(admin, attempt, "sync_queue_failed", "failed");
+    return redirectWithError(request, attempt.redirect_path, "initial_sync_failed");
+  }
+
+  const syncResult = await syncInstagramConnection({
+    admin,
+    connectionId: connection.id,
+    socialAccountId: socialAccount.id,
+    providerAccountId: socialAccount.provider_account_id,
+    accessToken: longToken.data.accessToken,
+  });
+
+  if (!syncResult.ok) {
+    return redirectWithError(request, attempt.redirect_path, "initial_sync_failed");
   }
 
   const destination = new URL(attempt.redirect_path, request.url);

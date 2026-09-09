@@ -23,6 +23,8 @@ const oauthErrors: Record<string, string> = {
   incompatible_account: "La cuenta elegida debe ser de Creador o Empresa.",
   account_lookup_failed: "No pudimos verificar la cuenta elegida. Intentá nuevamente.",
   account_unavailable: "No pudimos guardar la cuenta elegida. Revisá si ya está conectada.",
+  authorization_expired: "La autorización venció. Conectá Instagram nuevamente.",
+  initial_sync_failed: "La cuenta está autorizada, pero no pudimos sincronizarla. Intentá nuevamente.",
 };
 
 export default async function InstagramOnboardingPage({
@@ -33,7 +35,11 @@ export default async function InstagramOnboardingPage({
   const account = await getAccountContext();
   const query = await searchParams;
   const errorCode = typeof query.error === "string" ? query.error : undefined;
-  const connectionCompleted = query.connected === "1";
+  const connectionCompleted = account?.instagram?.status === "connected";
+  const authorizationReady =
+    account?.instagram?.status === "account_resolved" ||
+    account?.instagram?.status === "initial_sync_queued" ||
+    account?.instagram?.status === "syncing";
 
   if (!account) {
     redirect("/login");
@@ -45,16 +51,32 @@ export default async function InstagramOnboardingPage({
 
   return (
     <OnboardingFrame
-      title={connectionCompleted ? "Instagram conectado" : "Conectá tu Instagram"}
+      title={
+        connectionCompleted
+          ? "Instagram conectado"
+          : authorizationReady
+            ? "Sincronizá tu Instagram"
+            : "Conectá tu Instagram"
+      }
       description={
         connectionCompleted
           ? "La cuenta quedó lista para empezar a reunir contenido y métricas."
+          : authorizationReady
+            ? "El permiso está listo. Ahora importá tus publicaciones y métricas."
           : "Elegí la cuenta profesional que querés analizar."
       }
       currentStep={2}
     >
       {connectionCompleted ? (
         <ConnectionComplete />
+      ) : authorizationReady ? (
+        <SyncReady
+          errorMessage={
+            errorCode
+              ? oauthErrors[errorCode] ?? "No pudimos sincronizar la cuenta."
+              : undefined
+          }
+        />
       ) : (
         <>
           <section className="border-y border-mist py-4">
@@ -102,6 +124,27 @@ export default async function InstagramOnboardingPage({
         </>
       )}
     </OnboardingFrame>
+  );
+}
+
+function SyncReady({ errorMessage }: { errorMessage?: string }) {
+  return (
+    <div className="border-y border-mist py-5">
+      <p className="text-center text-sm leading-6 text-graphite">
+        Zenovi traerá hasta 50 publicaciones recientes y sus métricas oficiales.
+      </p>
+      <form action="/api/integrations/instagram/sync" method="post">
+        <button
+          type="submit"
+          className="mt-5 h-12 w-full rounded-[12px] bg-ink px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        >
+          Sincronizar ahora
+        </button>
+      </form>
+      {errorMessage ? (
+        <p className="mt-2 text-center text-xs leading-5 text-warning">{errorMessage}</p>
+      ) : null}
+    </div>
   );
 }
 
