@@ -107,10 +107,7 @@ export async function GET(request: NextRequest) {
     return redirectWithError(request, attempt.redirect_path, "connection_unavailable");
   }
 
-  const profile = await getInstagramAccountProfile(
-    shortToken.data.userId,
-    longToken.data.accessToken,
-  );
+  const profile = await getInstagramAccountProfile(longToken.data.accessToken);
 
   if (!profile.ok) {
     const isIncompatible = profile.code === "incompatible_account";

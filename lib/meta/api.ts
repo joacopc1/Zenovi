@@ -22,7 +22,7 @@ export type InstagramAccountProfile = {
 export async function exchangeInstagramAuthorizationCode(
   config: InstagramOAuthConfig,
   code: string,
-): Promise<MetaResult<{ accessToken: string; userId: string }>> {
+): Promise<MetaResult<{ accessToken: string }>> {
   const body = new FormData();
   body.set("client_id", config.appId);
   body.set("client_secret", config.appSecret);
@@ -40,13 +40,12 @@ export async function exchangeInstagramAuthorizationCode(
   }
 
   const accessToken = readNonEmptyString(response.data, "access_token");
-  const userId = readIdentifier(response.data, "user_id");
 
-  if (!accessToken || !userId) {
+  if (!accessToken) {
     return { ok: false, code: "invalid_short_token_response" };
   }
 
-  return { ok: true, data: { accessToken, userId } };
+  return { ok: true, data: { accessToken } };
 }
 
 export async function exchangeInstagramLongLivedToken(
@@ -81,10 +80,9 @@ export async function exchangeInstagramLongLivedToken(
 }
 
 export async function getInstagramAccountProfile(
-  userId: string,
   accessToken: string,
 ): Promise<MetaResult<InstagramAccountProfile>> {
-  const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(userId)}`, INSTAGRAM_GRAPH_ORIGIN);
+  const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me`, INSTAGRAM_GRAPH_ORIGIN);
   url.searchParams.set(
     "fields",
     "id,username,account_type,profile_picture_url,followers_count,follows_count,media_count",
@@ -98,11 +96,11 @@ export async function getInstagramAccountProfile(
     return response;
   }
 
-  const id = readIdentifier(response.data, "id") ?? userId;
+  const id = readIdentifier(response.data, "id");
   const username = readNonEmptyString(response.data, "username");
   const accountType = readNonEmptyString(response.data, "account_type");
 
-  if (!username || (accountType !== "BUSINESS" && accountType !== "MEDIA_CREATOR")) {
+  if (!id || !username || (accountType !== "BUSINESS" && accountType !== "MEDIA_CREATOR")) {
     return { ok: false, code: "incompatible_account" };
   }
 
