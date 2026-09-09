@@ -8,7 +8,9 @@ export default function RegisterPage() {
       description="Completá tus datos para empezar."
       activeTab="register"
     >
-      <RegisterForm />
+      <RegisterForm
+        googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"}
+      />
     </AuthFrame>
   );
 }

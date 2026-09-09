@@ -16,10 +16,9 @@ export default async function WorkspaceOnboardingPage() {
 
   return (
     <OnboardingFrame
-      eyebrow="Paso 2 · Tu marca"
-      title="Nombrá tu espacio de trabajo."
-      description="Este nombre identifica la marca cuyos contenidos, métricas y decisiones vas a reunir en Zenovi."
-      currentStep={2}
+      title="Nombrá tu marca"
+      description="Así la vas a identificar dentro de Zenovi."
+      currentStep={1}
     >
       <WorkspaceForm />
     </OnboardingFrame>

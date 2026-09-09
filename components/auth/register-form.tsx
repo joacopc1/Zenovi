@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import { AuthDivider, GoogleAuthButton } from "./google-auth-button";
 import { PasswordInput } from "./password-input";
 import {
   AUTH_FIELD_CLASS,
@@ -10,12 +12,30 @@ import {
 } from "./form-styles";
 import {
   PASSWORD_MIN_LENGTH,
+  SIGN_UP_FAILURE_MESSAGE,
   SIGN_UP_RESULT_MESSAGE,
 } from "@/lib/auth/messages";
 import { createClient } from "@/lib/supabase/client";
 
-export function RegisterForm() {
+export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+  const router = useRouter();
   const [status, setStatus] = useState<AuthFeedbackState>({ kind: "idle" });
+  const [confirmationEmail, setConfirmationEmail] = useState("");
+
+  async function continueWithGoogle() {
+    setStatus({ kind: "loading" });
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding/workspace`,
+      },
+    });
+
+    if (error) {
+      setStatus({ kind: "error", message: SIGN_UP_FAILURE_MESSAGE });
+    }
+  }
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,23 +56,56 @@ export function RegisterForm() {
     }
 
     const supabase = createClient();
-    await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: displayName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/workspace`,
       },
     });
 
+    if (error) {
+      setStatus({ kind: "error", message: SIGN_UP_FAILURE_MESSAGE });
+      return;
+    }
+
+    if (data.session) {
+      router.replace("/onboarding/workspace");
+      router.refresh();
+      return;
+    }
+
     form.reset();
+    setConfirmationEmail(email);
     setStatus({ kind: "success", message: SIGN_UP_RESULT_MESSAGE });
   }
 
   const isLoading = status.kind === "loading";
 
+  if (status.kind === "success") {
+    return (
+      <div className="border-y border-mist py-5 text-center" role="status">
+        <p className="text-sm font-semibold text-ink">Revisá tu correo</p>
+        <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-5 text-graphite">
+          {status.message}
+        </p>
+        <p className="mt-2 break-all text-xs font-medium text-ink">{confirmationEmail}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      <GoogleAuthButton
+        label="Continuar con Google"
+        enabled={googleEnabled}
+        disabled={isLoading}
+        onClick={continueWithGoogle}
+      />
+
+      <AuthDivider />
+
       <form className="space-y-5" onSubmit={register}>
         <AuthField label="Nombre" htmlFor="displayName">
           <input

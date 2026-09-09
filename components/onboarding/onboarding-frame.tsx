@@ -1,58 +1,43 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { BrandMark } from "@/components/brand/brand-mark";
 
 type OnboardingFrameProps = {
-  eyebrow: string;
   title: string;
   description: string;
   children: ReactNode;
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2;
 };
 
-const progressWidth = {
-  1: "w-1/3",
-  2: "w-2/3",
-  3: "w-full",
-} as const;
-
 export function OnboardingFrame({
-  eyebrow,
   title,
   description,
   children,
   currentStep,
 }: OnboardingFrameProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center py-10">
-      <section className="w-[calc(100vw-2.5rem)] min-w-0 max-w-[440px] rounded-panel border border-mist bg-paper p-6 sm:w-[calc(100vw-4rem)] sm:p-8">
-        <header className="mb-8">
-          <div className="mb-8 flex items-center gap-2.5" aria-label="Zenovi">
-            <BrandMark />
-            <span className="text-[15px] font-semibold tracking-[-0.02em]">Zenovi</span>
-          </div>
+    <main className="min-h-screen bg-white px-5 py-12 text-ink">
+      <section className="mx-auto w-full max-w-[400px]">
+        <Link href="/" className="mx-auto flex w-fit items-center gap-2.5" aria-label="Zenovi">
+          <BrandMark />
+          <span className="text-[17px] font-semibold tracking-[-0.025em]">Zenovi</span>
+        </Link>
 
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-            {eyebrow}
-          </p>
-          <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.045em]">
+        <header className="mt-9 text-center sm:mt-10">
+          <p className="text-xs font-medium text-muted">Paso {currentStep} de 2</p>
+          <h1 className="mt-2 text-[clamp(1.5rem,1.15rem+1.1vw,1.875rem)] font-semibold leading-tight tracking-[-0.04em]">
             {title}
           </h1>
-          <p className="mt-3 max-w-[36ch] text-sm leading-6 text-graphite">
+          <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-5 text-muted">
             {description}
           </p>
         </header>
 
-        {children}
+        <div className="mt-5">{children}</div>
 
-        <div className="mt-8 border-t border-mist pt-5" aria-label="Ruta de conexión">
-          <ol className="grid grid-cols-3 gap-3 text-[11px] font-medium text-muted">
-            <li className={currentStep === 1 ? "text-ink" : undefined}>01 Cuenta</li>
-            <li className={currentStep === 2 ? "text-ink" : undefined}>02 Marcas</li>
-            <li className={currentStep === 3 ? "text-ink" : undefined}>03 Insights</li>
-          </ol>
-          <div className="mt-2 h-px bg-mist">
-            <div className={`h-px bg-ink ${progressWidth[currentStep]}`} />
-          </div>
+        <div className="mt-6 flex gap-2" aria-label={`Paso ${currentStep} de 2`}>
+          <span className="h-0.5 flex-1 bg-ink" />
+          <span className={`h-0.5 flex-1 ${currentStep === 2 ? "bg-ink" : "bg-mist"}`} />
         </div>
       </section>
     </main>
