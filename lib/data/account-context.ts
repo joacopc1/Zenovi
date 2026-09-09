@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  isInstagramConnectionStatus,
+  type InstagramConnectionStatus,
+} from "@/lib/meta/connection-state";
 import { createClient } from "@/lib/supabase/server";
 
 export type AccountContext = {
@@ -8,6 +12,10 @@ export type AccountContext = {
   workspace: {
     id: string;
     name: string;
+  } | null;
+  instagram: {
+    status: InstagramConnectionStatus;
+    username: string | null;
   } | null;
 };
 
@@ -31,6 +39,40 @@ export async function getAccountContext(): Promise<AccountContext | null> {
 
   const emailName = authData.user.email?.split("@")[0];
   const displayName = profile?.display_name || emailName || "Cuenta";
+  let instagram: AccountContext["instagram"] = null;
+
+  if (workspace) {
+    const { data: connection, error: connectionError } = await supabase
+      .from("social_connections")
+      .select("id, status")
+      .eq("workspace_id", workspace.id)
+      .maybeSingle();
+
+    if (connectionError) {
+      throw new Error("No pudimos cargar el estado de Instagram.");
+    }
+
+    if (connection) {
+      if (!isInstagramConnectionStatus(connection.status)) {
+        throw new Error("El estado de la conexión de Instagram no es válido.");
+      }
+
+      const { data: socialAccount, error: socialAccountError } = await supabase
+        .from("social_accounts")
+        .select("username")
+        .eq("connection_id", connection.id)
+        .maybeSingle();
+
+      if (socialAccountError) {
+        throw new Error("No pudimos cargar la cuenta de Instagram.");
+      }
+
+      instagram = {
+        status: connection.status,
+        username: socialAccount?.username ?? null,
+      };
+    }
+  }
 
   return {
     displayName,
@@ -41,6 +83,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
           name: workspace.name,
         }
       : null,
+    instagram,
   };
 }
 

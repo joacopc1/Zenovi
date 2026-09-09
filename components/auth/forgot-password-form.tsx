@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
 import {
+  AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_PRIMARY_BUTTON_CLASS,
   AUTH_TEXT_LINK_CLASS,
@@ -16,9 +17,10 @@ export function ForgotPasswordForm() {
 
   async function requestReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setStatus({ kind: "loading" });
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const email = String(formData.get("email") ?? "").trim();
 
     if (!email) {
@@ -31,7 +33,7 @@ export function ForgotPasswordForm() {
       redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
     });
 
-    event.currentTarget.reset();
+    form.reset();
     setStatus({ kind: "success", message: PASSWORD_RESET_RESULT_MESSAGE });
   }
 
@@ -39,20 +41,22 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="space-y-5">
-      <form className="space-y-3" onSubmit={requestReset}>
-        <label className="block text-xs font-semibold text-graphite" htmlFor="email">
-          Correo electrónico
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="vos@empresa.com"
-          disabled={isLoading}
-          required
-        />
+      <form className="space-y-5" onSubmit={requestReset}>
+        <div className={AUTH_FIELD_CLASS}>
+          <label className="block text-sm font-medium text-ink" htmlFor="email">
+            Correo electrónico
+          </label>
+          <input
+            className={AUTH_INPUT_CLASS}
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="tu@ejemplo.com"
+            disabled={isLoading}
+            required
+          />
+        </div>
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}
           type="submit"

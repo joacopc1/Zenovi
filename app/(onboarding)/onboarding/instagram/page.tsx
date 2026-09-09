@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PreflightConfirmation } from "@/components/onboarding/preflight-confirmation";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { getAccountContext } from "@/lib/data/account-context";
+import { isInstagramOAuthConfigured } from "@/lib/meta/config";
 
 export const metadata: Metadata = {
   title: "Conectar Instagram | Zenovi",
@@ -20,8 +22,29 @@ const excludedAccess = [
   "Administrar comentarios o acceder a tu contraseña.",
 ];
 
-export default async function InstagramOnboardingPage() {
+const oauthErrors: Record<string, string> = {
+  workspace_unavailable: "No pudimos verificar tu workspace. Intentá nuevamente.",
+  attempt_unavailable: "No pudimos iniciar una autorización segura. Intentá nuevamente.",
+  connection_unavailable: "No pudimos preparar la conexión de Instagram. Intentá nuevamente.",
+  configuration_unavailable: "La conexión de Instagram todavía no está disponible.",
+  invalid_callback: "La respuesta de Instagram no fue válida. Iniciá la conexión nuevamente.",
+  invalid_or_expired_attempt: "La autorización venció o ya fue utilizada. Iniciá la conexión nuevamente.",
+  authorization_denied: "No se concedió el acceso. Podés intentarlo nuevamente cuando quieras.",
+  token_exchange_failed: "Instagram no pudo completar la autorización. Intentá nuevamente.",
+  incompatible_account: "La cuenta elegida debe ser de Creador o Empresa.",
+  account_lookup_failed: "No pudimos verificar la cuenta elegida. Intentá nuevamente.",
+  account_unavailable: "No pudimos guardar la cuenta elegida. Revisá si ya está conectada.",
+};
+
+export default async function InstagramOnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[]; connected?: string | string[] }>;
+}) {
   const account = await getAccountContext();
+  const query = await searchParams;
+  const errorCode = typeof query.error === "string" ? query.error : undefined;
+  const connectionCompleted = query.connected === "1";
 
   if (!account) {
     redirect("/login");
@@ -35,9 +58,7 @@ export default async function InstagramOnboardingPage() {
     <div className="mx-auto flex min-h-screen max-w-[1180px] flex-col px-5 md:px-10">
       <header className="flex h-16 items-center justify-between border-b border-ink/[0.07]">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Volver al inicio de Zenovi">
-          <span className="grid size-8 place-items-center rounded-[9px] bg-ink text-xs font-bold text-white">
-            Z
-          </span>
+          <BrandMark />
           <strong className="text-sm font-semibold">Zenovi</strong>
         </Link>
         <Link href="/" className="text-xs font-semibold text-graphite hover:text-ink">
@@ -72,7 +93,15 @@ export default async function InstagramOnboardingPage() {
             </Requirement>
           </div>
 
-          <PreflightConfirmation />
+          <PreflightConfirmation
+            oauthAvailable={isInstagramOAuthConfigured()}
+            errorMessage={errorCode ? oauthErrors[errorCode] ?? "No pudimos iniciar la conexión." : undefined}
+            successMessage={
+              connectionCompleted
+                ? "Cuenta autorizada y verificada. Ya podemos preparar la primera sincronización."
+                : undefined
+            }
+          />
         </section>
 
         <aside className="space-y-5 lg:pt-7">

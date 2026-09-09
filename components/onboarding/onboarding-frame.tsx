@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 type OnboardingFrameProps = {
   eyebrow: string;
@@ -26,9 +27,7 @@ export function OnboardingFrame({
       <section className="w-[calc(100vw-2.5rem)] min-w-0 max-w-[440px] rounded-panel border border-mist bg-paper p-6 sm:w-[calc(100vw-4rem)] sm:p-8">
         <header className="mb-8">
           <div className="mb-8 flex items-center gap-2.5" aria-label="Zenovi">
-            <span className="grid size-8 place-items-center rounded-control bg-ink text-sm font-bold text-paper">
-              Z
-            </span>
+            <BrandMark />
             <span className="text-[15px] font-semibold tracking-[-0.02em]">Zenovi</span>
           </div>
 

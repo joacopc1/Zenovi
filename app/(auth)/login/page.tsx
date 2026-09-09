@@ -1,5 +1,8 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { OnboardingFrame } from "@/components/onboarding/onboarding-frame";
+import {
+  AuthFrame,
+  InstagramAccountContext,
+} from "@/components/auth/auth-frame";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string }>;
@@ -9,16 +12,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
 
   return (
-    <OnboardingFrame
-      eyebrow="Tu dirección de contenido"
-      title="Volvé a tus marcas y decisiones."
-      description="Entrá para reunir rendimiento, audiencia y recomendaciones en un solo lugar."
-      currentStep={1}
+    <AuthFrame
+      title="Bienvenido de nuevo"
+      description="Iniciá sesión para continuar con"
+      activeTab="login"
+      accountContext={<InstagramAccountContext username="usuario" />}
     >
       <LoginForm
         initialError={error === "auth_callback"}
         googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"}
       />
-    </OnboardingFrame>
+    </AuthFrame>
   );
 }

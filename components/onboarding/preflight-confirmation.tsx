@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-export function PreflightConfirmation() {
+export function PreflightConfirmation({
+  oauthAvailable,
+  errorMessage,
+  successMessage,
+}: {
+  oauthAvailable: boolean;
+  errorMessage?: string;
+  successMessage?: string;
+}) {
   const [confirmed, setConfirmed] = useState(false);
 
   return (
@@ -24,18 +32,33 @@ export function PreflightConfirmation() {
         </span>
       </label>
 
-      <button
-        type="button"
-        disabled
-        className="mt-4 min-h-11 w-full rounded-control bg-ink px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-ink/35 sm:w-auto"
+      <form action="/api/integrations/instagram/oauth-attempts" method="post">
+        <button
+          type="submit"
+          disabled={!confirmed || !oauthAvailable}
+          className="mt-4 min-h-11 w-full rounded-control bg-ink px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-ink/35 sm:w-auto"
+        >
+          Conectar con Instagram
+        </button>
+      </form>
+      <p
+        className={`mt-2 text-[10px] leading-4 ${errorMessage || (confirmed && !oauthAvailable) ? "text-warning" : successMessage ? "text-ink" : "text-muted"}`}
+        aria-live="polite"
       >
-        Conectar con Instagram
-      </button>
-      <p className={`mt-2 text-[10px] leading-4 ${confirmed ? "text-warning" : "text-muted"}`} aria-live="polite">
-        {confirmed
-          ? "Preflight confirmado. La autorización real se habilitará al conectar OAuth de Meta."
-          : "Confirmá el tipo de cuenta para continuar."}
+        {errorMessage ?? successMessage ?? getHelperMessage({ confirmed, oauthAvailable })}
       </p>
     </div>
   );
+}
+
+function getHelperMessage({ confirmed, oauthAvailable }: { confirmed: boolean; oauthAvailable: boolean }) {
+  if (!oauthAvailable) {
+    return "Falta terminar la configuración segura de Meta para habilitar la conexión.";
+  }
+
+  if (confirmed) {
+    return "Instagram abrirá su autorización oficial para que elijas la cuenta.";
+  }
+
+  return "Confirmá el tipo de cuenta para continuar.";
 }

@@ -10,3 +10,17 @@ export function getSupabaseConfig() {
 
   return { supabaseUrl, supabasePublishableKey };
 }
+
+export function getSupabaseAdminConfig() {
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY?.trim();
+
+  if (!supabaseUrl || !supabaseSecretKey) {
+    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SECRET_KEY.");
+  }
+
+  if (!supabaseSecretKey.startsWith("sb_secret_")) {
+    throw new Error("SUPABASE_SECRET_KEY no tiene el formato esperado.");
+  }
+
+  return { supabaseUrl, supabaseSecretKey };
+}

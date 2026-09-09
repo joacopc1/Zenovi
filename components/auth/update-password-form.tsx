@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
-import { AUTH_INPUT_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from "./form-styles";
+import { PasswordInput } from "./password-input";
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_PRIMARY_BUTTON_CLASS,
+} from "./form-styles";
 import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_UPDATE_FAILURE_MESSAGE,
@@ -46,36 +50,36 @@ export function UpdatePasswordForm() {
 
   return (
     <div className="space-y-5">
-      <form className="space-y-3" onSubmit={updatePassword}>
-        <label className="block text-xs font-semibold text-graphite" htmlFor="password">
-          Nueva contraseña
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
-          minLength={PASSWORD_MIN_LENGTH}
-          disabled={isLoading}
-          required
-        />
+      <form className="space-y-5" onSubmit={updatePassword}>
+        <div className={AUTH_FIELD_CLASS}>
+          <label className="block text-sm font-medium text-ink" htmlFor="password">
+            Nueva contraseña
+          </label>
+          <PasswordInput
+            id="password"
+            name="password"
+            autoComplete="new-password"
+            placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
+            minLength={PASSWORD_MIN_LENGTH}
+            disabled={isLoading}
+            required
+          />
+        </div>
 
-        <label className="block text-xs font-semibold text-graphite" htmlFor="confirmation">
-          Repetir contraseña
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="confirmation"
-          name="confirmation"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Repetí la contraseña"
-          minLength={PASSWORD_MIN_LENGTH}
-          disabled={isLoading}
-          required
-        />
+        <div className={AUTH_FIELD_CLASS}>
+          <label className="block text-sm font-medium text-ink" htmlFor="confirmation">
+            Repetir contraseña
+          </label>
+          <PasswordInput
+            id="confirmation"
+            name="confirmation"
+            autoComplete="new-password"
+            placeholder="Repetí la contraseña"
+            minLength={PASSWORD_MIN_LENGTH}
+            disabled={isLoading}
+            required
+          />
+        </div>
 
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}

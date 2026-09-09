@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import { PasswordInput } from "./password-input";
 import {
+  AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_PRIMARY_BUTTON_CLASS,
-  AUTH_TEXT_LINK_CLASS,
 } from "./form-styles";
 import {
   PASSWORD_MIN_LENGTH,
@@ -19,9 +19,10 @@ export function RegisterForm() {
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setStatus({ kind: "loading" });
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const displayName = String(formData.get("displayName") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
@@ -44,7 +45,7 @@ export function RegisterForm() {
       },
     });
 
-    event.currentTarget.reset();
+    form.reset();
     setStatus({ kind: "success", message: SIGN_UP_RESULT_MESSAGE });
   }
 
@@ -52,50 +53,45 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-5">
-      <form className="space-y-3" onSubmit={register}>
-        <label className="block text-xs font-semibold text-graphite" htmlFor="displayName">
-          Nombre
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="displayName"
-          name="displayName"
-          type="text"
-          autoComplete="name"
-          placeholder="Tu nombre"
-          maxLength={80}
-          disabled={isLoading}
-          required
-        />
+      <form className="space-y-5" onSubmit={register}>
+        <AuthField label="Nombre" htmlFor="displayName">
+          <input
+            className={AUTH_INPUT_CLASS}
+            id="displayName"
+            name="displayName"
+            type="text"
+            autoComplete="name"
+            placeholder="Tu nombre"
+            maxLength={80}
+            disabled={isLoading}
+            required
+          />
+        </AuthField>
 
-        <label className="block text-xs font-semibold text-graphite" htmlFor="email">
-          Correo electrónico
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="vos@empresa.com"
-          disabled={isLoading}
-          required
-        />
+        <AuthField label="Correo electrónico" htmlFor="email">
+          <input
+            className={AUTH_INPUT_CLASS}
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="tu@ejemplo.com"
+            disabled={isLoading}
+            required
+          />
+        </AuthField>
 
-        <label className="block text-xs font-semibold text-graphite" htmlFor="password">
-          Contraseña
-        </label>
-        <input
-          className={AUTH_INPUT_CLASS}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
-          minLength={PASSWORD_MIN_LENGTH}
-          disabled={isLoading}
-          required
-        />
+        <AuthField label="Contraseña" htmlFor="password">
+          <PasswordInput
+            id="password"
+            name="password"
+            autoComplete="new-password"
+            placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
+            minLength={PASSWORD_MIN_LENGTH}
+            disabled={isLoading}
+            required
+          />
+        </AuthField>
 
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}
@@ -107,13 +103,25 @@ export function RegisterForm() {
       </form>
 
       <AuthFeedback status={status} />
+    </div>
+  );
+}
 
-      <p className="text-center text-xs text-graphite">
-        ¿Ya tenés cuenta?{" "}
-        <Link className={AUTH_TEXT_LINK_CLASS} href="/login">
-          Iniciar sesión
-        </Link>
-      </p>
+function AuthField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={AUTH_FIELD_CLASS}>
+      <label className="block text-sm font-medium text-ink" htmlFor={htmlFor}>
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

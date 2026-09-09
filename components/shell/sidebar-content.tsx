@@ -7,6 +7,7 @@ import { useShellIdentity } from "./shell-identity";
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const identity = useShellIdentity();
+  const instagramLabel = getInstagramLabel(identity.instagram);
 
   return (
     <>
@@ -33,7 +34,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         >
           <div className="flex justify-between gap-3">
             <span>Instagram</span>
-            <span className="font-semibold text-warning">Configurar →</span>
+            <span className={`font-semibold ${instagramLabel.tone}`}>{instagramLabel.text} →</span>
           </div>
         </Link>
         <div className="border-t border-ink/[0.07] px-2.5 py-3">
@@ -60,4 +61,26 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
     </>
   );
+}
+
+function getInstagramLabel(instagram: ReturnType<typeof useShellIdentity>["instagram"]) {
+  if (!instagram) {
+    return { text: "Configurar", tone: "text-warning" };
+  }
+
+  if (instagram.status === "connected") {
+    return {
+      text: instagram.username ? `@${instagram.username}` : "Conectado",
+      tone: "text-success",
+    };
+  }
+
+  if (instagram.status === "failed" || instagram.status === "action_required") {
+    return { text: "Revisar", tone: "text-warning" };
+  }
+
+  return {
+    text: instagram.username ? `@${instagram.username}` : "Conectando",
+    tone: "text-graphite",
+  };
 }

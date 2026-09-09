@@ -21,6 +21,7 @@ export default async function DashboardLayout({
         displayName: account.displayName,
         initials: account.initials,
         workspaceName: account.workspace.name,
+        instagram: account.instagram,
       }}
     >
       {children}

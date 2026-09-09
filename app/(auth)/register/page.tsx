@@ -1,15 +1,14 @@
-import { OnboardingFrame } from "@/components/onboarding/onboarding-frame";
+import { AuthFrame } from "@/components/auth/auth-frame";
 import { RegisterForm } from "@/components/auth/register-form";
 
 export default function RegisterPage() {
   return (
-    <OnboardingFrame
-      eyebrow="Tu espacio de trabajo"
-      title="Creá una base clara para decidir."
-      description="Empezá con tu cuenta. Después conectamos tus marcas y sus datos oficiales."
-      currentStep={1}
+    <AuthFrame
+      title="Creá tu cuenta"
+      description="Completá tus datos para empezar."
+      activeTab="register"
     >
       <RegisterForm />
-    </OnboardingFrame>
+    </AuthFrame>
   );
 }

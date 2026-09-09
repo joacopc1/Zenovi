@@ -235,8 +235,8 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 2 - Meta y sincronización
 
-- [ ] OAuth state machine.
-- [ ] Tokens cifrados.
+- [-] OAuth state machine: estados canónicos y persistencia preparados; faltan endpoints OAuth y prueba end-to-end.
+- [-] Tokens cifrados: almacenamiento exclusivo del servidor y cifrado de aplicación preparados; falta rotación de claves.
 - [ ] Cuenta elegible y selección de activo.
 - [ ] Sync inicial/incremental.
 - [ ] Jobs idempotentes y retries.
