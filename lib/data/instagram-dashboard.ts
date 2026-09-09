@@ -10,6 +10,7 @@ type InstagramMediaRow = {
   posted_at: string;
   like_count: number | null;
   comments_count: number | null;
+  synced_at: string;
 };
 
 type InstagramInsightRow = {
@@ -26,6 +27,7 @@ export type InstagramDashboardData = {
   sevenDayInteractions: number;
   syncedMediaCount: number;
   totalMediaInteractions: number;
+  lastSyncedAt: string | null;
   priority: {
     contentLabel: string;
     dateLabel: string;
@@ -43,7 +45,7 @@ export async function getInstagramDashboardData(
   const supabase = await createClient();
   const { data: connection, error: connectionError } = await supabase
     .from("social_connections")
-    .select("id")
+    .select("id, connected_at")
     .eq("workspace_id", workspaceId)
     .eq("provider", "instagram")
     .eq("status", "connected")
@@ -67,14 +69,14 @@ export async function getInstagramDashboardData(
       supabase
         .from("instagram_media")
         .select(
-          "id, media_type, media_product_type, permalink, posted_at, like_count, comments_count",
+          "id, media_type, media_product_type, permalink, posted_at, like_count, comments_count, synced_at",
         )
         .eq("social_account_id", account.id)
         .order("posted_at", { ascending: false })
         .limit(50),
       supabase
         .from("instagram_account_insights")
-        .select("metric, value")
+        .select("metric, value, synced_at")
         .eq("social_account_id", account.id)
         .gte("end_time", sevenDaysAgo),
     ]);
@@ -128,6 +130,11 @@ export async function getInstagramDashboardData(
     sevenDayInteractions: insightTotals.get("total_interactions") ?? 0,
     syncedMediaCount: mediaRows.length,
     totalMediaInteractions: rankedMedia.reduce((total, item) => total + item.interactions, 0),
+    lastSyncedAt: findLatestTimestamp([
+      connection.connected_at,
+      ...mediaRows.map((item) => item.synced_at),
+      ...(accountInsights ?? []).map((item) => item.synced_at),
+    ]),
     priority: priority
       ? {
           contentLabel: getContentLabel(priority.item),
@@ -143,6 +150,15 @@ export async function getInstagramDashboardData(
         }
       : null,
   };
+}
+
+function findLatestTimestamp(values: (string | null)[]) {
+  const timestamps = values
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value).getTime())
+    .filter(Number.isFinite);
+
+  return timestamps.length > 0 ? new Date(Math.max(...timestamps)).toISOString() : null;
 }
 
 function sumMetrics(rows: { metric: string; value: number | string }[]) {

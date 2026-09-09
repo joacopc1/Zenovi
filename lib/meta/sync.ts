@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  getInstagramAccountProfile,
   getInstagramAccountInsights,
   getInstagramMedia,
   getInstagramMediaInsights,
@@ -32,7 +33,8 @@ export async function syncInstagramConnection({
     return { ok: false, code: "sync_state_unavailable" };
   }
 
-  const [mediaResult, accountInsightsResult] = await Promise.all([
+  const [profileResult, mediaResult, accountInsightsResult] = await Promise.all([
+    getInstagramAccountProfile(accessToken),
     getInstagramMedia(accessToken),
     getInstagramAccountInsights(providerAccountId, accessToken),
   ]);
@@ -40,6 +42,36 @@ export async function syncInstagramConnection({
   if (!mediaResult.ok) {
     await markSyncFailure(admin, connectionId, mediaResult.code);
     return { ok: false, code: mediaResult.code };
+  }
+
+  if (!profileResult.ok) {
+    await markSyncFailure(admin, connectionId, profileResult.code);
+    return { ok: false, code: profileResult.code };
+  }
+
+  if (profileResult.data.id !== providerAccountId) {
+    await markSyncFailure(admin, connectionId, "account_mismatch");
+    return { ok: false, code: "account_mismatch" };
+  }
+
+  const { data: refreshedAccount, error: profileError } = await admin
+    .from("social_accounts")
+    .update({
+      username: profileResult.data.username,
+      account_type: profileResult.data.accountType,
+      profile_picture_url: profileResult.data.profilePictureUrl,
+      followers_count: profileResult.data.followersCount,
+      follows_count: profileResult.data.followsCount,
+      media_count: profileResult.data.mediaCount,
+    })
+    .eq("id", socialAccountId)
+    .eq("provider_account_id", providerAccountId)
+    .select("id")
+    .maybeSingle();
+
+  if (profileError || !refreshedAccount) {
+    await markSyncFailure(admin, connectionId, "profile_persistence_failed");
+    return { ok: false, code: "profile_persistence_failed" };
   }
 
   const syncedAt = new Date().toISOString();
@@ -141,10 +173,8 @@ export async function syncInstagramConnection({
     }
   }
 
-  const connectedAt = new Date().toISOString();
   const connected = await updateConnection(admin, connectionId, {
     status: "connected",
-    connected_at: connectedAt,
     last_error_code: null,
     last_error_at: null,
   });

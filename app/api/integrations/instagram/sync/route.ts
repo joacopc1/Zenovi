@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
+  const redirectPath = await readRedirectPath(request);
+
   const { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")
     .select("id")
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (workspaceError || !workspace) {
-    return redirectWithError(request, "workspace_unavailable");
+    return redirectWithError(request, redirectPath, "workspace_unavailable");
   }
 
   const admin = createAdminClient();
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (connectionError || !connection) {
-    return redirectWithError(request, "connection_unavailable");
+    return redirectWithError(request, redirectPath, "connection_unavailable");
   }
 
   const [{ data: socialAccount, error: accountError }, { data: credential, error: credentialError }] =
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
     ]);
 
   if (accountError || credentialError || !socialAccount || !credential) {
-    return redirectWithError(request, "connection_unavailable");
+    return redirectWithError(request, redirectPath, "connection_unavailable");
   }
 
   if (credential.expires_at && new Date(credential.expires_at).getTime() <= Date.now()) {
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", connection.id);
 
-    return redirectWithError(request, "authorization_expired");
+    return redirectWithError(request, "/onboarding/instagram", "authorization_expired");
   }
 
   let accessToken: string;
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
       keyVersion: credential.encryption_key_version,
     } as EncryptedSecret);
   } catch {
-    return redirectWithError(request, "connection_unavailable");
+    return redirectWithError(request, redirectPath, "connection_unavailable");
   }
 
   const syncResult = await syncInstagramConnection({
@@ -91,16 +93,28 @@ export async function POST(request: NextRequest) {
   });
 
   if (!syncResult.ok) {
-    return redirectWithError(request, "initial_sync_failed");
+    return redirectWithError(request, redirectPath, "initial_sync_failed");
   }
 
-  const destination = new URL("/onboarding/instagram", request.url);
-  destination.searchParams.set("connected", "1");
+  const destination = new URL(redirectPath, request.url);
+  destination.searchParams.set(
+    redirectPath === "/onboarding/instagram" ? "connected" : "sync",
+    redirectPath === "/onboarding/instagram" ? "1" : "updated",
+  );
   return NextResponse.redirect(destination, 303);
 }
 
-function redirectWithError(request: NextRequest, code: string) {
-  const destination = new URL("/onboarding/instagram", request.url);
-  destination.searchParams.set("error", code);
+async function readRedirectPath(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    return formData.get("redirectTo") === "/" ? "/" : "/onboarding/instagram";
+  } catch {
+    return "/onboarding/instagram";
+  }
+}
+
+function redirectWithError(request: NextRequest, path: string, code: string) {
+  const destination = new URL(path, request.url);
+  destination.searchParams.set(path === "/" ? "sync" : "error", path === "/" ? "error" : code);
   return NextResponse.redirect(destination, 303);
 }

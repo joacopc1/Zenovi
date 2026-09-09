@@ -13,8 +13,13 @@ type Metric = {
 
 const numberFormatter = new Intl.NumberFormat("es-UY");
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ sync?: string | string[] }>;
+}) {
   const account = await getAccountContext();
+  const query = await searchParams;
   const dashboard = account?.workspace
     ? await getInstagramDashboardData(account.workspace.id)
     : null;
@@ -24,7 +29,10 @@ export default async function Home() {
       <AppHeader title="Inicio" />
       <div className="mx-auto max-w-[1180px] px-5 py-9 md:px-10 md:py-12">
         {dashboard?.priority ? (
-          <ConnectedDashboard dashboard={dashboard} />
+          <ConnectedDashboard
+            dashboard={dashboard}
+            syncStatus={typeof query.sync === "string" ? query.sync : undefined}
+          />
         ) : (
           <EmptyDashboard connected={Boolean(dashboard)} />
         )}
@@ -33,7 +41,13 @@ export default async function Home() {
   );
 }
 
-function ConnectedDashboard({ dashboard }: { dashboard: InstagramDashboardData }) {
+function ConnectedDashboard({
+  dashboard,
+  syncStatus,
+}: {
+  dashboard: InstagramDashboardData;
+  syncStatus?: string;
+}) {
   const priority = dashboard.priority;
   if (!priority) return null;
 
@@ -113,10 +127,34 @@ function ConnectedDashboard({ dashboard }: { dashboard: InstagramDashboardData }
       </section>
 
       <section className="mt-12">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Panorama</h2>
-          <p className="mt-1 text-[11px] text-muted">Datos oficiales de Instagram</p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Panorama</h2>
+            <p className="mt-1 text-[11px] text-muted">
+              Datos oficiales de Instagram
+              {dashboard.lastSyncedAt
+                ? ` · actualizados ${formatSyncDate(dashboard.lastSyncedAt)}`
+                : ""}
+            </p>
+          </div>
+          <form action="/api/integrations/instagram/sync" method="post">
+            <input type="hidden" name="redirectTo" value="/" />
+            <button
+              type="submit"
+              className="h-8 rounded-control border border-mist px-3 text-[11px] font-semibold text-graphite hover:border-ink/20 hover:text-ink"
+            >
+              Actualizar datos
+            </button>
+          </form>
         </div>
+        {syncStatus === "updated" ? (
+          <p className="mt-3 text-[11px] text-success">Los datos se actualizaron correctamente.</p>
+        ) : null}
+        {syncStatus === "error" ? (
+          <p className="mt-3 text-[11px] text-warning">
+            No pudimos actualizar los datos. Intentá nuevamente.
+          </p>
+        ) : null}
         <div className="mt-5 grid grid-cols-2 border-y border-mist lg:grid-cols-4">
           {metrics.map((metric, index) => (
             <div
@@ -164,4 +202,14 @@ function formatNumber(value: number) {
 
 function formatMultiplier(value: number) {
   return new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 }).format(value);
+}
+
+function formatSyncDate(value: string) {
+  return new Intl.DateTimeFormat("es-UY", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Montevideo",
+  }).format(new Date(value));
 }
