@@ -50,6 +50,7 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 - Inicio es un acceso principal independiente; Observar, Decidir, Crear y Setup se escriben con capitalización normal, a 12 px, y se agrupan debajo con 12 px entre secciones.
 - Setup contiene ADN de marca y Ajustes. El encabezado de la sidebar representa la marca personal activa con nombre de perfil, usuario y avatar real de Instagram; usa iniciales como fallback.
 - La identidad superior abre un selector con el perfil actual y “Añadir perfil · Próximamente”. El perfil del propietario y la acción Salir permanecen al pie, debajo de Instagram y Créditos.
+- El selector superior es compacto: avatar de 28 px, `@usuario` como etiqueta principal y “Perfil activo” como apoyo. Si Instagram todavía no devolvió el usuario, usa el nombre registrado.
 - La navegación móvil sigue abierta: el drawer actual es provisional. Evaluar una bottom navigation/dock con las acciones esenciales antes de congelar el patrón; no trasladar automáticamente toda la sidebar de desktop.
 
 ## Jerarquía y componentes
