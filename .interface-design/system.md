@@ -13,7 +13,7 @@ Zenovi debe sentirse como una herramienta premium, analítica y serena: la clari
 - Las cards comparten el color de la superficie que las contiene; se distinguen mediante un borde gris sutil, espacio y tipografía.
 - El color se reserva para estados semánticos, visualizaciones que lo necesiten y acciones donde mejore comprensión.
 - Evitar violetas, gradientes decorativos, sombras pesadas y dashboards compuestos por cajas de colores.
-- Instrument Sans Variable como tipografía principal. Usar Regular, Medium, SemiBold y Bold.
+- Instrument Sans Variable v4 mediante Fontsource como tipografía principal, usando la misma distribución de LeadsRover. Usar Regular, Medium, SemiBold y Bold sin variantes `cv*` globales.
 - Densidad media: suficiente información para trabajar sin convertir la pantalla en una tabla administrativa.
 
 ## Tokens provisionales
@@ -82,5 +82,5 @@ Es deseable para el producto, pero no bloquea el MVP. Solo se publica cuando tod
 
 ### Lecciones tomadas de Glovi
 
-- Conservar: Instrument Sans con `next/font`, App Router, Tailwind 4, shell servidor + componentes cliente puntuales, sidebar de 220/72 px y hoja principal continua.
+- Conservar: Instrument Sans Variable v4 autohospedada, App Router, Tailwind 4, shell servidor + componentes cliente puntuales, sidebar de 220/72 px y hoja principal continua.
 - No copiar: `globals.css` extenso con overrides de colores hardcodeados, modo claro construido encima de dark, dependencias de iconos por CDN y una sidebar monolítica con navegación, tema, feedback, consumo y perfil.

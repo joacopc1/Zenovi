@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Sans } from "next/font/google";
+import "@fontsource-variable/instrument-sans/wght.css";
 import "./globals.css";
-
-const instrumentSans = Instrument_Sans({
-  variable: "--font-instrument",
-  display: "swap",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Zenovi",
@@ -15,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={instrumentSans.variable} suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
