@@ -47,7 +47,8 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 - El selector prepara el modelo mental multi-marca, aunque el MVP permita una sola marca.
 - Los nombres e iconos de navegación son siempre negros y de peso regular. La ruta activa se indica únicamente con un fondo gris suave: sin punto lateral, negrita ni cambio de tamaño.
 - Los iconos de navegación son SVG lineales de 1.75 px, con extremos y uniones redondeados. La pastilla activa usa radio de 12 px.
-- Inicio es un acceso principal independiente; Observar, Decidir y Crear se escriben con capitalización normal, a 11 px, y se agrupan debajo con 12 px entre secciones. ADN de marca pertenece al grupo Crear.
+- Inicio es un acceso principal independiente; Observar, Decidir, Crear y Setup se escriben con capitalización normal, a 12 px, y se agrupan debajo con 12 px entre secciones.
+- Setup contiene ADN de marca y Configuración. El encabezado de la sidebar representa la marca personal activa con nombre de perfil, usuario y avatar real de Instagram; usa iniciales como fallback.
 - La navegación móvil sigue abierta: el drawer actual es provisional. Evaluar una bottom navigation/dock con las acciones esenciales antes de congelar el patrón; no trasladar automáticamente toda la sidebar de desktop.
 
 ## Jerarquía y componentes

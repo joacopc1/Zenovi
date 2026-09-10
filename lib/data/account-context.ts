@@ -2,7 +2,7 @@ import "server-only";
 
 import {
   isInstagramConnectionStatus,
-  type InstagramConnectionStatus,
+  type InstagramAccountIdentity,
 } from "@/lib/meta/connection-state";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,10 +13,7 @@ export type AccountContext = {
     id: string;
     name: string;
   } | null;
-  instagram: {
-    status: InstagramConnectionStatus;
-    username: string | null;
-  } | null;
+  instagram: InstagramAccountIdentity | null;
 };
 
 export async function getAccountContext(): Promise<AccountContext | null> {
@@ -59,7 +56,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
 
       const { data: socialAccount, error: socialAccountError } = await supabase
         .from("social_accounts")
-        .select("username")
+        .select("username, profile_picture_url")
         .eq("connection_id", connection.id)
         .maybeSingle();
 
@@ -70,6 +67,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
       instagram = {
         status: connection.status,
         username: socialAccount?.username ?? null,
+        profilePictureUrl: socialAccount?.profile_picture_url ?? null,
       };
     }
   }

@@ -13,6 +13,12 @@ export const INSTAGRAM_CONNECTION_STATUSES = [
 
 export type InstagramConnectionStatus = (typeof INSTAGRAM_CONNECTION_STATUSES)[number];
 
+export type InstagramAccountIdentity = {
+  status: InstagramConnectionStatus;
+  username: string | null;
+  profilePictureUrl: string | null;
+};
+
 export type InstagramConnectionState = "not_connected" | InstagramConnectionStatus;
 
 const allowedTransitions: Record<InstagramConnectionState, readonly InstagramConnectionStatus[]> = {

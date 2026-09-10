@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
-import { BrandIcon, CalendarIcon, ChartIcon, ContentIcon, DirectorIcon, HomeIcon, VaultIcon } from "./icons";
+import { BrandIcon, CalendarIcon, ChartIcon, ContentIcon, DirectorIcon, HomeIcon, SettingsIcon, VaultIcon } from "./icons";
 
 type NavItem = { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; exact?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -17,7 +17,10 @@ const groups: NavGroup[] = [
   { label: "Crear", items: [
     { href: "/vault", label: "Baúl", icon: VaultIcon },
     { href: "/calendar", label: "Calendario", icon: CalendarIcon },
+  ]},
+  { label: "Setup", items: [
     { href: "/brand", label: "ADN de marca", icon: BrandIcon },
+    { href: "/settings", label: "Configuración", icon: SettingsIcon },
   ]},
 ];
 
@@ -38,7 +41,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
       <div className="mt-3 space-y-3">
         {groups.map((group) => (
           <section key={group.label}>
-            <p className="mb-0.5 px-2.5 text-[11px] leading-4 font-medium tracking-[0.04em] text-muted">{group.label}</p>
+            <p className="mb-0.5 px-2.5 text-xs leading-4 font-medium tracking-[0.04em] text-muted">{group.label}</p>
             <div className="relative space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;

@@ -1,16 +1,13 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { InstagramConnectionStatus } from "@/lib/meta/connection-state";
+import type { InstagramAccountIdentity } from "@/lib/meta/connection-state";
 
 export type ShellIdentity = {
   displayName: string;
   initials: string;
   workspaceName: string;
-  instagram: {
-    status: InstagramConnectionStatus;
-    username: string | null;
-  } | null;
+  instagram: InstagramAccountIdentity | null;
 };
 
 const ShellIdentityContext = createContext<ShellIdentity | null>(null);
