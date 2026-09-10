@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "./actions";
+import { ProfileSwitcher } from "./profile-switcher";
 import { SidebarNav } from "./sidebar-nav";
 import { useShellIdentity } from "./shell-identity";
 
@@ -12,27 +12,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="grid w-full grid-cols-[34px_1fr] items-center gap-2.5 p-1.5 text-left">
-        <span className="relative grid size-[34px] place-items-center overflow-hidden rounded-full bg-mist-strong text-xs font-semibold text-ink">
-          {identity.initials}
-          {identity.instagram?.profilePictureUrl ? (
-            <Image
-              src={identity.instagram.profilePictureUrl}
-              alt=""
-              fill
-              sizes="34px"
-              className="object-cover"
-              unoptimized
-            />
-          ) : null}
-        </span>
-        <span className="min-w-0">
-          <strong className="block truncate text-sm font-semibold">{identity.displayName}</strong>
-          <small className="block truncate text-[10px] text-muted">
-            {identity.instagram?.username ? `@${identity.instagram.username}` : "Marca personal"}
-          </small>
-        </span>
-      </div>
+      <ProfileSwitcher identity={identity} />
 
       <SidebarNav onNavigate={onNavigate} />
 

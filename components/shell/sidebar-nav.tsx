@@ -20,7 +20,7 @@ const groups: NavGroup[] = [
   ]},
   { label: "Setup", items: [
     { href: "/brand", label: "ADN de marca", icon: BrandIcon },
-    { href: "/settings", label: "Configuración", icon: SettingsIcon },
+    { href: "/settings", label: "Ajustes", icon: SettingsIcon },
   ]},
 ];
 

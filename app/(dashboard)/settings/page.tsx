@@ -12,9 +12,9 @@ export default function SettingsPage() {
 
   return (
     <>
-      <AppHeader title="Configuración" />
+      <AppHeader title="Ajustes" />
       <div className="w-full px-5 py-8 md:px-8 md:py-10 lg:px-10">
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Configuración</h1>
+        <h1 className="text-xl font-semibold tracking-[-0.02em]">Ajustes</h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-graphite">
           Administrá la identidad de tu cuenta, la marca activa y sus conexiones.
         </p>
