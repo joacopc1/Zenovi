@@ -2,14 +2,14 @@
 
 @theme {
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  --color-canvas: #f1f0ed;
-  --color-paper: #fffefc;
-  --color-ink: #111113;
-  --color-graphite: #5e5e66;
-  --color-muted: #707078;
-  --color-mist: #e8e7e3;
-  --color-mist-strong: #d2d1cc;
-  --color-control: #ecebe7;
+  --color-canvas: #f5f5f7;
+  --color-paper: #ffffff;
+  --color-ink: #1d1d1f;
+  --color-graphite: #6e6e73;
+  --color-muted: #86868b;
+  --color-mist: rgba(0, 0, 0, 0.09);
+  --color-mist-strong: rgba(0, 0, 0, 0.16);
+  --color-control: #ededf0;
   --color-success: #1d754b;
   --color-warning: #a86511;
   --color-danger: #c33c45;
@@ -40,8 +40,8 @@
   :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
 
   ::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -49,15 +49,13 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #dededc;
-    background-clip: content-box;
-    border: 1px solid transparent;
+    background: #d5d5d8;
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover,
   ::-webkit-scrollbar-thumb:active {
-    background: #b9b9b6;
+    background: #aaaab0;
   }
 }
 

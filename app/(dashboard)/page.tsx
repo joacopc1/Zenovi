@@ -28,7 +28,7 @@ export default async function Home({
   return (
     <>
       <AppHeader title="Inicio" />
-      <div className="mx-auto max-w-[1180px] px-5 py-9 md:px-10 md:py-12">
+      <div className="w-full px-5 py-8 md:px-8 md:py-10 lg:px-10">
         {dashboard?.priority ? (
           <ConnectedDashboard
             dashboard={dashboard}
@@ -104,27 +104,27 @@ function ConnectedDashboard({
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
         Brief de hoy
       </p>
-      <h1 className="max-w-3xl text-[clamp(2.25rem,4.1vw,3.25rem)] font-bold leading-[1.02] tracking-[-0.045em]">
+      <h1 className="max-w-3xl text-[clamp(1.75rem,2.4vw,2rem)] font-semibold leading-[1.08] tracking-[-0.03em]">
         {brief.title}
       </h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-6 text-graphite">
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-graphite">
         {brief.description}
       </p>
 
-      <section className="relative mt-10 grid overflow-hidden rounded-card border border-mist before:absolute before:left-7 before:top-0 before:h-3 before:w-px before:-translate-y-full before:bg-ink lg:grid-cols-[1.45fr_.7fr]">
-        <div className="p-7">
+      <section className="mt-8 grid overflow-hidden rounded-card border border-mist bg-paper lg:grid-cols-[1.45fr_.7fr]">
+        <div className="p-5 md:p-6">
           <p className="flex items-center gap-2 text-xs font-semibold text-graphite">
             <span className="size-[7px] rounded-full bg-ink" />
             {brief.signalLabel}
           </p>
-          <h2 className="mt-4 max-w-2xl text-2xl font-semibold leading-tight tracking-[-0.025em]">
+          <h2 className="mt-3 max-w-2xl text-xl font-semibold leading-snug tracking-[-0.02em]">
             {brief.signalTitle}
           </h2>
           <p className="mt-3 text-[13px] leading-5 text-graphite">
             {brief.signalDescription}
           </p>
         </div>
-        <aside className="border-t border-mist p-7 lg:border-l lg:border-t-0">
+        <aside className="border-t border-mist p-5 md:p-6 lg:border-l lg:border-t-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
             Próxima acción
           </p>
@@ -144,7 +144,7 @@ function ConnectedDashboard({
         </aside>
       </section>
 
-      <section className="mt-12">
+      <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Panorama</h2>
@@ -173,18 +173,18 @@ function ConnectedDashboard({
             No pudimos actualizar los datos. Intentá nuevamente.
           </p>
         ) : null}
-        <div className="mt-5 grid grid-cols-2 border-y border-mist lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-card border border-mist bg-paper lg:grid-cols-4">
           {metrics.map((metric, index) => (
             <div
               key={metric.label}
-              className={`min-w-0 py-5 ${
-                index % 2 === 0 ? "pr-4" : "border-l border-mist pl-4"
+              className={`min-w-0 ${
+                index % 2 === 0 ? "p-5" : "border-l border-mist p-5"
               } ${
                 index > 1 ? "border-t border-mist lg:border-t-0" : ""
-              } lg:border-l lg:px-5 lg:first:border-l-0 lg:first:pl-0`}
+              } lg:border-l lg:p-5 lg:first:border-l-0`}
             >
               <p className="text-xs text-graphite">{metric.label}</p>
-              <p className="mt-3 text-[27px] font-semibold tracking-tight tabular-nums">
+              <p className="mt-3 text-2xl font-semibold tracking-[-0.02em] tabular-nums">
                 {metric.value}
               </p>
               <p className="mt-1.5 text-[10px] text-muted">{metric.note}</p>
@@ -202,7 +202,7 @@ function EmptyDashboard({ connected }: { connected: boolean }) {
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
         Brief de hoy
       </p>
-      <h1 className="text-[clamp(2.25rem,4.1vw,3.25rem)] font-bold leading-[1.02] tracking-[-0.045em]">
+      <h1 className="text-[clamp(1.75rem,2.4vw,2rem)] font-semibold leading-[1.08] tracking-[-0.03em]">
         {connected ? "Instagram está conectado." : "Conectá Instagram para empezar."}
       </h1>
       <p className="mt-4 text-[15px] leading-6 text-graphite">

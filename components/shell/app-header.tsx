@@ -2,7 +2,7 @@ import { MobileNavigation } from "./mobile-navigation";
 
 export function AppHeader({ title }: { title: string }) {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-ink/[0.07] px-5 md:px-7">
+    <header className="flex h-14 items-center justify-between border-b border-mist bg-paper px-5 md:px-7">
       <div className="flex items-center gap-2">
         <MobileNavigation />
         <strong className="text-sm font-semibold">{title}</strong>

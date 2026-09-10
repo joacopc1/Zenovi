@@ -20,14 +20,14 @@ Zenovi debe sentirse como una herramienta premium, analítica y serena: la clari
 
 ```css
 :root {
-  --canvas: #f1f0ed;
-  --surface: #fffefc;
-  --ink: #111113;
-  --graphite: #5e5e66;
-  --muted: #8a8a91;
-  --border: #e8e7e3;
-  --border-strong: #d2d1cc;
-  --focus: #111113;
+  --canvas: #f5f5f7;
+  --surface: #ffffff;
+  --ink: #1d1d1f;
+  --graphite: #6e6e73;
+  --muted: #86868b;
+  --border: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --focus: #1d1d1f;
   --radius-card: 14px;
   --radius-control: 10px;
 }
@@ -38,7 +38,8 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 ## Shell
 
 - Sidebar y header pertenecen al mismo shell visual.
-- Contenido principal como superficie continua, con una transición curva sutil respecto del shell.
+- Contenido principal blanco, continuo y de borde a borde; no se presenta como una tarjeta flotante dentro del shell.
+- La sidebar gris y el contenido blanco se conectan mediante un único separador vertical fino, sin margen exterior, radio ni borde envolvente.
 - Sidebar expandida aproximada: 220 px; colapsada: 72 px.
 - Header aproximado: 56 px.
 - Selector de workspace/marca arriba a la izquierda, con nombre, avatar o logo y chevrons verticales.
@@ -48,11 +49,13 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 
 ## Jerarquía y componentes
 
-- Títulos directos y grandes; texto secundario en grafito.
+- Brief principal entre 28 y 32 px; títulos normales de página entre 18 y 20 px; texto secundario en grafito.
 - Bordes antes que sombras. Si una sombra es necesaria, debe ser corta, neutra y casi imperceptible.
 - Botón primario negro con texto blanco; secundario transparente con borde.
 - Estados vacíos deben explicar el siguiente paso y no ser meramente decorativos.
 - Métricas deben mostrar procedencia, período y estado de sincronización.
+- Las cards usan el mismo blanco que el fondo y se delimitan solo mediante un borde fino y radio de 14 px, sin sombra.
+- El bloque principal de Analíticas integra una fila de métricas seleccionables con una única gráfica amplia debajo.
 - Estados de conexión Meta: no conectado, conectando, conectado, parcial, requiere acción, expirado y error.
 
 ## Dark mode
