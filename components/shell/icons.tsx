@@ -6,7 +6,7 @@ function Icon({ children, ...props }: IconProps) {
   return <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>{children}</svg>;
 }
 
-export const HomeIcon = (props: IconProps) => <Icon {...props}><path d="m3.5 10.75 7.2-6.1a2 2 0 0 1 2.6 0l7.2 6.1"/><path d="M5.5 9.75V19a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9.75"/><path d="M9.5 21v-5.5a2.5 2.5 0 0 1 5 0V21"/></Icon>;
+export const HomeIcon = (props: IconProps) => <Icon {...props}><path d="m4 10.75 6.75-5.9a1.9 1.9 0 0 1 2.5 0l6.75 5.9V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M9.5 21v-5.25a2.5 2.5 0 0 1 5 0V21"/></Icon>;
 export const ChartIcon = (props: IconProps) => <Icon {...props}><path d="M4 4v16h16"/><path d="m7 15 4-4 3 3 5-7"/></Icon>;
 export const ContentIcon = (props: IconProps) => <Icon {...props}><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m10 8.5 5 3.5-5 3.5Z"/></Icon>;
 export const DirectorIcon = (props: IconProps) => <Icon {...props}><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 8h8M8 12h5"/></Icon>;
