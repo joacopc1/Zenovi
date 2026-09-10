@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { decryptMetaToken, type EncryptedSecret } from "@/lib/meta/token-crypto";
-import { syncInstagramConnection } from "@/lib/meta/sync";
+import { syncStoredInstagramConnection } from "@/lib/meta/stored-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -38,61 +38,13 @@ export async function POST(request: NextRequest) {
     return redirectWithError(request, redirectPath, "connection_unavailable");
   }
 
-  const [{ data: socialAccount, error: accountError }, { data: credential, error: credentialError }] =
-    await Promise.all([
-      admin
-        .from("social_accounts")
-        .select("id, provider_account_id")
-        .eq("connection_id", connection.id)
-        .maybeSingle(),
-      admin
-        .from("instagram_connection_credentials")
-        .select(
-          "access_token_ciphertext, access_token_iv, access_token_auth_tag, encryption_key_version, expires_at",
-        )
-        .eq("connection_id", connection.id)
-        .maybeSingle(),
-    ]);
-
-  if (accountError || credentialError || !socialAccount || !credential) {
-    return redirectWithError(request, redirectPath, "connection_unavailable");
-  }
-
-  if (credential.expires_at && new Date(credential.expires_at).getTime() <= Date.now()) {
-    await admin
-      .from("social_connections")
-      .update({
-        status: "action_required",
-        last_error_code: "authorization_expired",
-        last_error_at: new Date().toISOString(),
-      })
-      .eq("id", connection.id);
-
-    return redirectWithError(request, "/onboarding/instagram", "authorization_expired");
-  }
-
-  let accessToken: string;
-
-  try {
-    accessToken = decryptMetaToken({
-      ciphertext: credential.access_token_ciphertext,
-      iv: credential.access_token_iv,
-      authTag: credential.access_token_auth_tag,
-      keyVersion: credential.encryption_key_version,
-    } as EncryptedSecret);
-  } catch {
-    return redirectWithError(request, redirectPath, "connection_unavailable");
-  }
-
-  const syncResult = await syncInstagramConnection({
-    admin,
-    connectionId: connection.id,
-    socialAccountId: socialAccount.id,
-    providerAccountId: socialAccount.provider_account_id,
-    accessToken,
-  });
+  const syncResult = await syncStoredInstagramConnection(admin, connection.id);
 
   if (!syncResult.ok) {
+    if (syncResult.code === "authorization_expired") {
+      return redirectWithError(request, "/onboarding/instagram", syncResult.code);
+    }
+
     return redirectWithError(request, redirectPath, "initial_sync_failed");
   }
 
