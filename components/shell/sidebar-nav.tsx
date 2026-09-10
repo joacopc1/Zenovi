@@ -35,7 +35,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               const Icon = item.icon;
               const selected = active(item);
               return (
-                <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={selected ? "page" : undefined} className={`flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] font-normal text-ink transition-colors ${selected ? "bg-ink/[0.065]" : "hover:bg-ink/[0.035]"}`}>
+                <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={selected ? "page" : undefined} className={`flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-sm leading-5 font-normal text-ink transition-colors ${selected ? "bg-ink/[0.065]" : "hover:bg-ink/[0.035]"}`}>
                   <Icon className="size-[17px] shrink-0" />
                   <span>{item.label}</span>
                 </Link>
@@ -44,7 +44,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         </section>
       ))}
-      <Link href="/brand" onClick={onNavigate} className="flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-[13px] font-normal text-ink transition-colors hover:bg-ink/[0.035]"><BrandIcon className="size-[17px]"/><span>ADN de marca</span></Link>
+      <Link href="/brand" onClick={onNavigate} className="flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-sm leading-5 font-normal text-ink transition-colors hover:bg-ink/[0.035]"><BrandIcon className="size-[17px]"/><span>ADN de marca</span></Link>
     </nav>
   );
 }
