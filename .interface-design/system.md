@@ -45,6 +45,7 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 - Selector de workspace/marca arriba a la izquierda, con nombre, avatar o logo y chevrons verticales.
 - Perfil del usuario separado del workspace y ubicado al final de la navegación.
 - El selector prepara el modelo mental multi-marca, aunque el MVP permita una sola marca.
+- Los nombres e iconos de navegación son siempre negros y de peso regular. La ruta activa se indica únicamente con un fondo gris suave: sin punto lateral, negrita ni cambio de tamaño.
 - La navegación móvil sigue abierta: el drawer actual es provisional. Evaluar una bottom navigation/dock con las acciones esenciales antes de congelar el patrón; no trasladar automáticamente toda la sidebar de desktop.
 
 ## Jerarquía y componentes
@@ -62,9 +63,10 @@ Los tokens son provisionales hasta validar wireframes y contraste. El producto d
 
 Es deseable para el producto, pero no bloquea el MVP. Solo se publica cuando todas las pantallas, gráficos, estados semánticos y contrastes estén revisados; no se obtiene invirtiendo colores automáticamente.
 
-## Referencia aprobada
+## Referencias aprobadas
 
-La referencia estructural es el shell de Glovi: header y sidebar conectados, contenido limpio y tarjetas delimitadas por borde. Se toma el principio, no se copia la identidad visual ni componentes literalmente.
+- La referencia estructural es el shell de Glovi: header y sidebar conectados, contenido limpio y tarjetas delimitadas por borde. Se toma el principio, no se copia la identidad visual ni componentes literalmente.
+- La navegación de LeadsRover define el tratamiento activo: texto e icono negros constantes y una única pastilla gris de selección, sin indicadores adicionales.
 
 ## Implementación en Next.js
 
