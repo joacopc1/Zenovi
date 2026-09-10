@@ -39,6 +39,7 @@ export type InstagramDashboardData = {
     reach: number;
     interactions: number;
     reachMultiplier: number | null;
+    runnerUpReach: number;
     permalink: string | null;
   } | null;
 };
@@ -155,6 +156,7 @@ export async function getInstagramDashboardData(
             nextBestReach > 0 && priority.reach > nextBestReach
               ? priority.reach / nextBestReach
               : null,
+          runnerUpReach: nextBestReach,
           permalink: priority.item.permalink,
         }
       : null,

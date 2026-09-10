@@ -4,6 +4,7 @@ import {
   getInstagramDashboardData,
   type InstagramDashboardData,
 } from "@/lib/data/instagram-dashboard";
+import { buildHomeBrief } from "@/lib/insights/home-brief";
 
 type Metric = {
   label: string;
@@ -51,11 +52,12 @@ function ConnectedDashboard({
   const priority = dashboard.priority;
   if (!priority) return null;
 
-  const multiplier = priority.reachMultiplier;
+  const brief = buildHomeBrief({
+    followers: dashboard.followers,
+    syncedMediaCount: dashboard.syncedMediaCount,
+    priority,
+  });
   const availableMetrics = new Set(dashboard.availableAccountMetrics);
-  const headline = multiplier
-    ? `Tu ${priority.contentLabel} alcanzó ${formatMultiplier(multiplier)} veces más cuentas que tu siguiente pieza.`
-    : `Tu ${priority.contentLabel} es la pieza con mayor alcance entre las sincronizadas.`;
   const metrics: Metric[] = [
     {
       label: "Visualizaciones",
@@ -103,26 +105,23 @@ function ConnectedDashboard({
         Brief de hoy
       </p>
       <h1 className="max-w-3xl text-[clamp(2.25rem,4.1vw,3.25rem)] font-bold leading-[1.02] tracking-[-0.045em]">
-        Tu {priority.contentLabel.toLocaleLowerCase("es")} está llevando la cuenta.
+        {brief.title}
       </h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-6 text-graphite">
-        Entre tus {dashboard.syncedMediaCount} publicaciones sincronizadas, una pieza concentra la
-        señal más clara. Usala como referencia antes de crear la próxima.
+        {brief.description}
       </p>
 
       <section className="relative mt-10 grid overflow-hidden rounded-card border border-mist before:absolute before:left-7 before:top-0 before:h-3 before:w-px before:-translate-y-full before:bg-ink lg:grid-cols-[1.45fr_.7fr]">
         <div className="p-7">
           <p className="flex items-center gap-2 text-xs font-semibold text-graphite">
             <span className="size-[7px] rounded-full bg-ink" />
-            Señal prioritaria · {priority.contentLabel} del {priority.dateLabel}
+            {brief.signalLabel}
           </p>
           <h2 className="mt-4 max-w-2xl text-2xl font-semibold leading-tight tracking-[-0.025em]">
-            {headline}
+            {brief.signalTitle}
           </h2>
           <p className="mt-3 text-[13px] leading-5 text-graphite">
-            Registró {formatNumber(priority.views)} reproducciones, {formatNumber(priority.reach)} de
-            alcance y {formatNumber(priority.interactions)} interacciones. Es tu mejor referencia
-            disponible para decidir qué formato volver a probar.
+            {brief.signalDescription}
           </p>
         </div>
         <aside className="border-t border-mist p-7 lg:border-l lg:border-t-0">
@@ -130,7 +129,7 @@ function ConnectedDashboard({
             Próxima acción
           </p>
           <p className="my-3 text-base font-semibold leading-snug">
-            Usar esta pieza como referencia para tu próximo contenido.
+            {brief.nextAction}
           </p>
           {priority.permalink ? (
             <a
@@ -217,10 +216,6 @@ function EmptyDashboard({ connected }: { connected: boolean }) {
 
 function formatNumber(value: number) {
   return numberFormatter.format(Math.round(value));
-}
-
-function formatMultiplier(value: number) {
-  return new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 }).format(value);
 }
 
 function formatAccountMetric(value: number, available: boolean) {
