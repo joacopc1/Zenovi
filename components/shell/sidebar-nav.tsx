@@ -35,10 +35,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <span>{homeItem.label}</span>
       </Link>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-3 space-y-3">
         {groups.map((group) => (
           <section key={group.label}>
-            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">{group.label}</p>
+            <p className="mb-0.5 px-2.5 text-[10px] leading-4 font-medium tracking-[0.04em] text-muted">{group.label}</p>
             <div className="relative space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
