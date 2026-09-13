@@ -12,7 +12,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <AppHeader title="Ajustes" />
+      <AppHeader />
       <div className="w-full px-5 py-8 md:px-8 md:py-10 lg:px-10">
         <h1 className="text-xl font-semibold tracking-[-0.02em]">Ajustes</h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-graphite">

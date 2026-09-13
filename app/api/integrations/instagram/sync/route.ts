@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { RANGE_OPTIONS } from "@/lib/analytics/range";
 import { syncStoredInstagramConnection } from "@/lib/meta/stored-sync";
+import { ONBOARDING_PATH, resolveSyncReturnPath } from "@/lib/meta/sync-return-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   if (!syncResult.ok) {
     if (syncResult.code === "authorization_expired") {
-      return redirectWithError(request, "/onboarding/instagram", syncResult.code);
+      return redirectWithError(request, ONBOARDING_PATH, syncResult.code);
     }
 
     return redirectWithError(request, redirectPath, "initial_sync_failed");
@@ -50,8 +52,8 @@ export async function POST(request: NextRequest) {
 
   const destination = new URL(redirectPath, request.url);
   destination.searchParams.set(
-    redirectPath === "/onboarding/instagram" ? "connected" : "sync",
-    redirectPath === "/onboarding/instagram" ? "1" : "updated",
+    redirectPath === ONBOARDING_PATH ? "connected" : "sync",
+    redirectPath === ONBOARDING_PATH ? "1" : "updated",
   );
   return NextResponse.redirect(destination, 303);
 }
@@ -59,14 +61,16 @@ export async function POST(request: NextRequest) {
 async function readRedirectPath(request: NextRequest) {
   try {
     const formData = await request.formData();
-    return formData.get("redirectTo") === "/" ? "/" : "/onboarding/instagram";
+    return resolveSyncReturnPath(formData.get("redirectTo"), RANGE_OPTIONS);
   } catch {
-    return "/onboarding/instagram";
+    return ONBOARDING_PATH;
   }
 }
 
 function redirectWithError(request: NextRequest, path: string, code: string) {
   const destination = new URL(path, request.url);
-  destination.searchParams.set(path === "/" ? "sync" : "error", path === "/" ? "error" : code);
+  // Las pantallas del dashboard muestran el aviso genérico; el onboarding, el código.
+  const onboarding = path === ONBOARDING_PATH;
+  destination.searchParams.set(onboarding ? "error" : "sync", onboarding ? code : "error");
   return NextResponse.redirect(destination, 303);
 }

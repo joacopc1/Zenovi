@@ -4,6 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { InstagramAccountIdentity } from "@/lib/meta/connection-state";
 
 export type ShellIdentity = {
+  accountAvatarUrl: string | null;
   displayName: string;
   initials: string;
   workspaceName: string;

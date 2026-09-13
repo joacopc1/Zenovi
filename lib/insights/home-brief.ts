@@ -1,16 +1,16 @@
 export type HomeBriefConfidence = "insufficient" | "initial" | "moderate";
 
 export type HomeBriefInput = {
-  followers: number;
+  followers: number | null;
   syncedMediaCount: number;
   priority: {
     contentLabel: string;
     dateLabel: string;
-    views: number;
+    views: number | null;
     reach: number;
-    interactions: number;
+    interactions: number | null;
     reachMultiplier: number | null;
-    runnerUpReach: number;
+    runnerUpReach: number | null;
   };
 };
 
@@ -33,7 +33,8 @@ export function buildHomeBrief(input: HomeBriefInput): HomeBrief {
   const content = priority.contentLabel;
   const contentLowercase = content.toLocaleLowerCase("es");
   const signalLabel = `${content} del ${priority.dateLabel}`;
-  const evidence = `${formatNumber(priority.views)} reproducciones, ${formatNumber(priority.reach)} de alcance y ${formatNumber(priority.interactions)} interacciones`;
+  const evidence = formatEvidence(priority);
+  const comparisonSignal = formatReachComparison(priority);
 
   if (syncedMediaCount < MINIMUM_COMPARABLE_POSTS) {
     return {
@@ -47,7 +48,7 @@ export function buildHomeBrief(input: HomeBriefInput): HomeBrief {
     };
   }
 
-  const minimumUsefulReach = Math.max(20, input.followers * 2);
+  const minimumUsefulReach = Math.max(20, (input.followers ?? 0) * 2);
   if (priority.reach < minimumUsefulReach) {
     return {
       confidence: "insufficient",
@@ -69,7 +70,7 @@ export function buildHomeBrief(input: HomeBriefInput): HomeBrief {
       title: "Hay una señal que vale la pena volver a probar.",
       description: `El ${content} se separó del resto, pero ${formatPostCount(syncedMediaCount)} todavía ${syncedMediaCount === 1 ? "es" : "son"} una muestra pequeña.`,
       signalLabel: `Señal inicial · ${signalLabel}`,
-      signalTitle: `El ${content} llegó a ${formatNumber(priority.reach)} cuentas; la siguiente pieza, a ${formatNumber(priority.runnerUpReach)}.`,
+      signalTitle: comparisonSignal,
       signalDescription: `Registró ${evidence}. Es una hipótesis útil, no un patrón consolidado.`,
       nextAction: `Probar otro ${contentLowercase} con una idea similar y medir si la ventaja se repite.`,
     };
@@ -84,7 +85,7 @@ export function buildHomeBrief(input: HomeBriefInput): HomeBrief {
       title: "Aparece una diferencia, aunque todavía es leve.",
       description: `Este ${contentLowercase} quedó por encima de las demás piezas sincronizadas, sin una separación suficiente para hablar de un patrón.`,
       signalLabel: `Señal a validar · ${signalLabel}`,
-      signalTitle: `El ${content} llegó a ${formatNumber(priority.reach)} cuentas; la siguiente pieza, a ${formatNumber(priority.runnerUpReach)}.`,
+      signalTitle: comparisonSignal,
       signalDescription: `Registró ${evidence}. La diferencia merece una prueba más antes de orientar el contenido.`,
       nextAction: `Repetir una variable de este ${contentLowercase} y comparar el próximo resultado.`,
     };
@@ -103,6 +104,25 @@ export function buildHomeBrief(input: HomeBriefInput): HomeBrief {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 }).format(value);
+}
+
+function formatEvidence(priority: HomeBriefInput["priority"]) {
+  return [
+    priority.views === null ? null : `${formatNumber(priority.views)} visualizaciones`,
+    `${formatNumber(priority.reach)} de alcance`,
+    priority.interactions === null
+      ? null
+      : `${formatNumber(priority.interactions)} interacciones`,
+  ]
+    .filter((value): value is string => value !== null)
+    .join(", ");
+}
+
+function formatReachComparison(priority: HomeBriefInput["priority"]) {
+  const leading = `El ${priority.contentLabel} llegó a ${formatNumber(priority.reach)} cuentas`;
+  return priority.runnerUpReach === null
+    ? `${leading}.`
+    : `${leading}; la siguiente pieza, a ${formatNumber(priority.runnerUpReach)}.`;
 }
 
 function formatPostCount(value: number) {

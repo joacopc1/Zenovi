@@ -18,6 +18,7 @@ export default async function DashboardLayout({
   return (
     <AppShell
       identity={{
+        accountAvatarUrl: account.avatarUrl,
         displayName: account.displayName,
         initials: account.initials,
         workspaceName: account.workspace.name,

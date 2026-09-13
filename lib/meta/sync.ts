@@ -1,11 +1,23 @@
 import "server-only";
 
+import { mapWithConcurrency } from "@/lib/async/map-with-concurrency";
+import {
+  ACCOUNT_CURRENT_TOTAL_PERIOD,
+  ACCOUNT_PREVIOUS_TOTAL_PERIOD,
+} from "@/lib/data/account-metric-summaries";
 import {
   getInstagramAccountProfile,
   getInstagramAccountInsights,
+  getInstagramDailyTotals,
   getInstagramMedia,
   getInstagramMediaInsights,
 } from "@/lib/meta/api";
+import {
+  BACKFILL_METRICS,
+  endOfDay,
+  findMissingDailyWindows,
+} from "@/lib/meta/daily-backfill";
+import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -119,7 +131,7 @@ export async function syncInstagramConnection({
 
   const insightResults = await mapWithConcurrency(mediaResult.data, 5, async (media) => ({
     media,
-    result: await getInstagramMediaInsights(media.id, accessToken),
+    result: await getInstagramMediaInsights(media.id, accessToken, media.mediaProductType),
   }));
 
   for (const { media, result } of insightResults) {
@@ -148,18 +160,63 @@ export async function syncInstagramConnection({
     }
   }
 
-  const accountInsightRows = accountInsightsResult.ok
-    ? accountInsightsResult.data
-        .filter((insight) => insight.endTime)
-        .map((insight) => ({
-          social_account_id: socialAccountId,
-          metric: insight.metric,
-          period: insight.period,
-          value: insight.value,
-          end_time: insight.endTime as string,
-          synced_at: syncedAt,
-        }))
+  const dailyAccountInsightRows = accountInsightsResult.ok
+    ? accountInsightsResult.data.daily
+        .flatMap((insight) =>
+          insight.endTime
+            ? [{
+                social_account_id: socialAccountId,
+                metric: insight.metric,
+                period: insight.period,
+                value: insight.value,
+                end_time: insight.endTime,
+                synced_at: syncedAt,
+              }]
+            : [],
+        )
     : [];
+
+  const accountSummaryRows = accountInsightsResult.ok
+    ? accountInsightsResult.data.summaries.flatMap((summary) => [
+        {
+          social_account_id: socialAccountId,
+          metric: summary.metric,
+          period: ACCOUNT_CURRENT_TOTAL_PERIOD,
+          value: summary.currentValue,
+          end_time: summary.currentEnd,
+          synced_at: syncedAt,
+        },
+        ...(summary.previousValue === null
+          ? []
+          : [{
+              social_account_id: socialAccountId,
+              metric: summary.metric,
+              period: ACCOUNT_PREVIOUS_TOTAL_PERIOD,
+              value: summary.previousValue,
+              end_time: summary.previousEnd,
+              synced_at: syncedAt,
+            }]),
+      ])
+    : [];
+  // Meta no guarda historia de seguidores: si no tomamos una foto por día, el número
+  // de ayer se pierde para siempre. Esta fila es la única memoria de esa evolución.
+  const followerRows =
+    profileResult.data.followersCount === null
+      ? []
+      : [{
+          social_account_id: socialAccountId,
+          metric: "follower_count",
+          period: "day",
+          value: profileResult.data.followersCount,
+          end_time: endOfDay(new Date()),
+          synced_at: syncedAt,
+        }];
+
+  const accountInsightRows = [
+    ...dailyAccountInsightRows,
+    ...accountSummaryRows,
+    ...followerRows,
+  ];
 
   if (accountInsightRows.length > 0) {
     const { error } = await admin.from("instagram_account_insights").upsert(
@@ -172,6 +229,14 @@ export async function syncInstagramConnection({
       return { ok: false, code: "account_insights_persistence_failed" };
     }
   }
+
+  await backfillDailyTotals({
+    admin,
+    socialAccountId,
+    providerAccountId,
+    accessToken,
+    syncedAt,
+  });
 
   const connected = await updateConnection(admin, connectionId, {
     status: "connected",
@@ -210,16 +275,63 @@ async function markSyncFailure(admin: AdminClient, connectionId: string, code: s
   });
 }
 
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  concurrency: number,
-  mapper: (item: T) => Promise<R>,
-) {
-  const results: R[] = [];
+/**
+ * Completa la serie diaria de las métricas que Meta no entrega como histórico.
+ *
+ * Es deliberadamente best-effort: si falla, no marca la sincronización como fallida.
+ * Lo demás ya se guardó y estos días se vuelven a intentar en la próxima corrida.
+ */
+async function backfillDailyTotals({
+  admin,
+  socialAccountId,
+  providerAccountId,
+  accessToken,
+  syncedAt,
+}: {
+  admin: AdminClient;
+  socialAccountId: string;
+  providerAccountId: string;
+  accessToken: string;
+  syncedAt: string;
+}) {
+  const { data: stored, error } = await admin
+    .from("instagram_account_insights")
+    .select("end_time")
+    .eq("social_account_id", socialAccountId)
+    .eq("period", "day")
+    .in("metric", BACKFILL_METRICS);
 
-  for (let index = 0; index < items.length; index += concurrency) {
-    results.push(...(await Promise.all(items.slice(index, index + concurrency).map(mapper))));
-  }
+  if (error) return;
 
-  return results;
+  // Un día cuenta como cubierto si ya lo tiene la primera métrica; ambas se piden
+  // juntas, así que nunca quedan desparejas.
+  const covered = new Set((stored ?? []).map((row) => row.end_time));
+  const windows = findMissingDailyWindows({
+    knownEndTimes: covered,
+    now: new Date(),
+    lookbackDays: ACCOUNT_INSIGHT_LOOKBACK_DAYS,
+  });
+
+  if (windows.length === 0) return;
+
+  const totals = await getInstagramDailyTotals(
+    providerAccountId,
+    accessToken,
+    BACKFILL_METRICS,
+    windows,
+  );
+
+  if (totals.length === 0) return;
+
+  await admin.from("instagram_account_insights").upsert(
+    totals.map((entry) => ({
+      social_account_id: socialAccountId,
+      metric: entry.metric,
+      period: "day",
+      value: entry.value,
+      end_time: entry.endTime,
+      synced_at: syncedAt,
+    })),
+    { onConflict: "social_account_id,metric,period,end_time" },
+  );
 }

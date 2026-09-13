@@ -1,6 +1,19 @@
 import "server-only";
 
+import {
+  buildAccountMetricSummaries,
+  type StoredAccountInsight,
+} from "@/lib/data/account-metric-summaries";
+import {
+  buildDailyMetricSeries,
+  type InstagramDailyMetric,
+} from "@/lib/data/daily-metric-series";
+import {
+  ACCOUNT_INSIGHT_LOOKBACK_DAYS,
+} from "@/lib/meta/insight-periods";
 import { createClient } from "@/lib/supabase/server";
+
+export type { InstagramDailyMetric };
 
 type InstagramMediaRow = {
   id: string;
@@ -19,9 +32,30 @@ type InstagramInsightRow = {
   value: number | string;
 };
 
+type InstagramAccountInsightRow = StoredAccountInsight & {
+  end_time: string;
+};
+
+export type InstagramContentSummary = {
+  id: string;
+  contentLabel: string;
+  dateLabel: string;
+  views: number | null;
+  reach: number | null;
+  interactions: number | null;
+  likes: number | null;
+  comments: number | null;
+  saves: number | null;
+  shares: number | null;
+  averageWatchTimeMs: number | null;
+  totalWatchTimeMs: number | null;
+  skipRate: number | null;
+  permalink: string | null;
+};
+
 export type InstagramDashboardData = {
   username: string;
-  followers: number;
+  followers: number | null;
   sevenDayReach: number;
   sevenDayViews: number;
   sevenDayInteractions: number;
@@ -29,19 +63,29 @@ export type InstagramDashboardData = {
   previousSevenDayViews: number;
   previousSevenDayInteractions: number;
   availableAccountMetrics: string[];
+  availableDailyMetrics: string[];
+  accountMetricSummaries: InstagramAccountMetricSummary[];
   syncedMediaCount: number;
-  totalMediaInteractions: number;
+  totalMediaInteractions: number | null;
   lastSyncedAt: string | null;
+  dailyMetrics: InstagramDailyMetric[];
+  topContent: InstagramContentSummary[];
   priority: {
     contentLabel: string;
     dateLabel: string;
-    views: number;
+    views: number | null;
     reach: number;
-    interactions: number;
+    interactions: number | null;
     reachMultiplier: number | null;
-    runnerUpReach: number;
+    runnerUpReach: number | null;
     permalink: string | null;
   } | null;
+};
+
+export type InstagramAccountMetricSummary = {
+  metric: string;
+  current: number;
+  previous: number | null;
 };
 
 export async function getInstagramDashboardData(
@@ -69,8 +113,13 @@ export async function getInstagramDashboardData(
   if (!account) return null;
 
   const now = new Date();
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: media, error: mediaError }, { data: accountInsights, error: insightsError }] =
+  const insightBoundary = new Date(
+    now.getTime() - ACCOUNT_INSIGHT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const [
+    { data: media, error: mediaError },
+    { data: accountInsights, error: insightsError },
+  ] =
     await Promise.all([
       supabase
         .from("instagram_media")
@@ -82,9 +131,9 @@ export async function getInstagramDashboardData(
         .limit(50),
       supabase
         .from("instagram_account_insights")
-        .select("metric, value, end_time, synced_at")
+        .select("metric, period, value, end_time, synced_at")
         .eq("social_account_id", account.id)
-        .gte("end_time", fourteenDaysAgo),
+        .gte("end_time", insightBoundary),
     ]);
 
   if (mediaError || insightsError) {
@@ -105,7 +154,13 @@ export async function getInstagramDashboardData(
     mediaInsights = (data ?? []) as InstagramInsightRow[];
   }
 
-  const accountPeriods = summarizeAccountPeriods(accountInsights ?? [], now);
+  const accountInsightRows = (accountInsights ?? []) as InstagramAccountInsightRow[];
+  const summaries = buildAccountMetricSummaries(accountInsightRows);
+  const summaryByMetric = new Map(summaries.map((summary) => [summary.metric, summary]));
+  // Toda métrica con serie diaria entra; `buildDailyMetricSeries` ignora las que no
+  // sabe mapear. Filtrar por `reach` acá descartaba series que sí llegaron.
+  const dailyRows = accountInsightRows.filter((row) => row.period === "day");
+  const dailyMetricsAvailable = new Set(dailyRows.map((row) => row.metric));
   const mediaMetrics = new Map<string, Map<string, number>>();
 
   for (const insight of mediaInsights) {
@@ -115,35 +170,62 @@ export async function getInstagramDashboardData(
   }
 
   const rankedMedia = mediaRows
-    .map((item) => ({
-      item,
-      views: mediaMetrics.get(item.id)?.get("views") ?? 0,
-      reach: mediaMetrics.get(item.id)?.get("reach") ?? 0,
-      interactions:
-        mediaMetrics.get(item.id)?.get("total_interactions") ??
-        (item.like_count ?? 0) + (item.comments_count ?? 0),
-    }))
-    .sort((a, b) => b.reach - a.reach || b.views - a.views);
+    .map((item) => {
+      const metrics = mediaMetrics.get(item.id);
 
-  const priority = rankedMedia[0];
-  const nextBestReach = rankedMedia[1]?.reach ?? 0;
+      return {
+        item,
+        views: metrics?.get("views") ?? null,
+        reach: metrics?.get("reach") ?? null,
+        interactions: metrics?.get("total_interactions") ?? null,
+        likes: metrics?.get("likes") ?? item.like_count,
+        comments: metrics?.get("comments") ?? item.comments_count,
+        saves: metrics?.get("saved") ?? null,
+        shares: metrics?.get("shares") ?? null,
+        averageWatchTimeMs: metrics?.get("ig_reels_avg_watch_time") ?? null,
+        totalWatchTimeMs: metrics?.get("ig_reels_video_view_total_time") ?? null,
+        skipRate: metrics?.get("reels_skip_rate") ?? null,
+      };
+    })
+    .sort((a, b) => performanceScore(b) - performanceScore(a));
+
+  const comparableByReach = rankedMedia.filter(
+    (entry): entry is typeof entry & { reach: number } => entry.reach !== null,
+  );
+  const priority = comparableByReach[0];
+  const nextBestReach = comparableByReach[1]?.reach ?? null;
+  const topContent = rankedMedia.slice(0, 10).map(({ item, ...metrics }) => ({
+    id: item.id,
+    contentLabel: getContentLabel(item),
+    dateLabel: formatMediaDate(item.posted_at),
+    ...metrics,
+    permalink: item.permalink,
+  }));
 
   return {
     username: account.username,
-    followers: account.followers_count ?? 0,
-    sevenDayReach: accountPeriods.current.get("reach") ?? 0,
-    sevenDayViews: accountPeriods.current.get("views") ?? 0,
-    sevenDayInteractions: accountPeriods.current.get("total_interactions") ?? 0,
-    previousSevenDayReach: accountPeriods.previous.get("reach") ?? 0,
-    previousSevenDayViews: accountPeriods.previous.get("views") ?? 0,
-    previousSevenDayInteractions: accountPeriods.previous.get("total_interactions") ?? 0,
-    availableAccountMetrics: [...accountPeriods.available],
+    followers: account.followers_count,
+    sevenDayReach: summaryByMetric.get("reach")?.current ?? 0,
+    sevenDayViews: summaryByMetric.get("views")?.current ?? 0,
+    sevenDayInteractions: summaryByMetric.get("total_interactions")?.current ?? 0,
+    previousSevenDayReach: summaryByMetric.get("reach")?.previous ?? 0,
+    previousSevenDayViews: summaryByMetric.get("views")?.previous ?? 0,
+    previousSevenDayInteractions: summaryByMetric.get("total_interactions")?.previous ?? 0,
+    availableAccountMetrics: summaries.map((summary) => summary.metric),
+    availableDailyMetrics: [...dailyMetricsAvailable],
+    accountMetricSummaries: summaries,
     syncedMediaCount: mediaRows.length,
-    totalMediaInteractions: rankedMedia.reduce((total, item) => total + item.interactions, 0),
+    totalMediaInteractions: sumAvailable(rankedMedia.map((item) => item.interactions)),
+    dailyMetrics: buildDailyMetricSeries(
+      dailyRows,
+      now,
+      ACCOUNT_INSIGHT_LOOKBACK_DAYS,
+    ),
+    topContent,
     lastSyncedAt: findLatestTimestamp([
       connection.connected_at,
       ...mediaRows.map((item) => item.synced_at),
-      ...(accountInsights ?? []).map((item) => item.synced_at),
+      ...accountInsightRows.map((item) => item.synced_at),
     ]),
     priority: priority
       ? {
@@ -153,7 +235,7 @@ export async function getInstagramDashboardData(
           reach: priority.reach,
           interactions: priority.interactions,
           reachMultiplier:
-            nextBestReach > 0 && priority.reach > nextBestReach
+            nextBestReach !== null && nextBestReach > 0 && priority.reach > nextBestReach
               ? priority.reach / nextBestReach
               : null,
           runnerUpReach: nextBestReach,
@@ -163,6 +245,16 @@ export async function getInstagramDashboardData(
   };
 }
 
+function performanceScore(entry: { reach: number | null; views: number | null }) {
+  return entry.reach ?? entry.views ?? -1;
+}
+
+function sumAvailable(values: (number | null)[]) {
+  const available = values.filter((value): value is number => value !== null);
+  return available.length === 0 ? null : available.reduce((total, value) => total + value, 0);
+}
+
+
 function findLatestTimestamp(values: (string | null)[]) {
   const timestamps = values
     .filter((value): value is string => Boolean(value))
@@ -170,28 +262,6 @@ function findLatestTimestamp(values: (string | null)[]) {
     .filter(Number.isFinite);
 
   return timestamps.length > 0 ? new Date(Math.max(...timestamps)).toISOString() : null;
-}
-
-function summarizeAccountPeriods(
-  rows: { metric: string; value: number | string; end_time: string }[],
-  now: Date,
-) {
-  const current = new Map<string, number>();
-  const previous = new Map<string, number>();
-  const available = new Set<string>();
-  const currentBoundary = now.getTime() - 7 * 24 * 60 * 60 * 1000;
-  const previousBoundary = now.getTime() - 14 * 24 * 60 * 60 * 1000;
-
-  for (const row of rows) {
-    const endTime = new Date(row.end_time).getTime();
-    if (!Number.isFinite(endTime) || endTime < previousBoundary) continue;
-
-    available.add(row.metric);
-    const period = endTime >= currentBoundary ? current : previous;
-    period.set(row.metric, (period.get(row.metric) ?? 0) + toNumber(row.value));
-  }
-
-  return { current, previous, available };
 }
 
 function toNumber(value: number | string) {

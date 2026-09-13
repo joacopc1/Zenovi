@@ -1,11 +1,47 @@
 import "server-only";
 
+import { mapWithConcurrency } from "@/lib/async/map-with-concurrency";
 import type { InstagramOAuthConfig } from "@/lib/meta/config";
+import {
+  buildAccountInsightWindows,
+  type InsightWindow,
+} from "@/lib/meta/insight-periods";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_GRAPH_ORIGIN = "https://graph.instagram.com";
 const INSTAGRAM_GRAPH_VERSION = "v26.0";
 const META_REQUEST_TIMEOUT_MS = 12_000;
+const COMMON_MEDIA_INSIGHT_METRICS = [
+  "views",
+  "reach",
+  "likes",
+  "comments",
+  "shares",
+  "saved",
+  "total_interactions",
+] as const;
+const REEL_INSIGHT_METRICS = [
+  "ig_reels_video_view_total_time",
+  "ig_reels_avg_watch_time",
+  "reels_skip_rate",
+] as const;
+/**
+ * Métricas que se piden como serie diaria.
+ *
+ * `reach` ya devuelve un punto por día. De `views` y `total_interactions` no está
+ * confirmado que Meta entregue histórico: si los rechaza, esos pedidos fallan solos,
+ * no se guarda nada y la interfaz sigue informando que no hay serie disponible.
+ */
+const ACCOUNT_DAILY_METRICS = ["reach", "views", "total_interactions"] as const;
+const ACCOUNT_TOTAL_METRICS = [
+  "views",
+  "reach",
+  "profile_views",
+  "accounts_engaged",
+  "total_interactions",
+  "profile_links_taps",
+] as const;
+const ACCOUNT_INSIGHT_CONCURRENCY = 3;
 
 type MetaResult<T> = { ok: true; data: T } | { ok: false; code: string };
 
@@ -37,6 +73,19 @@ export type InstagramInsight = {
   period: string;
   value: number;
   endTime: string | null;
+};
+
+export type InstagramAccountMetricSummary = {
+  metric: (typeof ACCOUNT_TOTAL_METRICS)[number];
+  currentValue: number;
+  previousValue: number | null;
+  currentEnd: string;
+  previousEnd: string;
+};
+
+export type InstagramAccountInsights = {
+  daily: InstagramInsight[];
+  summaries: InstagramAccountMetricSummary[];
 };
 
 export async function exchangeInstagramAuthorizationCode(
@@ -167,12 +216,19 @@ export async function getInstagramMedia(
 export async function getInstagramMediaInsights(
   mediaId: string,
   accessToken: string,
+  mediaProductType: string | null,
 ): Promise<MetaResult<InstagramInsight[]>> {
   const url = new URL(
     `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(mediaId)}/insights`,
     INSTAGRAM_GRAPH_ORIGIN,
   );
-  url.searchParams.set("metric", "views,reach,total_interactions,shares,saved");
+  url.searchParams.set(
+    "metric",
+    [
+      ...COMMON_MEDIA_INSIGHT_METRICS,
+      ...(mediaProductType === "REELS" ? REEL_INSIGHT_METRICS : []),
+    ].join(","),
+  );
 
   const response = await requestMeta(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -184,23 +240,120 @@ export async function getInstagramMediaInsights(
 export async function getInstagramAccountInsights(
   accountId: string,
   accessToken: string,
+): Promise<MetaResult<InstagramAccountInsights>> {
+  const windows = buildAccountInsightWindows();
+  const [dailyChunkResults, summaryResults] = await Promise.all([
+    // Cada métrica se pide por tramos de 30 días; ni un tramo ni una métrica
+    // caída invalidan a las demás.
+    mapWithConcurrency(
+      ACCOUNT_DAILY_METRICS.flatMap((metric) =>
+        windows.dailyChunks.map((chunk) => ({ metric, chunk })),
+      ),
+      ACCOUNT_INSIGHT_CONCURRENCY,
+      ({ metric, chunk }) =>
+        requestInstagramAccountMetric(accountId, accessToken, metric, chunk),
+    ),
+    mapWithConcurrency(
+      ACCOUNT_TOTAL_METRICS,
+      ACCOUNT_INSIGHT_CONCURRENCY,
+      async (metric) => {
+        const [current, previous] = await Promise.all([
+          requestInstagramAccountMetric(accountId, accessToken, metric, windows.current, true),
+          requestInstagramAccountMetric(accountId, accessToken, metric, windows.previous, true),
+        ]);
+
+        return { metric, current, previous };
+      },
+    ),
+  ]);
+
+  const summaries = summaryResults.flatMap(({ metric, current, previous }) => {
+    if (!current.ok || !previous.ok) return [];
+
+    const currentValue = readTotalInsight(current.data, metric);
+    const previousValue = readTotalInsight(previous.data, metric);
+
+    return currentValue === null
+      ? []
+      : [{
+          metric,
+          currentValue,
+          previousValue,
+          currentEnd: windows.current.end,
+          previousEnd: windows.previous.end,
+        }];
+  });
+
+  const daily = dailyChunkResults.flatMap((result) => (result.ok ? result.data : []));
+  const failedChunk = dailyChunkResults.find((result) => !result.ok);
+
+  // Sólo se abandona si no se pudo rescatar nada: ni un tramo de la serie ni un total.
+  if (daily.length === 0 && summaries.length === 0 && failedChunk) return failedChunk;
+
+  return { ok: true, data: { daily, summaries } };
+}
+
+/**
+ * Pide el total de una métrica para cada ventana de un día.
+ *
+ * Verificado contra la serie diaria real de `reach`: el total de una ventana de un
+ * día coincide con el valor que Meta informa para ese día, así que sirve para
+ * reconstruir el histórico de las métricas que no tienen serie propia.
+ */
+export async function getInstagramDailyTotals(
+  accountId: string,
+  accessToken: string,
+  metrics: readonly string[],
+  windows: readonly InsightWindow[],
+): Promise<{ metric: string; endTime: string; value: number }[]> {
+  const requests = metrics.flatMap((metric) => windows.map((window) => ({ metric, window })));
+  const results = await mapWithConcurrency(
+    requests,
+    ACCOUNT_INSIGHT_CONCURRENCY,
+    async ({ metric, window }) => {
+      const result = await requestInstagramAccountMetric(
+        accountId,
+        accessToken,
+        metric,
+        window,
+        true,
+      );
+      if (!result.ok) return null;
+
+      const value = readTotalInsight(result.data, metric);
+      return value === null ? null : { metric, endTime: window.end, value };
+    },
+  );
+
+  return results.filter((entry) => entry !== null);
+}
+
+async function requestInstagramAccountMetric(
+  accountId: string,
+  accessToken: string,
+  metric: string,
+  window: InsightWindow,
+  totalValue = false,
 ): Promise<MetaResult<InstagramInsight[]>> {
-  const now = Math.floor(Date.now() / 1000);
-  const fourteenDaysAgo = now - 14 * 24 * 60 * 60;
   const url = new URL(
     `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(accountId)}/insights`,
     INSTAGRAM_GRAPH_ORIGIN,
   );
-  url.searchParams.set("metric", "views,reach,total_interactions");
+  url.searchParams.set("metric", metric);
   url.searchParams.set("period", "day");
-  url.searchParams.set("since", String(fourteenDaysAgo));
-  url.searchParams.set("until", String(now));
+  url.searchParams.set("since", String(window.since));
+  url.searchParams.set("until", String(window.until));
+  if (totalValue) url.searchParams.set("metric_type", "total_value");
 
   const response = await requestMeta(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   return response.ok ? parseInstagramInsights(response.data) : response;
+}
+
+function readTotalInsight(insights: InstagramInsight[], metric: string) {
+  return insights.find((insight) => insight.metric === metric && insight.endTime === null)?.value ?? null;
 }
 
 function parseInstagramMedia(value: unknown): InstagramMedia | null {

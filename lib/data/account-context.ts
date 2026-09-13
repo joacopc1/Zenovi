@@ -7,6 +7,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export type AccountContext = {
+  avatarUrl: string | null;
   displayName: string;
   initials: string;
   workspace: {
@@ -26,7 +27,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
 
   const [{ data: profile, error: profileError }, { data: workspace, error: workspaceError }] =
     await Promise.all([
-      supabase.from("profiles").select("display_name").maybeSingle(),
+      supabase.from("profiles").select("display_name, avatar_url").maybeSingle(),
       supabase.from("workspaces").select("id, name").limit(1).maybeSingle(),
     ]);
 
@@ -73,6 +74,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
   }
 
   return {
+    avatarUrl: profile?.avatar_url ?? getMetadataAvatar(authData.user.user_metadata),
     displayName,
     initials: getInitials(displayName),
     workspace: workspace
@@ -83,6 +85,11 @@ export async function getAccountContext(): Promise<AccountContext | null> {
       : null,
     instagram,
   };
+}
+
+function getMetadataAvatar(metadata: Record<string, unknown>) {
+  const value = metadata.avatar_url ?? metadata.picture;
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function getInitials(name: string) {

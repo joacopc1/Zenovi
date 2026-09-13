@@ -52,3 +52,15 @@ test("explica cuando no hay separación entre las piezas", () => {
   assert.equal(brief.confidence, "insufficient");
   assert.equal(brief.title, "Las piezas están rindiendo de forma pareja.");
 });
+
+test("no transforma métricas ausentes en ceros dentro de la evidencia", () => {
+  const brief = buildHomeBrief({
+    followers: null,
+    syncedMediaCount: 2,
+    priority: { ...priority, views: null, interactions: null, runnerUpReach: null },
+  });
+
+  assert.match(brief.signalDescription, /104 de alcance/);
+  assert.doesNotMatch(brief.signalDescription, /0 visualizaciones|0 interacciones/);
+  assert.doesNotMatch(brief.signalTitle, /siguiente pieza, a 0/);
+});

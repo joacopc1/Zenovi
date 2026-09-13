@@ -7,12 +7,13 @@
   --color-ink: #1d1d1f;
   --color-graphite: #6e6e73;
   --color-muted: #86868b;
-  --color-mist: rgba(0, 0, 0, 0.09);
+  --color-mist: rgba(0, 0, 0, 0.1);
   --color-mist-strong: rgba(0, 0, 0, 0.16);
   --color-control: #ededf0;
   --color-success: #1d754b;
   --color-warning: #a86511;
   --color-danger: #c33c45;
+  --color-data: #4f6fd8;
   --radius-control: 0.625rem;
   --radius-navigation: 0.75rem;
   --radius-card: 0.875rem;

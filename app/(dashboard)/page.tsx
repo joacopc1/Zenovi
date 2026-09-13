@@ -1,18 +1,10 @@
+import Link from "next/link";
+import { ConnectedDashboard } from "@/components/home/connected-dashboard";
+import { SyncButton } from "@/components/home/sync-button";
 import { AppHeader } from "@/components/shell/app-header";
+import { InstagramConnectionNotice } from "@/components/states/instagram-connection-notice";
 import { getAccountContext } from "@/lib/data/account-context";
-import {
-  getInstagramDashboardData,
-  type InstagramDashboardData,
-} from "@/lib/data/instagram-dashboard";
-import { buildHomeBrief } from "@/lib/insights/home-brief";
-
-type Metric = {
-  label: string;
-  value: string;
-  note: string;
-};
-
-const numberFormatter = new Intl.NumberFormat("es-UY");
+import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
 
 export default async function Home({
   searchParams,
@@ -24,12 +16,19 @@ export default async function Home({
   const dashboard = account?.workspace
     ? await getInstagramDashboardData(account.workspace.id)
     : null;
+  // Vinculada pero no sana: explicar por qué, en vez de invitar a conectar de cero.
+  const unhealthy =
+    account?.instagram && account.instagram.status !== "connected"
+      ? account.instagram.status
+      : null;
 
   return (
     <>
-      <AppHeader title="Inicio" />
-      <div className="w-full px-5 py-8 md:px-8 md:py-10 lg:px-10">
-        {dashboard?.priority ? (
+      <AppHeader />
+      <div className="mx-auto w-full max-w-[1240px] px-5 py-6 md:px-8 md:py-8 lg:px-10">
+        {unhealthy ? (
+          <InstagramConnectionNotice status={unhealthy} redirectTo="/" />
+        ) : dashboard?.priority ? (
           <ConnectedDashboard
             dashboard={dashboard}
             syncStatus={typeof query.sync === "string" ? query.sync : undefined}
@@ -42,204 +41,32 @@ export default async function Home({
   );
 }
 
-function ConnectedDashboard({
-  dashboard,
-  syncStatus,
-}: {
-  dashboard: InstagramDashboardData;
-  syncStatus?: string;
-}) {
-  const priority = dashboard.priority;
-  if (!priority) return null;
-
-  const brief = buildHomeBrief({
-    followers: dashboard.followers,
-    syncedMediaCount: dashboard.syncedMediaCount,
-    priority,
-  });
-  const availableMetrics = new Set(dashboard.availableAccountMetrics);
-  const metrics: Metric[] = [
-    {
-      label: "Visualizaciones",
-      value: formatAccountMetric(dashboard.sevenDayViews, availableMetrics.has("views")),
-      note: formatPeriodComparison(
-        dashboard.sevenDayViews,
-        dashboard.previousSevenDayViews,
-        availableMetrics.has("views"),
-      ),
-    },
-    {
-      label: "Alcance diario",
-      value: formatAccountMetric(dashboard.sevenDayReach, availableMetrics.has("reach")),
-      note: formatPeriodComparison(
-        dashboard.sevenDayReach,
-        dashboard.previousSevenDayReach,
-        availableMetrics.has("reach"),
-      ),
-    },
-    availableMetrics.has("total_interactions")
-      ? {
-          label: "Interacciones",
-          value: formatNumber(dashboard.sevenDayInteractions),
-          note: formatPeriodComparison(
-            dashboard.sevenDayInteractions,
-            dashboard.previousSevenDayInteractions,
-            true,
-          ),
-        }
-      : {
-          label: "Interacciones de contenido",
-          value: formatNumber(dashboard.totalMediaInteractions),
-          note: `${dashboard.syncedMediaCount} publicaciones sincronizadas`,
-        },
-    {
-      label: "Seguidores",
-      value: formatNumber(dashboard.followers),
-      note: `Total actual de @${dashboard.username}`,
-    },
-  ];
-
-  return (
-    <>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-        Brief de hoy
-      </p>
-      <h1 className="max-w-3xl text-[clamp(1.75rem,2.4vw,2rem)] font-semibold leading-[1.08] tracking-[-0.03em]">
-        {brief.title}
-      </h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-graphite">
-        {brief.description}
-      </p>
-
-      <section className="mt-8 grid overflow-hidden rounded-card border border-mist bg-paper lg:grid-cols-[1.45fr_.7fr]">
-        <div className="p-5 md:p-6">
-          <p className="flex items-center gap-2 text-xs font-semibold text-graphite">
-            <span className="size-[7px] rounded-full bg-ink" />
-            {brief.signalLabel}
-          </p>
-          <h2 className="mt-3 max-w-2xl text-xl font-semibold leading-snug tracking-[-0.02em]">
-            {brief.signalTitle}
-          </h2>
-          <p className="mt-3 text-[13px] leading-5 text-graphite">
-            {brief.signalDescription}
-          </p>
-        </div>
-        <aside className="border-t border-mist p-5 md:p-6 lg:border-l lg:border-t-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-            Próxima acción
-          </p>
-          <p className="my-3 text-base font-semibold leading-snug">
-            {brief.nextAction}
-          </p>
-          {priority.permalink ? (
-            <a
-              href={priority.permalink}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-semibold underline underline-offset-4"
-            >
-              Ver en Instagram →
-            </a>
-          ) : null}
-        </aside>
-      </section>
-
-      <section className="mt-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Panorama</h2>
-            <p className="mt-1 text-[11px] text-muted">
-              Datos oficiales de Instagram
-              {dashboard.lastSyncedAt
-                ? ` · actualizados ${formatSyncDate(dashboard.lastSyncedAt)}`
-                : ""}
-            </p>
-          </div>
-          <form action="/api/integrations/instagram/sync" method="post">
-            <input type="hidden" name="redirectTo" value="/" />
-            <button
-              type="submit"
-              className="h-8 rounded-control border border-mist px-3 text-[11px] font-semibold text-graphite hover:border-ink/20 hover:text-ink"
-            >
-              Actualizar datos
-            </button>
-          </form>
-        </div>
-        {syncStatus === "updated" ? (
-          <p className="mt-3 text-[11px] text-success">Los datos se actualizaron correctamente.</p>
-        ) : null}
-        {syncStatus === "error" ? (
-          <p className="mt-3 text-[11px] text-warning">
-            No pudimos actualizar los datos. Intentá nuevamente.
-          </p>
-        ) : null}
-        <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-card border border-mist bg-paper lg:grid-cols-4">
-          {metrics.map((metric, index) => (
-            <div
-              key={metric.label}
-              className={`min-w-0 ${
-                index % 2 === 0 ? "p-5" : "border-l border-mist p-5"
-              } ${
-                index > 1 ? "border-t border-mist lg:border-t-0" : ""
-              } lg:border-l lg:p-5 lg:first:border-l-0`}
-            >
-              <p className="text-xs text-graphite">{metric.label}</p>
-              <p className="mt-3 text-2xl font-semibold tracking-[-0.02em] tabular-nums">
-                {metric.value}
-              </p>
-              <p className="mt-1.5 text-[10px] text-muted">{metric.note}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
 function EmptyDashboard({ connected }: { connected: boolean }) {
   return (
-    <section className="max-w-2xl py-12">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-        Brief de hoy
-      </p>
-      <h1 className="text-[clamp(1.75rem,2.4vw,2rem)] font-semibold leading-[1.08] tracking-[-0.03em]">
-        {connected ? "Instagram está conectado." : "Conectá Instagram para empezar."}
-      </h1>
-      <p className="mt-4 text-[15px] leading-6 text-graphite">
+    <section className="max-w-2xl py-8">
+      <p className="text-sm font-semibold">Empezá por acá</p>
+      <h1 className="mt-4 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em]">
         {connected
-          ? "Todavía no encontramos publicaciones para analizar. Volvé a sincronizar cuando tengas contenido disponible."
-          : "Cuando conectes tu cuenta, Zenovi convertirá tus métricas en señales concretas para tu próxima pieza."}
+          ? "La cuenta está lista; falta la primera sincronización."
+          : "Conectá Instagram para activar tu dashboard."}
+      </h1>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-graphite">
+        {connected
+          ? "Cuando haya contenido sincronizado vas a ver métricas, evolución y rendimiento por pieza."
+          : "Zenovi necesita una cuenta profesional para reunir las métricas y el contenido del perfil."}
       </p>
+      <div className="mt-6">
+        {connected ? (
+          <SyncButton redirectTo="/" />
+        ) : (
+          <Link
+            href="/onboarding/instagram"
+            className="inline-flex min-h-9 items-center rounded-control bg-ink px-4 text-sm font-semibold text-white hover:bg-ink/85"
+          >
+            Conectar Instagram
+          </Link>
+        )}
+      </div>
     </section>
   );
-}
-
-function formatNumber(value: number) {
-  return numberFormatter.format(Math.round(value));
-}
-
-function formatAccountMetric(value: number, available: boolean) {
-  return available ? formatNumber(value) : "—";
-}
-
-function formatPeriodComparison(current: number, previous: number, available: boolean) {
-  if (!available) return "Instagram no devolvió este dato";
-  if (previous === 0) {
-    return current === 0 ? "Sin actividad en los últimos 7 días" : "Sin base comparable anterior";
-  }
-
-  const change = ((current - previous) / previous) * 100;
-  if (Math.abs(change) < 0.5) return "Sin cambio vs. 7 días anteriores";
-
-  return `${change > 0 ? "Subió" : "Bajó"} ${formatNumber(Math.abs(change))}% vs. 7 días anteriores`;
-}
-
-function formatSyncDate(value: string) {
-  return new Intl.DateTimeFormat("es-UY", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Montevideo",
-  }).format(new Date(value));
 }

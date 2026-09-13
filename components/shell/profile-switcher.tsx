@@ -3,29 +3,40 @@
 import Image from "next/image";
 import { CheckIcon, PlusIcon, SwitcherIcon } from "./icons";
 import type { ShellIdentity } from "./shell-identity";
+import { useDismissibleDetails } from "./use-dismissible-details";
 
-export function ProfileSwitcher({ identity }: { identity: ShellIdentity }) {
+export function ProfileSwitcher({
+   identity,
+  collapsed = false,
+}: {
+  identity: ShellIdentity;
+  collapsed?: boolean;
+}) {
+  const detailsRef = useDismissibleDetails();
   const profileName = identity.instagram?.username
     ? `@${identity.instagram.username}`
     : identity.displayName;
   const avatarUrl = identity.instagram?.profilePictureUrl ?? null;
+  const profileInitials = getProfileInitials(identity);
 
   return (
-    <details className="group relative">
-      <summary className="grid min-h-10 w-full cursor-pointer list-none grid-cols-[28px_1fr_16px] items-center gap-2 rounded-navigation p-1 text-left hover:bg-ink/[0.04] [&::-webkit-details-marker]:hidden">
-        <ProfileAvatar initials={identity.initials} avatarUrl={avatarUrl} />
-        <span className="min-w-0">
-          <strong className="block truncate text-xs font-semibold">{profileName}</strong>
-          <small className="block truncate text-[10px] text-muted">Perfil activo</small>
+    <details ref={detailsRef} className="group relative">
+      <summary
+        aria-label={`Cambiar perfil de Instagram. Perfil actual: ${profileName}`}
+        className={`min-h-9 w-full cursor-pointer list-none items-center rounded-control border border-mist bg-transparent text-left hover:border-mist-strong [&::-webkit-details-marker]:hidden ${collapsed ? "flex justify-center p-1" : "grid grid-cols-[24px_1fr_14px] gap-2 px-2 py-1.5"}`}
+      >
+        <ProfileAvatar initials={profileInitials} avatarUrl={avatarUrl} />
+        <span className={collapsed ? "sr-only" : "min-w-0"}>
+          <strong className="block truncate text-xs font-medium">{profileName}</strong>
         </span>
-        <SwitcherIcon className="size-3.5 text-graphite" />
+        <SwitcherIcon className={collapsed ? "hidden" : "size-3 text-graphite"} />
       </summary>
 
       <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-card border border-mist bg-paper p-2 shadow-[0_12px_32px_rgba(0,0,0,0.10)]">
         <div className="grid grid-cols-[28px_1fr_16px] items-center gap-2 rounded-control px-2 py-1.5">
-          <ProfileAvatar initials={identity.initials} avatarUrl={avatarUrl} />
+          <ProfileAvatar initials={profileInitials} avatarUrl={avatarUrl} />
           <span className="min-w-0">
-            <strong className="block truncate text-xs font-semibold">{profileName}</strong>
+            <strong className="block truncate text-xs font-medium">{profileName}</strong>
             <small className="block truncate text-[10px] text-muted">Perfil activo</small>
           </span>
           <CheckIcon className="size-3.5 text-ink" />
@@ -47,16 +58,21 @@ export function ProfileSwitcher({ identity }: { identity: ShellIdentity }) {
   );
 }
 
+function getProfileInitials(identity: ShellIdentity) {
+  const username = identity.instagram?.username?.trim();
+  return username?.slice(0, 2).toLocaleUpperCase("es") || identity.initials;
+}
+
 function ProfileAvatar({ initials, avatarUrl }: { initials: string; avatarUrl: string | null }) {
   return (
-    <span className="relative grid size-7 place-items-center overflow-hidden rounded-full bg-mist-strong text-[10px] font-semibold text-ink">
+    <span className="relative grid size-6 place-items-center overflow-hidden rounded-full bg-mist-strong text-[9px] font-semibold text-ink">
       {initials}
       {avatarUrl ? (
         <Image
           src={avatarUrl}
           alt=""
           fill
-          sizes="28px"
+          sizes="24px"
           className="object-cover"
           unoptimized
         />
