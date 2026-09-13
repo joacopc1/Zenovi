@@ -1,6 +1,6 @@
 # Zenovi - Roadmap operativo
 
-Actualizado: 2026-09-07
+Actualizado: 2026-09-12
 Estado general: Discovery  
 Objetivo inmediato: decidir viabilidad y congelar el scope del MVP
 
@@ -31,7 +31,7 @@ Cada reunión semanal debe actualizar:
 | Moka/competencia | Evidencia parcial | Prueba funcional con cuenta elegible |
 | Meta | En progreso — Standard Creator validado | Probar Stories, Business, OAuth propio y acceso externo |
 | IA | Arquitectura conceptual | Benchmark real de modelos |
-| UX/UI | Shell y navegación responsive implementados | Wireframes de onboarding y flujos principales |
+| UX/UI | Shell refinado; Inicio, Analíticas y biblioteca de Contenido implementados | Validar estados y detalle de Contenido con usuarios |
 | Infraestructura | Recomendación inicial | ADR de stack y ambientes |
 | Seguridad/legal | Baseline definido | Políticas y threat model del MVP |
 | Beta | Concepto | Lista de 20 prospectos para conseguir 10 |
@@ -183,15 +183,16 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [x] Definir arquitectura de información final del MVP: ciclo Observar → Decidir → Crear, biblioteca unificada de Contenido y sistema separado.
 - [ ] Mapear activación y primer valor.
 - [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y preflight de Instagram implementados; faltan estados posteriores a OAuth y validación con usuarios.
-- [ ] Wireframe de dashboard.
-- [ ] Wireframe de Reels/detalle.
+- [-] Wireframe de dashboard: primer corte funcional con métricas, tendencias y contenido destacado; se perfeccionará al final después de aprender de las demás secciones. Responsable: Joaco/Codex.
+- [-] Wireframe de Analíticas: primera vista funcional de 30 días implementada; faltan validar estadísticas, preguntas del usuario, paneles adicionales y nombre definitivo de navegación. Responsable: Joaco/Codex.
+- [-] Wireframe de Reels/detalle: biblioteca filtrable y detalle base con media autorizada y métricas oficiales implementados; faltan transcripción, benchmark y análisis persistente.
 - [ ] Wireframe de Stories/secuencia.
 - [ ] Wireframe de Director e historial.
 - [ ] Wireframe de ADN.
 - [ ] Wireframe de Baúl Kanban/calendario.
-- [ ] Diseñar estados vacíos, carga, error y permisos.
+- [-] Diseñar estados vacíos, carga, error y permisos: Inicio, Analíticas, Contenido y el detalle tienen carga, error y no encontrado; Analíticas distingue cuenta conectada sin métricas, y Analíticas y Contenido distinguen conexión vinculada pero no sana (requiere acción, error, sincronizando, OAuth incompleto) de cuenta nunca conectada. Inicio recibe el mismo tratamiento. Falta validar los textos con usuarios.
 - [ ] Validar wireframes con 3-5 usuarios.
-- [ ] Congelar tokens light del MVP.
+- [-] Congelar tokens light del MVP: base implementada; pendiente calibrar el borde de cards contra valores computados de referencias y validar contraste.
 - [x] Crear `.interface-design/system.md` después de aprobación.
 - [ ] Prototipo navegable de flujo crítico.
 - [ ] Revisión de accesibilidad.
@@ -228,25 +229,26 @@ Objetivo: base productiva antes de features.
 
 - [-] Auth Google/email: flujos implementados con respuestas anti-enumeración; falta validación end-to-end y hardening remoto de Supabase.
 - [-] Perfil y branding del workspace: nombre y perfil conectados; falta carga de imagen y edición.
-- [-] Sidebar/header conectado: identidad real conectada al shell; faltan estados reales de integración y créditos.
+- [-] Sidebar/header conectado: perfil activo de Instagram, avatar personal de Google, colapsado, acciones globales y navegación real implementados; faltan estados completos de integración, notificaciones y consumo real.
 - [x] Navegación responsive básica.
-- [-] Onboarding y preflight de Meta: preflight visual implementado; faltan auth, OAuth real y estados persistidos. Responsable: Joaco/Codex.
+- [-] Onboarding y preflight de Meta: conexión real completada con cuenta Creator y estados persistidos; faltan pulir el flujo, probar cancelación/reintento/móvil y completar mensajes accionables. Responsable: Joaco/Codex.
 - [ ] Ajustes iniciales.
 
 ### Sprint 2 - Meta y sincronización
 
-- [-] OAuth state machine: estados canónicos y persistencia preparados; faltan endpoints OAuth y prueba end-to-end.
+- [-] OAuth state machine: endpoints, callback, persistencia y conexión real implementados; faltan pruebas automatizadas, cancelación, refresh, móvil y cuenta externa.
 - [-] Tokens cifrados: almacenamiento exclusivo del servidor y cifrado de aplicación preparados; falta rotación de claves.
-- [ ] Cuenta elegible y selección de activo.
-- [ ] Sync inicial/incremental.
-- [ ] Jobs idempotentes y retries.
-- [ ] Dashboard de estado.
+- [-] Cuenta elegible y selección de activo: resolución automática de una Creator real verificada; falta flujo explícito cuando existan varios activos elegibles.
+- [-] Sync inicial/incremental: perfil, medios, métricas por pieza y totales comparables implementados. La serie diaria abarca 90 días —el techo de retención de Meta— pedida en tramos de 30 para que un tramo caído no invalide los demás. `views` y `total_interactions` se reconstruyen día por día con ventanas de un día, porque Meta no entrega su histórico; se verificó contra la serie real de `reach` que una ventana de un día devuelve el valor de ese día. Falta paginación completa de medios, expiración y validar la corrida prolongada.
+- [-] Jobs idempotentes y retries: upserts, sync manual y cron diario autenticado implementados; faltan retry/backoff durable, observabilidad y pruebas de fallo.
+- [-] Dashboard de estado: Inicio y Analíticas consumen datos reales y distinguen faltantes de cero, incluida la serie diaria, que deja los días sin informar en `null` y los dibuja como hueco en vez de como caída. Faltan definiciones accesibles por métrica.
 - [ ] Desconectar/eliminar.
 
 ### Sprint 3 - Reels y análisis
 
-- [ ] Listado y detalle de medios.
-- [ ] Métricas oficiales.
+- [-] Listado y detalle de medios: biblioteca de hasta 100 piezas, filtros por formato, búsqueda, orden por rendimiento y detalle base implementados; falta paginación, transcripción, benchmark y análisis persistente. La duración del clip ya se muestra en la biblioteca y en el detalle.
+- [-] Métricas oficiales: ingestión y visualización inicial implementadas; por contenido se solicitan views, reach, likes, comments, shares, saved y total interactions, más tiempo medio, tiempo total y skip rate para Reels. Cuenta solicita cada total por separado y muestra views, reach, total interactions, profile views, accounts engaged y link taps sin convertir ausentes en cero. Falta verificar nuevamente la sincronización completa contra Instagram Insights nativo.
+- [ ] Presentar la evolución de seguidores: la foto diaria ya se guarda en `instagram_account_insights` con `metric=follower_count` y `period=day` desde 2026-09-12, pero todavía no se muestra en ninguna pantalla. Formato aún por comprobar —card KPI o gráfica—; la cifra exacta se reserva para esa vista dedicada y el resto de la interfaz usa notación compacta.
 - [ ] Transcripción.
 - [ ] Frames/escenas.
 - [ ] Análisis estructurado.
@@ -360,6 +362,10 @@ Solo entra si los gates anteriores justifican inversión.
 - [ ] Qué parte de Virlo aporta señales útiles sin desviar el foco.
 - [ ] Qué sistema utiliza Shortimize para competidores.
 - [ ] Cuál es el willingness-to-pay del ICP en LATAM, España y mercado anglo.
+- [x] Medir en DevTools el borde exterior de cards de ElevenLabs: negro al 10 %, clase estándar de 1 px con ancho fraccionario por escala y radio de 20 px. Zenovi adopta negro al 10 % pero conserva 1 px y radio propio de 14 px.
+- [ ] Auditar la sección Analíticas por preguntas de usuario, no por cantidad de cards: salud de cuenta, evolución, distribución por formato/objetivo, benchmarks propios, mejores/peores piezas y acciones derivadas.
+- [x] Corregir las consultas de Insights de cuenta: se comprobó empíricamente que Meta sólo entrega serie diaria de `reach`; `views` y `total_interactions` se reconstruyen pidiendo una ventana por día en lugar de inventarse. Los días sin informar quedan en `null` y nunca se convierten en cero.
+- [?] Validar si `Analíticas` es el nombre más claro para el ICP o si conviene `Rendimiento`, `Resultados` u otra etiqueta; no decidir por imitación de Moka.
 
 ## Registro de decisiones
 
@@ -373,6 +379,20 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-08-28 | Light-first monocromático | Aceptada | Preferencia de marca y reducción de QA |
 | 2026-08-28 | Instrument Sans Variable | Aceptada provisional | Dirección tipográfica |
 | 2026-08-28 | Un workspace en MVP | Aceptada | Múltiples marcas/roles se difieren |
+| 2026-09-10 | Inicio será dashboard informativo; el brief de IA no será el protagonista | Aceptada | Al entrar, el usuario necesita primero estado, métricas, evolución y accesos rápidos |
+| 2026-09-10 | Inicio se perfecciona después de las secciones operativas | Aceptada | Contenido, Analíticas y Director revelarán qué resumen es realmente útil |
+| 2026-09-10 | `Analíticas` permanece como etiqueta provisional | A validar | Debe responder al modelo mental del ICP, no a la navegación de un competidor |
+| 2026-09-11 | Analíticas y Contenido permanecen separados | Aceptada | Analíticas compara rendimiento transversal; Contenido separa y abre Reels, Historias y Publicaciones |
+| 2026-09-11 | Contenido no mezcla formatos en una vista “Todo” | Aceptada | Cada formato necesita proporción, metadatos y lectura propios; Reels abre por defecto |
+| 2026-09-11 | Sin submenú de formatos en la sidebar durante el MVP | Aceptada | Los filtros/tabs dentro de las vistas evitan duplicación y mantienen la navegación corta |
+| 2026-09-11 | Competidores fuera de la navegación inicial | Aceptada provisional | Puede entrar en beta extendida solo después de validar acceso público, legalidad, estabilidad y costo |
+| 2026-09-12 | Visualizaciones e interacciones encabezan Analíticas; alcance acompaña | Aceptada | Para una marca personal el alcance no es la estadística principal; comentarios, compartidos, guardados y seguidores son claves |
+| 2026-09-12 | El selector de tres métricas sobre una gráfica compartida es provisional | A validar | Cada métrica tendría su propia gráfica; la estructura definitiva se decide después de ver 90 días de datos reales |
+| 2026-09-12 | La base propia es la memoria histórica, no la API | Aceptada | Meta conserva insights de cuenta 90 días y ninguna historia de seguidores; lo que no se guarde cada día se pierde de forma irrecuperable |
+| 2026-09-12 | Un día sin informar se guarda y se dibuja como ausencia, nunca como cero | Aceptada | Un cero se lee como caída real; la propia API devuelve conjunto vacío en lugar de ceros |
+| 2026-09-12 | El filtro de período lee de la base y no dispara sincronización | Aceptada | Cambiar el rango es instantáneo, no gasta cuota de API ni depende de que Meta responda |
+| 2026-09-12 | El filtro de período no aparece en la biblioteca de Contenido | Aceptada | Ahí se ven las piezas publicadas y sus estadísticas actuales, no un rango temporal |
+| 2026-09-12 | La cifra exacta de seguidores se reserva a su vista dedicada | Aceptada | El resto de la interfaz usa notación compacta al estilo Instagram, que es como las marcas personales leen esos números |
 
 ## Registro de bloqueos
 

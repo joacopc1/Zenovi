@@ -1,6 +1,6 @@
 # Zenovi - Fundamentos de diseño de producto
 
-Actualizado: 2026-08-28
+Actualizado: 2026-09-10
 
 Estado: dirección provisional pendiente de validar visualmente. No constituye todavía un sistema de diseño definitivo.
 
@@ -35,25 +35,9 @@ Colores que pertenecen a esta dirección:
 - Verde contenido: éxito o mejora confirmada, nunca decoración.
 - Ámbar: atención, consumo o datos incompletos.
 
-## Firma: línea de señal
-
-La firma de Zenovi será una línea o trayectoria visual discreta que conecte:
-
-`Cuenta -> contenido -> señal detectada -> recomendación -> siguiente acción`
-
-Debe materializarse al menos en:
-
-- Resumen del dashboard.
-- Encabezado del análisis de un Reel.
-- Secuencia de Stories.
-- Evidencia citada por el Director IA.
-- Estado de una idea dentro del Baúl.
-
-No es un gradiente ni una línea de color decorativa. Utiliza grosor, contraste, puntos, ritmo y grises para representar procedencia, progresión o relación entre evidencia y acción.
-
 ## Defaults rechazados
 
-- Cuatro cards idénticas con métricas: se reemplazan por una lectura priorizada con comparación, explicación y acción.
+- Brief editorial dominante en Inicio: se reemplaza por un dashboard útil; la lectura del Director aparece como módulo secundario y accionable.
 - Sidebar aislado con otro mundo visual: se reemplaza por un shell continuo unido al header, inspirado en el comportamiento de Glovi.
 - Chatbot flotante como centro del producto: el Director vive como módulo principal y como asistente contextual.
 - Colores por cada módulo: la interfaz es monocromática; el color aparece únicamente para estados semánticos, enlaces o foco.
@@ -67,6 +51,7 @@ No es un gradiente ni una línea de color decorativa. Utiliza grosor, contraste,
 - Sidebar y header comparten exactamente la misma superficie.
 - El área de trabajo aparece como una hoja elevada mediante cambio sutil de superficie, borde tenue y radio solo en la esquina de unión.
 - Cards del mismo color que el fondo inmediato, diferenciadas por un borde gris muy sutil.
+- Cards seleccionables: fondo gris del canvas en hover y persistente durante la selección. Cards informativas: superficie estable. No usar el hover para sugerir interacción donde no existe.
 - Profundidad basada principalmente en bordes suaves; sombras únicamente en popovers, modales y menús flotantes.
 
 ### Dark mode
@@ -88,19 +73,19 @@ Referencia funcional: sidebar de LeadsRover y continuidad sidebar/header de Glov
 - Sidebar expandido aproximado: 220-232 px.
 - Sidebar colapsado futuro: 72 px.
 - Header global: 56 px.
-- Marca/workspace arriba a la izquierda: imagen, nombre y selector con chevrones verticales.
-- En MVP el selector muestra únicamente el workspace actual. `Añadir marca` aparece deshabilitado o no aparece; múltiples workspaces quedan fuera del alcance.
-- Perfil personal separado en la parte inferior.
+- Wordmark tipográfico `Zenovi` y control de colapsado arriba a la izquierda.
+- Perfil activo de Instagram debajo, con imagen de Instagram cuando existe, `@usuario` y chevrones verticales.
+- En MVP el selector muestra un único perfil. `Añadir perfil · Próximamente` comunica la extensión futura sin habilitarla.
+- Perfil personal de autenticación separado en el extremo derecho del header.
 - Navegación agrupada por intención, no por tecnología.
 
-Estructura provisional:
+Estructura aprobada para el corte actual:
 
 1. Inicio.
-2. Rendimiento: Analíticas, Reels, Stories.
-3. Crear: Baúl de contenido, Calendario.
-4. Inteligencia: Director IA, Competidores.
-5. Marca: ADN de marca.
-6. Sistema: Integraciones, Créditos/plan, Ajustes.
+2. Observar: Analíticas, Contenido.
+3. Decidir: Director.
+4. Crear: Baúl, Calendario.
+5. Setup: ADN de marca, Ajustes.
 
 La IA contextual puede abrirse desde cualquier objeto sin duplicar una navegación completa.
 
@@ -120,6 +105,8 @@ La IA contextual puede abrirse desde cualquier objeto sin duplicar una navegaci�
 | `--zen-danger` | `#C33C45` | Error/destructivo |
 
 Escala base de espaciado: 4 px. Radios: 8 px controles, 12 px cards, 16 px paneles, 20-24 px popovers o superficies principales justificadas.
+
+El borde estándar de card equivale a `1px solid rgba(0, 0, 0, 0.10)`. La referencia de ElevenLabs midió el mismo negro al 10 %; su ancho fraccionario computado se atribuye al escalado/renderizado. Zenovi conserva su radio propio de 14 px en vez de copiar los 20 px de esa card.
 
 ## Principios para datos
 

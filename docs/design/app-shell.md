@@ -1,6 +1,6 @@
 # Zenovi — Arquitectura de navegación y shell
 
-Actualizado: 2026-09-03  
+Actualizado: 2026-09-10
 Estado: decisión de diseño para wireframes del MVP
 
 ## 1. Intención
@@ -11,15 +11,14 @@ La persona abre Zenovi entre publicaciones, sesiones con clientes y tareas comer
 2. ¿Qué significa para mi estrategia?
 3. ¿Qué hago o creo después?
 
-El shell representa un ciclo de trabajo de marketing, no una colección de herramientas ni una réplica de Instagram. Debe sentirse como una mesa de dirección editorial: papel, tinta, evidencia ordenada y una siguiente decisión clara.
+El shell representa un ciclo de trabajo de marketing, no una colección de herramientas ni una réplica de Instagram. Debe sentirse sereno, continuo y preciso, con datos legibles y acceso claro a la siguiente decisión.
 
 ## 2. Territorio visual
 
 ### Dominio
 
 - Señal frente a ruido.
-- Mesa editorial.
-- Brief de dirección.
+- Panel de rendimiento.
 - Rendimiento de contenido.
 - Banco de ideas y guiones.
 - Calendario de publicación.
@@ -34,13 +33,9 @@ El shell representa un ciclo de trabajo de marketing, no una colección de herra
 - Verde únicamente para resultados confirmados.
 - Ámbar únicamente para atención o datos incompletos.
 
-### Firma
-
-La **línea de señal** une dato, lectura del Director y próxima acción. En la navegación aparece como un trazo vertical fino con un nodo en la sección activa; dentro de las pantallas conecta evidencia y recomendación sin convertirse en decoración.
-
 ### Defaults rechazados
 
-- Dashboard de cards métricas idénticas → brief priorizado con señal, explicación y acción.
+- Brief editorial dominante en Inicio → dashboard informativo con métricas, evolución, rendimiento de contenido y acciones; la IA queda como apoyo secundario.
 - Sidebar organizada por tecnología → navegación organizada por el ciclo de trabajo.
 - Reels, Stories y publicaciones como módulos aislados → una biblioteca de Contenido con filtros por formato.
 - Botón flotante de chatbot → Director como destino principal y como acción contextual dentro de cada objeto.
@@ -49,7 +44,7 @@ La **línea de señal** une dato, lectura del Director y próxima acción. En la
 
 ### Observar
 
-- **Inicio**: brief actual, estado de la cuenta y próxima acción.
+- **Inicio**: resumen de cuenta, métricas, evolución, contenido destacado, onboarding pendiente y accesos rápidos.
 - **Analíticas**: evolución general, comparaciones y señales de la cuenta.
 - **Contenido**: biblioteca única con tabs `Todo`, `Reels`, `Stories` y `Publicaciones`.
 
@@ -83,50 +78,50 @@ Base de espaciado: `4 px`.
 
 ```text
 ┌────────────────────────┬─────────────────────────────────────────────┐
-│  ◉  Marca actual    ⇅  │  Ubicación / título             Acciones   │
-│                        ├─────────────────────────────────────────────┤
-│  OBSERVAR              │                                             │
-│  ●  Inicio             │                                             │
-│  │  Analíticas         │              Área de trabajo                │
-│  │  Contenido          │                                             │
+│  Zenovi             ◫  │                   Director  Avisos  Perfil   │
+│  ◉  @perfil        ⇅  ├─────────────────────────────────────────────┤
+│  Inicio                │                                             │
+│  Observar              │                                             │
+│     Analíticas         │              Área de trabajo                │
+│     Contenido          │                                             │
 │  │                     │                                             │
-│  DECIDIR               │                                             │
-│  │  Director           │                                             │
+│  Decidir               │                                             │
+│     Director           │                                             │
 │  │                     │                                             │
-│  CREAR                 │                                             │
-│  │  Baúl               │                                             │
-│  ○  Calendario         │                                             │
+│  Crear                 │                                             │
+│     Baúl               │                                             │
+│     Calendario         │                                             │
 │                        │                                             │
-│  ADN de marca          │                                             │
+│  Setup                 │                                             │
+│     ADN de marca       │                                             │
+│     Ajustes            │                                             │
 │                        │                                             │
-│  Instagram · Conectado │                                             │
-│  Créditos        72%   │                                             │
-│  JP  Joaco          ···│                                             │
+│  ⚡ Upgrade   Próxim.  │                                             │
 └────────────────────────┴─────────────────────────────────────────────┘
 ```
 
 ### Comportamiento
 
-- El selector superior representa la marca/workspace, no el perfil personal.
+- “Zenovi” funciona como wordmark tipográfico y el control contiguo colapsa la sidebar.
+- El selector inmediatamente inferior representa el perfil activo de Instagram y muestra su foto cuando Meta la entrega; usa iniciales cuando no existe imagen.
 - Los rótulos `Observar`, `Decidir` y `Crear` enseñan el modelo mental; no son desplegables.
-- La línea de señal recorre solo los destinos principales. El nodo marca la ubicación activa.
-- El destino activo usa peso tipográfico y un fondo apenas más oscuro que el shell; no una pastilla saturada.
+- El destino activo conserva texto e icono negros de peso regular y se distingue solo con un fondo gris de radio suave; no usa punto lateral.
 - `Contenido` conserva filtros y orden al navegar al detalle y volver.
 - `Director` acepta entrada contextual desde cualquier Reel, Story, idea o periodo sin crear otra sección en la sidebar.
-- `ADN de marca` queda separado del ciclo diario porque cambia contexto, no producción.
-- La conexión de Instagram se muestra al pie como estado compacto y accionable. Un error cambia texto e icono, no toda la sidebar de color.
-- Créditos muestra una línea horizontal discreta y el porcentaje; al pulsarlo abre `Créditos y plan`.
-- El perfil personal siempre ocupa el último nivel y permanece separado de la marca.
+- `ADN de marca` y `Ajustes` viven bajo `Setup` porque cambian contexto o configuración, no producción diaria.
+- El selector de Instagram abre el perfil actual y una opción futura `Añadir perfil · Próximamente`; múltiples perfiles siguen fuera del MVP.
+- El pie contiene un acceso compacto a Upgrade. No muestra porcentajes ni créditos inventados.
+- El perfil personal de Google se muestra en el extremo derecho del header y abre su menú; permanece separado del perfil de Instagram.
 
 ## 5. Header
 
-El header no duplica la navegación. Contiene únicamente:
+El header no duplica el título de la vista. Contiene únicamente:
 
 - Breadcrumb cuando existe profundidad: `Contenido / Reel`.
-- Título de la vista en el primer nivel.
-- Estado o rango pertinente a la pantalla.
-- Una acción primaria contextual como `Preguntar al Director`, `Nueva idea` o `Actualizar`.
-- Menú secundario para acciones poco frecuentes.
+- Acción global `Director IA`.
+- Notificaciones.
+- Avatar del perfil personal autenticado con Google y menú desplegable.
+- Acciones contextuales solo cuando sean realmente globales para la pantalla.
 
 No hay buscador global en el MVP. La búsqueda aparece dentro de Contenido, Director o Baúl cuando el volumen lo justifique.
 
@@ -179,4 +174,4 @@ La prioridad móvil es consultar, decidir y capturar una idea. El análisis dens
 
 ## 10. Siguiente wireframe
 
-El primer wireframe debe ser **Inicio**, porque valida simultáneamente la sidebar, el header, el estado de Instagram, la línea de señal y el paso desde evidencia hacia el Director. Después siguen Contenido y el detalle de Reel.
+El shell y el primer corte de Inicio ya existen. La siguiente validación visual prioriza **Analíticas**, comprobando antes la procedencia de las métricas; después siguen Contenido y el detalle de Reel. Inicio se perfeccionará al final con el aprendizaje de las demás secciones.
