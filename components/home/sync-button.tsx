@@ -1,16 +1,56 @@
-import type { SVGProps } from "react";
+"use client";
 
+import { useEffect, useState, type SVGProps } from "react";
+
+/**
+ * Lanza una sincronización. Es un envío de formulario común —no una acción de React—,
+ * así que el estado de carga se lleva a mano: se activa al enviar y dura hasta que la
+ * redirección trae la página nueva.
+ */
 export function SyncButton({ redirectTo }: { redirectTo: string }) {
+  const [pending, setPending] = useState(false);
+
+  // Al volver con el botón "atrás", el navegador restaura la página tal cual quedó:
+  // sin esto el botón seguiría girando para siempre.
+  useEffect(() => {
+    const reset = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
+
   return (
-    <form action="/api/integrations/instagram/sync" method="post">
+    <form
+      action="/api/integrations/instagram/sync"
+      method="post"
+      className="flex items-center gap-2"
+      onSubmit={(event) => {
+        // Un segundo clic lanzaría otra sincronización completa en paralelo.
+        if (pending) {
+          event.preventDefault();
+          return;
+        }
+        setPending(true);
+      }}
+    >
       <input type="hidden" name="redirectTo" value={redirectTo} />
+      {pending ? (
+        <span className="hidden text-xs text-muted sm:inline">Puede tardar hasta un minuto</span>
+      ) : null}
       <button
         type="submit"
-        className="flex min-h-8 items-center gap-1.5 rounded-control border border-mist bg-paper px-3 text-xs font-medium text-graphite hover:border-mist-strong hover:text-ink"
+        aria-disabled={pending}
+        className={`flex min-h-8 items-center gap-1.5 rounded-control border border-mist bg-paper px-3 text-xs font-medium ${
+          pending ? "cursor-progress text-ink" : "text-graphite hover:border-mist-strong hover:text-ink"
+        }`}
       >
-        <RefreshIcon className="size-3.5" />
-        Actualizar
+        <RefreshIcon className={`size-3.5 ${pending ? "animate-spin motion-reduce:animate-none" : ""}`} />
+        {pending ? "Actualizando…" : "Actualizar"}
       </button>
+      <span aria-live="polite" className="sr-only">
+        {pending ? "Actualizando los datos de Instagram. Puede tardar hasta un minuto." : ""}
+      </span>
     </form>
   );
 }

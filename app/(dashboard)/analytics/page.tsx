@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { AccountActivity } from "@/components/analytics/account-activity";
-import { AnalyticsOverview } from "@/components/analytics/analytics-overview";
-import { ContentInsights } from "@/components/analytics/content-insights";
+import { AnalyticsReport } from "@/components/analytics/analytics-report";
 import { DateRangePicker } from "@/components/analytics/date-range-picker";
-import { buildRangeHref, parseRangeDays } from "@/lib/analytics/range";
 import { SyncButton } from "@/components/home/sync-button";
 import { SyncNotice } from "@/components/home/sync-notice";
 import { InstagramConnectionNotice } from "@/components/states/instagram-connection-notice";
 import { AppHeader } from "@/components/shell/app-header";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
+import { buildRangeHref, parseRangeDays } from "@/lib/analytics/range";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -23,13 +21,13 @@ export default async function AnalyticsPage({
     ? await getInstagramDashboardData(account.workspace.id)
     : null;
   const series = dashboard ? dashboard.dailyMetrics.slice(-rangeDays) : [];
-  // Conectado no es lo mismo que con datos: si Meta no devolvió ninguna métrica,
-  // graficar la serie mostraría ceros donde en realidad no hay información.
   // Vinculada pero no sana: mostrar por qué, en vez de invitar a conectar de cero.
   const unhealthy =
     account?.instagram && account.instagram.status !== "connected"
       ? account.instagram.status
       : null;
+  // Conectado no es lo mismo que con datos: si Meta no devolvió ninguna métrica,
+  // graficar la serie mostraría ceros donde en realidad no hay información.
   const hasAnyMetric = Boolean(
     dashboard &&
       (dashboard.availableAccountMetrics.length > 0 ||
@@ -85,20 +83,7 @@ export default async function AnalyticsPage({
             </div>
           </section>
         ) : dashboard ? (
-          <>
-            <AnalyticsOverview
-              series={series}
-              availableMetrics={dashboard.availableAccountMetrics}
-              availableDailyMetrics={dashboard.availableDailyMetrics}
-              summaries={dashboard.accountMetricSummaries}
-            />
-            <div className="mt-4">
-              <AccountActivity summaries={dashboard.accountMetricSummaries} />
-            </div>
-            <div className="mt-4">
-              <ContentInsights content={dashboard.topContent} />
-            </div>
-          </>
+          <AnalyticsReport dashboard={dashboard} days={rangeDays} />
         ) : (
           <section className="mt-8 max-w-xl rounded-card border border-mist p-6">
             <h2 className="text-lg font-semibold">Conectá Instagram para ver tus analíticas</h2>

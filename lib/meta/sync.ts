@@ -15,7 +15,7 @@ import {
 import {
   BACKFILL_METRICS,
   endOfDay,
-  findMissingDailyWindows,
+  planDailyBackfill,
 } from "@/lib/meta/daily-backfill";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -294,32 +294,38 @@ async function backfillDailyTotals({
   accessToken: string;
   syncedAt: string;
 }) {
+  const now = new Date();
+  // Acotado al período: la historia nunca se borra, y sin este límite la consulta
+  // superaría el tope de filas de Supabase y haría creer que faltan días ya guardados.
+  const boundary = new Date(
+    now.getTime() - (ACCOUNT_INSIGHT_LOOKBACK_DAYS + 2) * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const { data: stored, error } = await admin
     .from("instagram_account_insights")
-    .select("end_time")
+    .select("metric, end_time")
     .eq("social_account_id", socialAccountId)
     .eq("period", "day")
-    .in("metric", BACKFILL_METRICS);
+    .in("metric", BACKFILL_METRICS)
+    .gte("end_time", boundary);
 
   if (error) return;
 
-  // Un día cuenta como cubierto si ya lo tiene la primera métrica; ambas se piden
-  // juntas, así que nunca quedan desparejas.
-  const covered = new Set((stored ?? []).map((row) => row.end_time));
-  const windows = findMissingDailyWindows({
-    knownEndTimes: covered,
-    now: new Date(),
+  const knownEndTimesByMetric = new Map<string, string[]>();
+  for (const row of stored ?? []) {
+    const endTimes = knownEndTimesByMetric.get(row.metric) ?? [];
+    endTimes.push(row.end_time);
+    knownEndTimesByMetric.set(row.metric, endTimes);
+  }
+
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric,
+    now,
     lookbackDays: ACCOUNT_INSIGHT_LOOKBACK_DAYS,
   });
 
-  if (windows.length === 0) return;
+  if (plan.length === 0) return;
 
-  const totals = await getInstagramDailyTotals(
-    providerAccountId,
-    accessToken,
-    BACKFILL_METRICS,
-    windows,
-  );
+  const totals = await getInstagramDailyTotals(providerAccountId, accessToken, plan);
 
   if (totals.length === 0) return;
 

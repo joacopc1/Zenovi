@@ -57,7 +57,7 @@ test("mapea cada métrica de Instagram a su campo de la serie", () => {
 test("ignora métricas desconocidas y fechas inválidas", () => {
   const series = buildDailyMetricSeries(
     [
-      { metric: "follower_count", end_time: "2026-09-11T00:00:00Z", value: 99 },
+      { metric: "accounts_engaged", end_time: "2026-09-11T00:00:00Z", value: 99 },
       { metric: "reach", end_time: "no-es-una-fecha", value: 99 },
     ],
     now,
@@ -65,4 +65,57 @@ test("ignora métricas desconocidas y fechas inválidas", () => {
   );
 
   assert.equal(series[0].reach, null);
+});
+
+test("ubica cada fila en el día que mide, no en su fecha de cierre", () => {
+  // Meta fecha el día por su cierre en el huso de la cuenta: 07:00Z del 11 cierra el 10.
+  const series = buildDailyMetricSeries(
+    [{ metric: "reach", end_time: "2026-09-11T07:00:00Z", value: 5 }],
+    now,
+    2,
+  );
+
+  assert.deepEqual(series.map(({ date }) => date), ["2026-09-09", "2026-09-10"]);
+  assert.equal(series[1].reach, 5);
+});
+
+test("la serie termina ayer: el día en curso todavía no cerró", () => {
+  const series = buildDailyMetricSeries([], now, 1);
+
+  assert.equal(series[0].date, "2026-09-10");
+});
+
+test("mapea las métricas de engagement y de perfil", () => {
+  const end = "2026-09-11T00:00:00Z";
+  const [day] = buildDailyMetricSeries(
+    [
+      { metric: "likes", end_time: end, value: 1 },
+      { metric: "comments", end_time: end, value: 2 },
+      { metric: "shares", end_time: end, value: 3 },
+      { metric: "saves", end_time: end, value: 4 },
+      { metric: "profile_views", end_time: end, value: 5 },
+      { metric: "profile_links_taps", end_time: end, value: 6 },
+    ],
+    now,
+    1,
+  );
+
+  assert.deepEqual(
+    [day.likes, day.comments, day.shares, day.saves, day.profileViews, day.linkTaps],
+    [1, 2, 3, 4, 5, 6],
+  );
+});
+
+test("los seguidores son una foto: no se suman dentro del día", () => {
+  const end = "2026-09-11T00:00:00Z";
+  const [day] = buildDailyMetricSeries(
+    [
+      { metric: "follower_count", end_time: end, value: 30 },
+      { metric: "follower_count", end_time: end, value: 31 },
+    ],
+    now,
+    1,
+  );
+
+  assert.equal(day.followers, 31);
 });

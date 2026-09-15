@@ -1,67 +1,116 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  BACKFILL_DAYS_PER_RUN,
+  BACKFILL_REQUESTS_PER_RUN,
   endOfDay,
-  findMissingDailyWindows,
+  planDailyBackfill,
 } from "../lib/meta/daily-backfill.ts";
 
 const now = new Date("2026-09-12T17:00:00Z");
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function days(plan) {
+  return plan.map(({ window }) => window.end.slice(0, 10));
+}
 
 test("no pide el día en curso, que todavía se está acumulando", () => {
-  const [first] = findMissingDailyWindows({ knownEndTimes: [], now, lookbackDays: 90 });
+  const [first] = planDailyBackfill({
+    knownEndTimesByMetric: new Map(),
+    now,
+    lookbackDays: 90,
+    metrics: ["views"],
+  });
 
-  assert.equal(first.end.slice(0, 10), "2026-09-12");
-  assert.equal(first.until - first.since, 24 * 60 * 60, "la ventana cubre un día exacto");
+  assert.equal(first.window.end.slice(0, 10), "2026-09-12");
+  assert.equal(first.window.until - first.window.since, 24 * 60 * 60, "la ventana cubre un día exacto");
 });
 
 test("empieza por lo más reciente", () => {
-  const windows = findMissingDailyWindows({ knownEndTimes: [], now, lookbackDays: 90, limit: 3 });
-
-  assert.deepEqual(
-    windows.map((window) => window.end.slice(0, 10)),
-    ["2026-09-12", "2026-09-11", "2026-09-10"],
-  );
-});
-
-test("saltea los días que ya tienen valor guardado", () => {
-  const windows = findMissingDailyWindows({
-    knownEndTimes: ["2026-09-11T00:00:00.000Z", "2026-09-10T07:00:00.000Z"],
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric: new Map(),
     now,
     lookbackDays: 90,
-    limit: 3,
+    metrics: ["views"],
+    budget: 3,
   });
 
-  assert.deepEqual(
-    windows.map((window) => window.end.slice(0, 10)),
-    ["2026-09-12", "2026-09-09", "2026-09-08"],
-  );
+  assert.deepEqual(days(plan), ["2026-09-12", "2026-09-11", "2026-09-10"]);
+});
+
+test("saltea los días que esa métrica ya tiene guardados", () => {
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric: new Map([
+      ["views", ["2026-09-11T00:00:00.000Z", "2026-09-10T07:00:00.000Z"]],
+    ]),
+    now,
+    lookbackDays: 90,
+    metrics: ["views"],
+    budget: 3,
+  });
+
+  assert.deepEqual(days(plan), ["2026-09-12", "2026-09-09", "2026-09-08"]);
+});
+
+test("cada métrica lleva su propia cuenta de días", () => {
+  // views ya tiene el día; me gusta no, y tiene que pedirse igual.
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric: new Map([["views", ["2026-09-12T00:00:00.000Z"]]]),
+    now,
+    lookbackDays: 1,
+    metrics: ["views", "likes"],
+  });
+
+  assert.deepEqual(plan.map(({ metric }) => metric), ["likes"]);
 });
 
 test("compara por día aunque la hora guardada no sea medianoche UTC", () => {
   // Meta informa el fin del día en el huso de la cuenta, así que llega como 07:00Z.
-  const windows = findMissingDailyWindows({
-    knownEndTimes: ["2026-09-12T07:00:00.000Z"],
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric: new Map([["views", ["2026-09-12T07:00:00.000Z"]]]),
     now,
     lookbackDays: 90,
-    limit: 1,
+    metrics: ["views"],
+    budget: 1,
   });
 
-  assert.equal(windows[0].end.slice(0, 10), "2026-09-11", "no vuelve a pedir ese día");
+  assert.equal(plan[0].window.end.slice(0, 10), "2026-09-11", "no vuelve a pedir ese día");
 });
 
-test("limita cuántos días rellena por corrida", () => {
-  const windows = findMissingDailyWindows({ knownEndTimes: [], now, lookbackDays: 90 });
+test("completa los días recientes de todas las métricas antes que los viejos", () => {
+  const plan = planDailyBackfill({
+    knownEndTimesByMetric: new Map(),
+    now,
+    lookbackDays: 90,
+    metrics: ["views", "likes"],
+    budget: 4,
+  });
 
-  assert.equal(windows.length, BACKFILL_DAYS_PER_RUN);
+  assert.deepEqual(
+    plan.map(({ metric, window }) => `${window.end.slice(0, 10)} ${metric}`),
+    ["2026-09-12 views", "2026-09-12 likes", "2026-09-11 views", "2026-09-11 likes"],
+  );
 });
 
-test("no devuelve nada cuando el período ya está completo", () => {
+test("respeta el tope de llamadas por corrida", () => {
+  const plan = planDailyBackfill({ knownEndTimesByMetric: new Map(), now, lookbackDays: 90 });
+
+  assert.equal(plan.length, BACKFILL_REQUESTS_PER_RUN);
+});
+
+test("no devuelve nada cuando todas las métricas tienen el período completo", () => {
   const known = Array.from({ length: 95 }, (_, index) =>
-    new Date(Date.UTC(2026, 8, 12) - index * 24 * 60 * 60 * 1000).toISOString(),
+    new Date(Date.UTC(2026, 8, 12) - index * DAY_MS).toISOString(),
   );
 
-  assert.deepEqual(findMissingDailyWindows({ knownEndTimes: known, now, lookbackDays: 90 }), []);
+  assert.deepEqual(
+    planDailyBackfill({
+      knownEndTimesByMetric: new Map([["views", known], ["likes", known]]),
+      now,
+      lookbackDays: 90,
+      metrics: ["views", "likes"],
+    }),
+    [],
+  );
 });
 
 test("fecha la foto de hoy al cierre del día en curso", () => {

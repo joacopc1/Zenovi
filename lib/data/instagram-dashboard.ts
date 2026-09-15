@@ -1,6 +1,8 @@
 import "server-only";
 
 import {
+  ACCOUNT_CURRENT_TOTAL_PERIOD,
+  ACCOUNT_PREVIOUS_TOTAL_PERIOD,
   buildAccountMetricSummaries,
   type StoredAccountInsight,
 } from "@/lib/data/account-metric-summaries";
@@ -8,12 +10,20 @@ import {
   buildDailyMetricSeries,
   type InstagramDailyMetric,
 } from "@/lib/data/daily-metric-series";
+import { REPORTING_DELAY_DAYS } from "@/lib/analytics/period-totals";
 import {
   ACCOUNT_INSIGHT_LOOKBACK_DAYS,
 } from "@/lib/meta/insight-periods";
 import { createClient } from "@/lib/supabase/server";
 
 export type { InstagramDailyMetric };
+
+/**
+ * La serie incluye el margen de demora de Meta además del período máximo: los días
+ * más recientes todavía pueden no haber cerrado, y sin ese margen el período de 90
+ * días se quedaría con 89 días cerrados aunque la base tenga los 90.
+ */
+const DAILY_SERIES_DAYS = ACCOUNT_INSIGHT_LOOKBACK_DAYS + REPORTING_DELAY_DAYS;
 
 type InstagramMediaRow = {
   id: string;
@@ -69,6 +79,8 @@ export type InstagramDashboardData = {
   totalMediaInteractions: number | null;
   lastSyncedAt: string | null;
   dailyMetrics: InstagramDailyMetric[];
+  /** Fechas de publicación dentro del período máximo. */
+  publishedDates: string[];
   topContent: InstagramContentSummary[];
   priority: {
     contentLabel: string;
@@ -114,11 +126,13 @@ export async function getInstagramDashboardData(
 
   const now = new Date();
   const insightBoundary = new Date(
-    now.getTime() - ACCOUNT_INSIGHT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+    now.getTime() - DAILY_SERIES_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
   const [
     { data: media, error: mediaError },
-    { data: accountInsights, error: insightsError },
+    { data: dailyInsights, error: insightsError },
+    { data: summaryInsights, error: summariesError },
+    { data: publishedMedia, error: publishedError },
   ] =
     await Promise.all([
       supabase
@@ -129,14 +143,32 @@ export async function getInstagramDashboardData(
         .eq("social_account_id", account.id)
         .order("posted_at", { ascending: false })
         .limit(50),
+      // Serie diaria: una fila por métrica y día dentro del período (~10 × 92 filas).
       supabase
         .from("instagram_account_insights")
         .select("metric, period, value, end_time, synced_at")
         .eq("social_account_id", account.id)
+        .eq("period", "day")
         .gte("end_time", insightBoundary),
+      // Totales de 7 días: cada sincronización agrega una tanda nueva, así que se leen
+      // sólo las más recientes. Mezclados con la serie, con el cron diario superarían el
+      // tope de filas de Supabase y la consulta llegaría cortada sin avisar.
+      supabase
+        .from("instagram_account_insights")
+        .select("metric, period, value, end_time, synced_at")
+        .eq("social_account_id", account.id)
+        .in("period", [ACCOUNT_CURRENT_TOTAL_PERIOD, ACCOUNT_PREVIOUS_TOTAL_PERIOD])
+        .order("synced_at", { ascending: false })
+        .limit(60),
+      // Fechas de publicación del período, para contar cuánto contenido salió.
+      supabase
+        .from("instagram_media")
+        .select("posted_at")
+        .eq("social_account_id", account.id)
+        .gte("posted_at", insightBoundary),
     ]);
 
-  if (mediaError || insightsError) {
+  if (mediaError || insightsError || summariesError || publishedError) {
     throw new Error("No pudimos cargar las métricas de Instagram.");
   }
 
@@ -154,12 +186,14 @@ export async function getInstagramDashboardData(
     mediaInsights = (data ?? []) as InstagramInsightRow[];
   }
 
-  const accountInsightRows = (accountInsights ?? []) as InstagramAccountInsightRow[];
-  const summaries = buildAccountMetricSummaries(accountInsightRows);
+  const dailyInsightRows = (dailyInsights ?? []) as InstagramAccountInsightRow[];
+  const summaryInsightRows = (summaryInsights ?? []) as InstagramAccountInsightRow[];
+  const accountInsightRows = [...dailyInsightRows, ...summaryInsightRows];
+  const summaries = buildAccountMetricSummaries(summaryInsightRows);
   const summaryByMetric = new Map(summaries.map((summary) => [summary.metric, summary]));
   // Toda métrica con serie diaria entra; `buildDailyMetricSeries` ignora las que no
   // sabe mapear. Filtrar por `reach` acá descartaba series que sí llegaron.
-  const dailyRows = accountInsightRows.filter((row) => row.period === "day");
+  const dailyRows = dailyInsightRows;
   const dailyMetricsAvailable = new Set(dailyRows.map((row) => row.metric));
   const mediaMetrics = new Map<string, Map<string, number>>();
 
@@ -219,9 +253,10 @@ export async function getInstagramDashboardData(
     dailyMetrics: buildDailyMetricSeries(
       dailyRows,
       now,
-      ACCOUNT_INSIGHT_LOOKBACK_DAYS,
+      DAILY_SERIES_DAYS,
     ),
     topContent,
+    publishedDates: (publishedMedia ?? []).map((item) => item.posted_at as string),
     lastSyncedAt: findLatestTimestamp([
       connection.connected_at,
       ...mediaRows.map((item) => item.synced_at),

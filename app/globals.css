@@ -14,6 +14,12 @@
   --color-warning: #a86511;
   --color-danger: #c33c45;
   --color-data: #4f6fd8;
+  /* Series categóricas en orden fijo, validadas para daltonismo sobre fondo claro.
+     Aguamarina y amarillo no llegan a 3:1: siempre van con leyenda o valor visible. */
+  --color-series-1: #4f6fd8;
+  --color-series-2: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-series-4: #eda100;
   --radius-control: 0.625rem;
   --radius-navigation: 0.75rem;
   --radius-card: 0.875rem;

@@ -6,6 +6,7 @@ import {
   buildAccountInsightWindows,
   type InsightWindow,
 } from "@/lib/meta/insight-periods";
+import type { BackfillRequest } from "@/lib/meta/daily-backfill";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_GRAPH_ORIGIN = "https://graph.instagram.com";
@@ -26,13 +27,12 @@ const REEL_INSIGHT_METRICS = [
   "reels_skip_rate",
 ] as const;
 /**
- * Métricas que se piden como serie diaria.
+ * Métricas que Meta entrega como serie diaria real.
  *
- * `reach` ya devuelve un punto por día. De `views` y `total_interactions` no está
- * confirmado que Meta entregue histórico: si los rechaza, esos pedidos fallan solos,
- * no se guarda nada y la interfaz sigue informando que no hay serie disponible.
+ * Sólo `reach`: se comprobó que `views` y `total_interactions` no devuelven histórico
+ * por esta vía, así que se reconstruyen día por día en el backfill (`daily-backfill`).
  */
-const ACCOUNT_DAILY_METRICS = ["reach", "views", "total_interactions"] as const;
+const ACCOUNT_DAILY_METRICS = ["reach"] as const;
 const ACCOUNT_TOTAL_METRICS = [
   "views",
   "reach",
@@ -303,10 +303,8 @@ export async function getInstagramAccountInsights(
 export async function getInstagramDailyTotals(
   accountId: string,
   accessToken: string,
-  metrics: readonly string[],
-  windows: readonly InsightWindow[],
+  requests: readonly BackfillRequest[],
 ): Promise<{ metric: string; endTime: string; value: number }[]> {
-  const requests = metrics.flatMap((metric) => windows.map((window) => ({ metric, window })));
   const results = await mapWithConcurrency(
     requests,
     ACCOUNT_INSIGHT_CONCURRENCY,

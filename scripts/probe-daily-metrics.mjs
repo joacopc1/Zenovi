@@ -8,7 +8,7 @@
  * almacenado, la técnica es válida y se puede confiar en ella para views e
  * interacciones, que no tienen serie diaria propia.
  *
- * Uso: node --env-file=.env.local scripts/probe-daily-metrics.mjs
+ * Uso: node --env-file=.env.local scripts/probe-daily-metrics.mjs [metrica ...]
  */
 import { createDecipheriv } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -16,7 +16,10 @@ import { createClient } from "@supabase/supabase-js";
 const GRAPH_ORIGIN = "https://graph.instagram.com";
 const GRAPH_VERSION = "v26.0";
 const DAY_IN_SECONDS = 24 * 60 * 60;
-const METRICS = ["reach", "views", "total_interactions"];
+// Métricas a sondear: por argumento, o las tres de la serie diaria por defecto.
+const METRICS = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : ["reach", "views", "total_interactions"];
 const DAYS_TO_PROBE = 4;
 
 const admin = createClient(
