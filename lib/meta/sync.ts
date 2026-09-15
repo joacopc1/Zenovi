@@ -11,7 +11,13 @@ import {
   getInstagramDailyTotals,
   getInstagramMedia,
   getInstagramMediaInsights,
+  getInstagramPeriodInsights,
 } from "@/lib/meta/api";
+import {
+  breakdownMetricKey,
+  buildPeriodWindows,
+  periodKey,
+} from "@/lib/data/period-breakdowns";
 import {
   BACKFILL_METRICS,
   endOfDay,
@@ -230,6 +236,14 @@ export async function syncInstagramConnection({
     }
   }
 
+  await storePeriodInsights({
+    admin,
+    socialAccountId,
+    providerAccountId,
+    accessToken,
+    syncedAt,
+  });
+
   await backfillDailyTotals({
     admin,
     socialAccountId,
@@ -336,6 +350,47 @@ async function backfillDailyTotals({
       period: "day",
       value: entry.value,
       end_time: entry.endTime,
+      synced_at: syncedAt,
+    })),
+    { onConflict: "social_account_id,metric,period,end_time" },
+  );
+}
+
+/**
+ * Guarda los totales de 7, 30 y 90 días que sólo Meta puede calcular. Best-effort, como
+ * el backfill: si falla, el resto de la sincronización ya quedó guardado.
+ */
+async function storePeriodInsights({
+  admin,
+  socialAccountId,
+  providerAccountId,
+  accessToken,
+  syncedAt,
+}: {
+  admin: AdminClient;
+  socialAccountId: string;
+  providerAccountId: string;
+  accessToken: string;
+  syncedAt: string;
+}) {
+  const insights = await getInstagramPeriodInsights(
+    providerAccountId,
+    accessToken,
+    buildPeriodWindows(new Date()),
+  );
+
+  if (insights.length === 0) return;
+
+  await admin.from("instagram_account_insights").upsert(
+    insights.map((insight) => ({
+      social_account_id: socialAccountId,
+      metric:
+        insight.dimension && insight.dimensionValue
+          ? breakdownMetricKey(insight.metric, insight.dimension, insight.dimensionValue)
+          : insight.metric,
+      period: periodKey(insight.windowDays),
+      value: insight.value,
+      end_time: insight.end,
       synced_at: syncedAt,
     })),
     { onConflict: "social_account_id,metric,period,end_time" },

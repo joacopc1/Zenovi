@@ -7,6 +7,7 @@ import {
   type InsightWindow,
 } from "@/lib/meta/insight-periods";
 import type { BackfillRequest } from "@/lib/meta/daily-backfill";
+import type { PeriodWindow } from "@/lib/data/period-breakdowns";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_GRAPH_ORIGIN = "https://graph.instagram.com";
@@ -324,6 +325,88 @@ export async function getInstagramDailyTotals(
   );
 
   return results.filter((entry) => entry !== null);
+}
+
+/**
+ * Totales de período que sólo Meta puede calcular: alcance (cuentas únicas) y los
+ * desgloses de visualizaciones por tipo de contenido y por seguidores. Se verificaron
+ * contra el panel profesional de Instagram y coinciden.
+ */
+const PERIOD_QUERIES = [
+  { metric: "reach", breakdown: null },
+  { metric: "views", breakdown: "media_product_type" },
+  { metric: "views", breakdown: "follow_type" },
+] as const;
+
+export type InstagramPeriodInsight = {
+  metric: string;
+  windowDays: PeriodWindow["days"];
+  end: string;
+  value: number;
+  dimension: string | null;
+  dimensionValue: string | null;
+};
+
+export async function getInstagramPeriodInsights(
+  accountId: string,
+  accessToken: string,
+  windows: readonly PeriodWindow[],
+): Promise<InstagramPeriodInsight[]> {
+  const requests = windows.flatMap((window) => PERIOD_QUERIES.map((query) => ({ window, query })));
+  const results = await mapWithConcurrency(
+    requests,
+    ACCOUNT_INSIGHT_CONCURRENCY,
+    async ({ window, query }) => {
+      const url = new URL(
+        `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(accountId)}/insights`,
+        INSTAGRAM_GRAPH_ORIGIN,
+      );
+      url.searchParams.set("metric", query.metric);
+      url.searchParams.set("period", "day");
+      url.searchParams.set("metric_type", "total_value");
+      url.searchParams.set("since", String(window.since));
+      url.searchParams.set("until", String(window.until));
+      if (query.breakdown) url.searchParams.set("breakdown", query.breakdown);
+
+      const response = await requestMeta(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      return response.ok ? readPeriodInsight(response.data, query, window) : [];
+    },
+  );
+
+  return results.flat();
+}
+
+function readPeriodInsight(
+  data: Record<string, unknown>,
+  query: (typeof PERIOD_QUERIES)[number],
+  window: PeriodWindow,
+): InstagramPeriodInsight[] {
+  const items = Array.isArray(data.data) ? data.data : [];
+  const item = items.find((candidate) => isRecord(candidate) && candidate.name === query.metric);
+  if (!isRecord(item) || !isRecord(item.total_value)) return [];
+
+  const base = { metric: query.metric, windowDays: window.days, end: window.end };
+
+  if (!query.breakdown) {
+    const value = readNonNegativeNumber(item.total_value, "value");
+    return value === null ? [] : [{ ...base, value, dimension: null, dimensionValue: null }];
+  }
+
+  const breakdowns = Array.isArray(item.total_value.breakdowns) ? item.total_value.breakdowns : [];
+  const results = isRecord(breakdowns[0]) && Array.isArray(breakdowns[0].results) ? breakdowns[0].results : [];
+
+  return results.flatMap((result) => {
+    if (!isRecord(result) || !Array.isArray(result.dimension_values)) return [];
+    const dimensionValue = result.dimension_values[0];
+    const value = readNonNegativeNumber(result, "value");
+
+    return typeof dimensionValue === "string" && value !== null
+      ? [{ ...base, value, dimension: query.breakdown, dimensionValue }]
+      : [];
+  });
 }
 
 async function requestInstagramAccountMetric(

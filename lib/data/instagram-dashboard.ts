@@ -10,6 +10,13 @@ import {
   buildDailyMetricSeries,
   type InstagramDailyMetric,
 } from "@/lib/data/daily-metric-series";
+import {
+  PERIOD_WINDOW_DAYS,
+  buildPeriodBreakdowns,
+  periodKey,
+  type PeriodBreakdown,
+  type StoredPeriodRow,
+} from "@/lib/data/period-breakdowns";
 import { REPORTING_DELAY_DAYS } from "@/lib/analytics/period-totals";
 import {
   ACCOUNT_INSIGHT_LOOKBACK_DAYS,
@@ -81,6 +88,8 @@ export type InstagramDashboardData = {
   dailyMetrics: InstagramDailyMetric[];
   /** Fechas de publicación dentro del período máximo. */
   publishedDates: string[];
+  /** Alcance y desgloses de visualizaciones por ventana, calculados por Meta. */
+  periodBreakdowns: PeriodBreakdown[];
   topContent: InstagramContentSummary[];
   priority: {
     contentLabel: string;
@@ -133,6 +142,7 @@ export async function getInstagramDashboardData(
     { data: dailyInsights, error: insightsError },
     { data: summaryInsights, error: summariesError },
     { data: publishedMedia, error: publishedError },
+    { data: periodRows, error: periodError },
   ] =
     await Promise.all([
       supabase
@@ -166,9 +176,17 @@ export async function getInstagramDashboardData(
         .select("posted_at")
         .eq("social_account_id", account.id)
         .gte("posted_at", insightBoundary),
+      // Totales de 7, 30 y 90 días: sólo interesan las lecturas más recientes.
+      supabase
+        .from("instagram_account_insights")
+        .select("metric, period, value, end_time, synced_at")
+        .eq("social_account_id", account.id)
+        .in("period", PERIOD_WINDOW_DAYS.map(periodKey))
+        .order("synced_at", { ascending: false })
+        .limit(90),
     ]);
 
-  if (mediaError || insightsError || summariesError || publishedError) {
+  if (mediaError || insightsError || summariesError || publishedError || periodError) {
     throw new Error("No pudimos cargar las métricas de Instagram.");
   }
 
@@ -257,6 +275,7 @@ export async function getInstagramDashboardData(
     ),
     topContent,
     publishedDates: (publishedMedia ?? []).map((item) => item.posted_at as string),
+    periodBreakdowns: buildPeriodBreakdowns((periodRows ?? []) as StoredPeriodRow[]),
     lastSyncedAt: findLatestTimestamp([
       connection.connected_at,
       ...mediaRows.map((item) => item.synced_at),

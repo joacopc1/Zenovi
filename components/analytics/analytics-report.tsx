@@ -3,7 +3,6 @@ import ProgressMetricCard, { type CardTrend } from "@/components/ui/progress-met
 import { RadarChart } from "@/components/ui/radar-chart";
 import {
   averageByWeekday,
-  averagePerReportedDay,
   countPublished,
   engagementComposition,
   followerChange,
@@ -21,6 +20,7 @@ import type { InstagramDailyMetric } from "@/lib/data/daily-metric-series";
 import type { InstagramDashboardData } from "@/lib/data/instagram-dashboard";
 import { ContentInsights } from "./content-insights";
 import { DailyChart, type ChartPoint, type ChartSeries } from "./daily-chart";
+import { formatDayRange } from "@/lib/format/dates";
 import { formatCompact, formatDecimal, formatNumber, formatPercent } from "@/lib/format/numbers";
 import { ProportionBar } from "./proportion-blocks";
 import {
@@ -82,6 +82,13 @@ export function AnalyticsReport({
   const weekdays = averageByWeekday(window, "interactions");
   const strongest = strongestWeekday(weekdays);
   const followers = followerChange(series.slice(-days));
+  // Totales que calcula Meta para la ventana elegida: alcance y repartos de visualizaciones.
+  const breakdown = dashboard.periodBreakdowns.find((item) => item.days === days) ?? null;
+  const contentSlices = breakdown?.viewsByContent ? toSlices(breakdown.viewsByContent.map((item) => ({ key: item.type, value: item.value })), contentLabels) : null;
+  const audience = breakdown?.viewsByAudience ?? null;
+  const audienceSlices = audience
+    ? toSlices([{ key: "followers", value: audience.followers }, { key: "nonFollowers", value: audience.nonFollowers }], audienceLabels)
+    : null;
 
   return (
     <>
@@ -117,12 +124,16 @@ export function AnalyticsReport({
           <StatTile
             label="Contenido publicado"
             value={firstDay && lastDay ? formatNumber(countPublished(dashboard.publishedDates, firstDay, lastDay)) : "—"}
-            detail="Piezas publicadas en el período"
+            detail="Reels y publicaciones; no incluye historias"
           />
           <StatTile
-            label="Alcance promedio por día"
-            value={formatCompact(averagePerReportedDay(series.slice(-days), "reach"))}
-            detail="Cuentas únicas por día"
+            label="Alcance del período"
+            value={formatCompact(breakdown?.reach ?? null)}
+            detail={
+              breakdown
+                ? `Cuentas únicas · ${formatDayRange(breakdown.fromDate, breakdown.toDate)}`
+                : pendingSync
+            }
           />
           <PendingTile label="Conversión perfil → seguidor" reason={HUNDRED_FOLLOWERS} />
         </div>
@@ -182,6 +193,33 @@ export function AnalyticsReport({
               />
             </ReportCard>
           ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ReportCard
+            title="Seguidores y no seguidores"
+            description="Quién hizo las visualizaciones del período"
+          >
+            {audienceSlices && audience ? (
+              <>
+                <ProportionBar slices={audienceSlices} />
+                <p className="mt-4 text-sm leading-6 text-ink">
+                  {formatPercent(ratio(audience.nonFollowers, audience.followers + audience.nonFollowers))} de tus
+                  visualizaciones vino de cuentas que todavía no te siguen.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs leading-5 text-muted">{pendingSync}.</p>
+            )}
+          </ReportCard>
+
+          <ReportCard title="Visualizaciones por tipo de contenido" description="Un carrusel cuenta como publicación">
+            {contentSlices ? (
+              <ProportionBar slices={contentSlices} />
+            ) : (
+              <p className="text-xs leading-5 text-muted">{pendingSync}.</p>
+            )}
+          </ReportCard>
         </div>
       </ReportSection>
 
@@ -309,6 +347,35 @@ export function AnalyticsReport({
 }
 
 const pendingSync = "Se completa con la próxima sincronización";
+
+// Orden y colores fijos: el color sigue a la categoría, no a su tamaño.
+const contentLabels: Record<string, { label: string; color: string }> = {
+  reels: { label: "Reels", color: "var(--color-series-1)" },
+  posts: { label: "Publicaciones", color: "var(--color-series-2)" },
+  stories: { label: "Historias", color: "var(--color-series-3)" },
+  other: { label: "Otros", color: "var(--color-series-4)" },
+};
+
+const audienceLabels: Record<string, { label: string; color: string }> = {
+  followers: { label: "Seguidores", color: "var(--color-series-1)" },
+  nonFollowers: { label: "No seguidores", color: "var(--color-series-2)" },
+};
+
+function toSlices(
+  parts: { key: string; value: number }[],
+  labels: Record<string, { label: string; color: string }>,
+) {
+  const total = parts.reduce((sum, part) => sum + part.value, 0);
+  if (total === 0) return null;
+
+  return parts.map((part) => ({
+    key: part.key,
+    label: labels[part.key].label,
+    color: labels[part.key].color,
+    value: part.value,
+    share: part.value / total,
+  }));
+}
 
 /** Cifra con signo explícito: "+2", "−1", "0". */
 function signed(value: number, format: (value: number) => string) {

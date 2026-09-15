@@ -24,7 +24,7 @@ export function SyncButton({ redirectTo }: { redirectTo: string }) {
     <form
       action="/api/integrations/instagram/sync"
       method="post"
-      className="flex items-center gap-2"
+      className="relative"
       onSubmit={(event) => {
         // Un segundo clic lanzaría otra sincronización completa en paralelo.
         if (pending) {
@@ -35,9 +35,6 @@ export function SyncButton({ redirectTo }: { redirectTo: string }) {
       }}
     >
       <input type="hidden" name="redirectTo" value={redirectTo} />
-      {pending ? (
-        <span className="hidden text-xs text-muted sm:inline">Puede tardar hasta un minuto</span>
-      ) : null}
       <button
         type="submit"
         aria-disabled={pending}
@@ -48,6 +45,12 @@ export function SyncButton({ redirectTo }: { redirectTo: string }) {
         <RefreshIcon className={`size-3.5 ${pending ? "animate-spin motion-reduce:animate-none" : ""}`} />
         {pending ? "Actualizando…" : "Actualizar"}
       </button>
+      {/* Debajo del botón y fuera del flujo: aparecer no desplaza el encabezado. */}
+      {pending ? (
+        <span className="absolute right-0 top-full mt-1 whitespace-nowrap text-[11px] text-muted">
+          Puede tardar hasta un minuto
+        </span>
+      ) : null}
       <span aria-live="polite" className="sr-only">
         {pending ? "Actualizando los datos de Instagram. Puede tardar hasta un minuto." : ""}
       </span>
