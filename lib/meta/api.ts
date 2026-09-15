@@ -149,6 +149,39 @@ export async function exchangeInstagramLongLivedToken(
   };
 }
 
+/**
+ * Renueva un token de larga duración por otros 60 días. Meta sólo lo acepta si tiene al
+ * menos 24 horas y no venció; la decisión de cuándo pedirlo está en `token-refresh`.
+ */
+export async function refreshInstagramLongLivedToken(
+  accessToken: string,
+): Promise<MetaResult<{ accessToken: string; expiresAt: string | null }>> {
+  const url = new URL("/refresh_access_token", INSTAGRAM_GRAPH_ORIGIN);
+  url.searchParams.set("grant_type", "ig_refresh_token");
+  url.searchParams.set("access_token", accessToken);
+
+  const response = await requestMeta(url);
+
+  if (!response.ok) {
+    return response;
+  }
+
+  const refreshedToken = readNonEmptyString(response.data, "access_token");
+  const expiresIn = readNonNegativeNumber(response.data, "expires_in");
+
+  if (!refreshedToken) {
+    return { ok: false, code: "invalid_refresh_token_response" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      accessToken: refreshedToken,
+      expiresAt: expiresIn === null ? null : new Date(Date.now() + expiresIn * 1000).toISOString(),
+    },
+  };
+}
+
 export async function getInstagramAccountProfile(
   accessToken: string,
 ): Promise<MetaResult<InstagramAccountProfile>> {

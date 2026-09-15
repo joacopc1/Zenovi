@@ -236,7 +236,8 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 2 - Meta y sincronización
 
-- [-] OAuth state machine: endpoints, callback, persistencia y conexión real implementados; faltan pruebas automatizadas, cancelación, refresh, móvil y cuenta externa.
+- [-] OAuth state machine: endpoints, callback, persistencia y conexión real implementados; faltan pruebas automatizadas, cancelación, móvil y cuenta externa.
+- [x] Renovar el token de Instagram antes de que venza: cada sincronización lo renueva cuando faltan 20 días o menos (Meta exige 24 h de antigüedad y da 60 días más). Probado contra Meta el 2026-09-15: token nuevo de 60 días guardado cifrado y verificado leyendo insights.
 - [-] Tokens cifrados: almacenamiento exclusivo del servidor y cifrado de aplicación preparados; falta rotación de claves.
 - [-] Cuenta elegible y selección de activo: resolución automática de una Creator real verificada; falta flujo explícito cuando existan varios activos elegibles.
 - [-] Sync inicial/incremental: perfil, medios, métricas por pieza y totales comparables implementados. La serie diaria abarca 90 días —el techo de retención de Meta— pedida en tramos de 30 para que un tramo caído no invalide los demás. `views` y `total_interactions` se reconstruyen día por día con ventanas de un día, porque Meta no entrega su histórico; se verificó contra la serie real de `reach` que una ventana de un día devuelve el valor de ese día. Falta paginación completa de medios, expiración y validar la corrida prolongada.
