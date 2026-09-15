@@ -1,6 +1,6 @@
 # Zenovi - Roadmap operativo
 
-Actualizado: 2026-09-12
+Actualizado: 2026-09-15
 Estado general: Discovery  
 Objetivo inmediato: decidir viabilidad y congelar el scope del MVP
 
@@ -184,7 +184,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Mapear activación y primer valor.
 - [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y preflight de Instagram implementados; faltan estados posteriores a OAuth y validación con usuarios.
 - [-] Wireframe de dashboard: primer corte funcional con métricas, tendencias y contenido destacado; se perfeccionará al final después de aprender de las demás secciones. Responsable: Joaco/Codex.
-- [-] Wireframe de Analíticas: primera vista funcional de 30 días implementada; faltan validar estadísticas, preguntas del usuario, paneles adicionales y nombre definitivo de navegación. Responsable: Joaco/Codex.
+- [-] Wireframe de Analíticas: estructura en seis secciones, cada una con la pregunta que responde — Resumen, Calidad del engagement, Visibilidad, Comunidad, Audiencia y Qué funcionó —, tomando de Moka la información que junta y no su forma de graficar. Me gusta, comentarios, guardados, compartidos, visitas al perfil y toques en el enlace se reconstruyen día por día; conversión perfil → seguidor, seguidores nuevos y demografía quedan marcados como sin conectar (Meta exige 100 seguidores). Integradas la Progress Metric Card (21st.dev, reconstruida porque el registro exige login) en Visualizaciones e Interacciones y el radar de Intent UI en días con más interacción, ambos con los tokens de Zenovi. Falta validar cada cifra contra Instagram Insights nativo con una cuenta de actividad real y conectar una cuenta de más de 100 seguidores; el diseño fino de cards queda para después del MVP. Responsable: Joaco/Claude.
 - [-] Wireframe de Reels/detalle: biblioteca filtrable y detalle base con media autorizada y métricas oficiales implementados; faltan transcripción, benchmark y análisis persistente.
 - [ ] Wireframe de Stories/secuencia.
 - [ ] Wireframe de Director e historial.
@@ -241,7 +241,7 @@ Objetivo: base productiva antes de features.
 - [-] Cuenta elegible y selección de activo: resolución automática de una Creator real verificada; falta flujo explícito cuando existan varios activos elegibles.
 - [-] Sync inicial/incremental: perfil, medios, métricas por pieza y totales comparables implementados. La serie diaria abarca 90 días —el techo de retención de Meta— pedida en tramos de 30 para que un tramo caído no invalide los demás. `views` y `total_interactions` se reconstruyen día por día con ventanas de un día, porque Meta no entrega su histórico; se verificó contra la serie real de `reach` que una ventana de un día devuelve el valor de ese día. Falta paginación completa de medios, expiración y validar la corrida prolongada.
 - [-] Jobs idempotentes y retries: upserts, sync manual y cron diario autenticado implementados; faltan retry/backoff durable, observabilidad y pruebas de fallo.
-- [-] Dashboard de estado: Inicio y Analíticas consumen datos reales y distinguen faltantes de cero, incluida la serie diaria, que deja los días sin informar en `null` y los dibuja como hueco en vez de como caída. Faltan definiciones accesibles por métrica.
+- [-] Dashboard de estado: Inicio y Analíticas consumen datos reales y distinguen faltantes de cero, incluida la serie diaria, que deja los días sin informar en `null` y los dibuja como hueco en vez de como caída. En Analíticas, visualizaciones e interacciones totalizan el período elegido (7, 30 o 90 días) y se comparan contra el período anterior sólo si la base lo guarda completo; el período termina en el último día cerrado para absorber la demora de hasta 48 h de Meta. El alcance conserva el total oficial de 7 días porque no se puede sumar por día. Faltan definiciones accesibles por métrica y decidir cómo obtener el alcance de 30 y 90 días.
 - [ ] Desconectar/eliminar.
 
 ### Sprint 3 - Reels y análisis
@@ -366,6 +366,8 @@ Solo entra si los gates anteriores justifican inversión.
 - [ ] Auditar la sección Analíticas por preguntas de usuario, no por cantidad de cards: salud de cuenta, evolución, distribución por formato/objetivo, benchmarks propios, mejores/peores piezas y acciones derivadas.
 - [x] Corregir las consultas de Insights de cuenta: se comprobó empíricamente que Meta sólo entrega serie diaria de `reach`; `views` y `total_interactions` se reconstruyen pidiendo una ventana por día en lugar de inventarse. Los días sin informar quedan en `null` y nunca se convierten en cero.
 - [?] Validar si `Analíticas` es el nombre más claro para el ICP o si conviene `Rendimiento`, `Resultados` u otra etiqueta; no decidir por imitación de Moka.
+- [?] Reubicar Analíticas más abajo en la sidebar: Joaco no la pondría tan arriba. Decidirlo junto con la estructura final de la sección; la sidebar no se modifica hasta entonces.
+- [?] Definir una fuente secundaria para métricas y textos de apoyo: hoy Instrument Sans se usa para todo y la jerarquía depende sólo de tamaño y peso. Tomarla de las cards de referencia de 21st.dev, probarla primero en Analíticas y no extenderla a navegación ni sidebar sin decidirlo.
 
 ## Registro de decisiones
 
@@ -393,6 +395,13 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-09-12 | El filtro de período lee de la base y no dispara sincronización | Aceptada | Cambiar el rango es instantáneo, no gasta cuota de API ni depende de que Meta responda |
 | 2026-09-12 | El filtro de período no aparece en la biblioteca de Contenido | Aceptada | Ahí se ven las piezas publicadas y sus estadísticas actuales, no un rango temporal |
 | 2026-09-12 | La cifra exacta de seguidores se reserva a su vista dedicada | Aceptada | El resto de la interfaz usa notación compacta al estilo Instagram, que es como las marcas personales leen esos números |
+| 2026-09-13 | Los totales de un período terminan en el último día cerrado | Aceptada | Meta puede demorar hasta 48 h; contar el día abierto marcaría todas las cifras como parciales cada mañana |
+| 2026-09-13 | El alcance no se totaliza sumando días | Aceptada | Cuenta cuentas únicas: sumar alcances diarios duplica a quien volvió otro día |
+| 2026-09-14 | Analíticas se ordena por preguntas: resumen, engagement, visibilidad, comunidad, audiencia, qué funcionó | A validar | Toma de Moka la información, no la forma; engagement va antes que visibilidad por la prioridad de la marca personal |
+| 2026-09-14 | Métricas de escalas distintas no comparten eje; sin donas | Aceptada | Un eje compartido aplasta la serie chica; longitudes se comparan mejor que ángulos |
+| 2026-09-15 | Días con más interacción se muestra en radar | Aceptada | Decisión de Joaco sobre la recomendación de barras; se revisa si cuesta leerlo con datos reales |
+| 2026-09-15 | Para el MVP prima que cada analítica sea correcta sobre la ubicación exacta de cada card | Aceptada | La estructura de Analíticas se considera suficiente; el diseño se itera después de validar las cifras contra Instagram |
+| 2026-09-15 | Lucide como única familia de íconos, con trazo fino | Aceptada | Es la que usan las cards de 21st.dev y shadcn; trazo tipo Apple como en Lovable o ElevenLabs |
 
 ## Registro de bloqueos
 
