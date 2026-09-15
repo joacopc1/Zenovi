@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ContentCard } from "@/components/content/content-card";
 import { ContentFilters } from "@/components/content/content-filters";
+import { LibraryPagination } from "@/components/content/library-pagination";
 import { ReelCard } from "@/components/content/reel-card";
 import { SyncButton } from "@/components/home/sync-button";
 import { SyncNotice } from "@/components/home/sync-notice";
@@ -14,6 +15,7 @@ import {
   type ContentSort,
   type ContentSortDirection,
 } from "@/lib/content/library";
+import { paginate } from "@/lib/content/pagination";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 
@@ -22,6 +24,7 @@ type ContentSearchParams = {
   q?: string | string[];
   sort?: string | string[];
   dir?: string | string[];
+  page?: string | string[];
   sync?: string | string[];
 };
 
@@ -55,6 +58,8 @@ export default async function ContentPage({
     selectedSort,
     selectedDirection,
   );
+  // Buscar y ordenar abarcan todo; la página sólo recorta lo que se ve.
+  const pagination = paginate(visibleItems, Number(firstValue(query.page) ?? 1));
 
   return (
     <>
@@ -96,17 +101,26 @@ export default async function ContentPage({
                 aria-label="Piezas de contenido"
                 className={`mt-5 grid gap-4 ${selectedType === "reel" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
               >
-                {visibleItems.map((item, index) => (
+                {pagination.pageItems.map((item, index) => (
                   selectedType === "reel" ? (
-                    <ReelCard key={item.id} item={item} priority={index < 4} />
+                    <ReelCard key={item.id} item={item} priority={pagination.page === 1 && index < 4} />
                   ) : (
-                    <ContentCard key={item.id} item={item} priority={index < 3} />
+                    <ContentCard key={item.id} item={item} priority={pagination.page === 1 && index < 3} />
                   )
                 ))}
               </section>
             ) : (
               <EmptyLibrary filtered={library.items.length > 0} selectedType={selectedType} />
             )}
+
+            <LibraryPagination
+              state={{ kind: selectedType, sort: selectedSort, direction: selectedDirection, search }}
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              from={pagination.from}
+              to={pagination.to}
+              total={pagination.total}
+            />
           </>
         ) : (
           <DisconnectedLibrary />

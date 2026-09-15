@@ -7,6 +7,12 @@ import {
   type InsightWindow,
 } from "@/lib/meta/insight-periods";
 import type { BackfillRequest } from "@/lib/meta/daily-backfill";
+import {
+  MAX_MEDIA_ITEMS,
+  MEDIA_PAGE_SIZE,
+  needsMoreMedia,
+  readNextCursor,
+} from "@/lib/meta/media-sync-plan";
 import type { PeriodWindow } from "@/lib/data/period-breakdowns";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
@@ -221,30 +227,55 @@ export async function getInstagramAccountProfile(
   };
 }
 
+/**
+ * Contenido reciente de la cuenta, página por página, hasta donde indica `needsMoreMedia`.
+ *
+ * Cada página se arma con el cursor en vez de seguir la URL `next` de la respuesta, y el
+ * token viaja sólo en el encabezado. Si falla una página posterior a la primera se
+ * devuelve lo ya traído: esas piezas son válidas y las anteriores siguen guardadas.
+ */
 export async function getInstagramMedia(
   accessToken: string,
 ): Promise<MetaResult<InstagramMedia[]>> {
-  const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me/media`, INSTAGRAM_GRAPH_ORIGIN);
-  url.searchParams.set(
-    "fields",
-    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
-  );
-  url.searchParams.set("limit", "50");
+  const media: InstagramMedia[] = [];
+  const seenCursors = new Set<string>();
+  let after: string | null = null;
 
-  const response = await requestMeta(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  for (let page = 0; page < Math.ceil(MAX_MEDIA_ITEMS / MEDIA_PAGE_SIZE); page += 1) {
+    const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me/media`, INSTAGRAM_GRAPH_ORIGIN);
+    url.searchParams.set(
+      "fields",
+      "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
+    );
+    url.searchParams.set("limit", String(MEDIA_PAGE_SIZE));
+    if (after) url.searchParams.set("after", after);
 
-  if (!response.ok) return response;
+    const response = await requestMeta(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-  const data = Array.isArray(response.data.data) ? response.data.data : null;
+    if (!response.ok) return page === 0 ? response : { ok: true, data: media };
 
-  if (!data) {
-    return { ok: false, code: "invalid_media_response" };
+    const data = Array.isArray(response.data.data) ? response.data.data : null;
+    if (!data) {
+      return page === 0 ? { ok: false, code: "invalid_media_response" } : { ok: true, data: media };
+    }
+
+    media.push(...data.map(parseInstagramMedia).filter((item) => item !== null));
+
+    // Un cursor repetido cortaría un bucle infinito si Meta devolviera la misma página.
+    const next = readNextCursor(response.data);
+    const more = needsMoreMedia({
+      fetchedCount: media.length,
+      oldestPostedAt: media.at(-1)?.timestamp ?? null,
+      now: new Date(),
+    });
+    if (!next || seenCursors.has(next) || !more) break;
+    seenCursors.add(next);
+    after = next;
   }
 
-  const media = data.map(parseInstagramMedia).filter((item) => item !== null);
-  return { ok: true, data: media };
+  return { ok: true, data: media.slice(0, MAX_MEDIA_ITEMS) };
 }
 
 export async function getInstagramMediaInsights(

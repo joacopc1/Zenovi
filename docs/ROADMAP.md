@@ -249,7 +249,7 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 3 - Reels y análisis
 
-- [-] Listado y detalle de medios: biblioteca de hasta 100 piezas, filtros por formato, búsqueda, orden por rendimiento y detalle base implementados; falta paginación, transcripción, benchmark y análisis persistente. La duración del clip ya se muestra en la biblioteca y en el detalle.
+- [-] Listado y detalle de medios: la sincronización pagina por cursor y trae al menos las últimas 100 piezas, más las de los últimos 90 días si hay más, con tope de 300; las estadísticas por pieza se actualizan para lo reciente y se completan una vez para lo viejo. La biblioteca muestra las últimas 100 en páginas de 24. Faltan transcripción, benchmark y análisis a pedido.
 - [-] Métricas oficiales: ingestión y visualización inicial implementadas; por contenido se solicitan views, reach, likes, comments, shares, saved y total interactions, más tiempo medio, tiempo total y skip rate para Reels. Cuenta solicita cada total por separado y muestra views, reach, total interactions, profile views, accounts engaged y link taps sin convertir ausentes en cero. Falta verificar nuevamente la sincronización completa contra Instagram Insights nativo.
 - [ ] Presentar la evolución de seguidores: la foto diaria ya se guarda en `instagram_account_insights` con `metric=follower_count` y `period=day` desde 2026-09-12, pero todavía no se muestra en ninguna pantalla. Formato aún por comprobar —card KPI o gráfica—; la cifra exacta se reserva para esa vista dedicada y el resto de la interfaz usa notación compacta.
 - [ ] Transcripción.

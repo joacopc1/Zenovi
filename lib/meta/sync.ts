@@ -23,6 +23,7 @@ import {
   endOfDay,
   planDailyBackfill,
 } from "@/lib/meta/daily-backfill";
+import { planMediaInsightRefresh } from "@/lib/meta/media-sync-plan";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -135,7 +136,40 @@ export async function syncInstagramConnection({
     synced_at: string;
   }[] = [];
 
-  const insightResults = await mapWithConcurrency(mediaResult.data, 5, async (media) => ({
+  // Qué piezas ya tienen estadísticas: las viejas con datos no se vuelven a pedir.
+  const { data: coverage, error: coverageError } = await admin
+    .from("instagram_media")
+    .select("id, instagram_media_insights(count)")
+    .eq("social_account_id", socialAccountId)
+    .order("posted_at", { ascending: false })
+    .limit(1000);
+  const withInsights = new Set(
+    (coverage ?? [])
+      .filter((item) => (item.instagram_media_insights as { count: number }[])[0]?.count > 0)
+      .map((item) => item.id as string),
+  );
+
+  const plannedIds = new Set(
+    planMediaInsightRefresh({
+      media: mediaResult.data.flatMap((media) => {
+        const storedMediaId = mediaIdByProviderId.get(media.id);
+        return storedMediaId
+          ? [{
+              id: storedMediaId,
+              postedAt: media.timestamp,
+              // Si no se pudo consultar, se asume que ya tienen datos: evita repedir toda la historia.
+              hasInsights: coverageError ? true : withInsights.has(storedMediaId),
+            }]
+          : [];
+      }),
+      now: new Date(),
+    }),
+  );
+  const mediaToRefresh = mediaResult.data.filter((media) =>
+    plannedIds.has(mediaIdByProviderId.get(media.id) ?? ""),
+  );
+
+  const insightResults = await mapWithConcurrency(mediaToRefresh, 5, async (media) => ({
     media,
     result: await getInstagramMediaInsights(media.id, accessToken, media.mediaProductType),
   }));

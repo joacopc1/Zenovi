@@ -7,6 +7,7 @@ import type {
   ContentSort,
   ContentSortDirection,
 } from "@/lib/content/library";
+import { buildContentUrl } from "@/lib/content/pagination";
 
 type FilterState = {
   kind: ContentKind;
@@ -46,7 +47,7 @@ export function ContentFilters({
   // Un único punto de navegación: cada control describe sólo lo que cambia.
   const apply = useCallback(
     (changes: Partial<FilterState>) =>
-      router.replace(buildUrl({ kind, sort, direction, search: draftSearch, ...changes })),
+      router.replace(buildContentUrl({ kind, sort, direction, search: draftSearch, ...changes })),
     [router, kind, sort, direction, draftSearch],
   );
 
@@ -119,18 +120,6 @@ export function ContentFilters({
   );
 }
 
-function buildUrl({ kind, sort, direction, search }: FilterState) {
-  const params = new URLSearchParams();
-  if (kind !== "reel") params.set("type", kind);
-  if (sort !== "recent") params.set("sort", sort);
-  if (direction !== "desc") params.set("dir", direction);
-
-  const trimmed = search.trim();
-  if (trimmed) params.set("q", trimmed);
-
-  const suffix = params.toString();
-  return suffix ? `/content?${suffix}` : "/content";
-}
 
 function SearchIcon(props: SVGProps<SVGSVGElement>) {
   return (
