@@ -140,3 +140,51 @@ export function countPublished(postedAt: readonly string[], fromDate: string, to
     return day >= fromDate && day <= toDate;
   }).length;
 }
+
+export type PublishedBucket = { label: string; count: number };
+
+const WEEKDAY_INITIALS = ["D", "L", "M", "M", "J", "V", "S"];
+
+/**
+ * Cuántas piezas se publicaron en cada tramo del período, para leerlo como barras.
+ *
+ * El tramo se elige por el largo del período —día, semana o quincena— para que nunca
+ * haya más de siete u ocho barras: más que eso deja de leerse de un vistazo. Los
+ * tramos se arman desde el final, así el último siempre termina en el día más
+ * reciente y el recorte, si lo hay, cae en el tramo más viejo.
+ */
+export function publishedBuckets(
+  postedAt: readonly string[],
+  days: readonly string[],
+): PublishedBucket[] {
+  if (days.length === 0) return [];
+
+  const perDay = new Map<string, number>();
+  for (const timestamp of postedAt) {
+    const day = timestamp.slice(0, 10);
+    if (day >= days[0] && day <= days[days.length - 1]) {
+      perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    }
+  }
+
+  const size = days.length <= 7 ? 1 : days.length <= 35 ? 7 : 14;
+  const buckets: PublishedBucket[] = [];
+
+  for (let end = days.length; end > 0; end -= size) {
+    const span = days.slice(Math.max(0, end - size), end);
+    buckets.unshift({
+      label: size === 1 ? weekdayInitial(span[0]) : shortDay(span[0]),
+      count: span.reduce((total, day) => total + (perDay.get(day) ?? 0), 0),
+    });
+  }
+
+  return buckets;
+}
+
+function weekdayInitial(day: string) {
+  return WEEKDAY_INITIALS[new Date(`${day}T00:00:00Z`).getUTCDay()];
+}
+
+function shortDay(day: string) {
+  return `${Number(day.slice(8, 10))}/${Number(day.slice(5, 7))}`;
+}

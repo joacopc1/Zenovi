@@ -10,9 +10,12 @@ export function AppShell({
 }) {
   return (
     <ShellIdentityProvider identity={identity}>
-      <div className="flex min-h-screen bg-canvas">
+      {/* Un solo scroll: el de la página. La barra lateral se queda quieta porque es
+          sticky, no porque el contenido tenga su propio contenedor con scroll —eso
+          producía dos barras a la derecha. */}
+      <div className="flex min-h-dvh bg-paper">
         <Sidebar />
-        <main className="min-h-screen min-w-0 flex-1 bg-paper">
+        <main className="min-w-0 flex-1 bg-paper">
           {children}
         </main>
       </div>

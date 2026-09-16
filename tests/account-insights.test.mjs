@@ -6,6 +6,7 @@ import {
   countPublished,
   engagementComposition,
   followerChange,
+  publishedBuckets,
   ratio,
   readEngagement,
   strongestWeekday,
@@ -93,4 +94,33 @@ test("el promedio de seguidores usa los días transcurridos, no la cantidad de f
   // Dos fotos separadas por cuatro días: +8 son +2 por día, no +4.
   const change = followerChange([day("2026-09-10", { followers: 10 }), day("2026-09-14", { followers: 18 })]);
   assert.equal(change.perDay, 2);
+});
+
+test("agrupa lo publicado por día cuando el período es de una semana", () => {
+  const days = ["2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13"];
+  const buckets = publishedBuckets(["2026-09-08T10:00:00Z", "2026-09-08T18:00:00Z", "2026-09-11T09:00:00Z"], days);
+
+  assert.equal(buckets.length, 7);
+  assert.deepEqual(buckets.map(({ count }) => count), [0, 2, 0, 0, 1, 0, 0]);
+  // 7 de septiembre de 2026 fue lunes.
+  assert.deepEqual(buckets.map(({ label }) => label), ["L", "M", "M", "J", "V", "S", "D"]);
+});
+
+test("agrupa por semana en treinta días y el último tramo cierra en el día más reciente", () => {
+  const days = Array.from({ length: 30 }, (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`);
+  const buckets = publishedBuckets(["2026-09-30T10:00:00Z", "2026-09-02T10:00:00Z"], days);
+
+  assert.equal(buckets.length, 5);
+  assert.equal(buckets.at(-1).count, 1);
+  assert.equal(buckets.at(-1).label, "24/9");
+  // El recorte cae en el tramo más viejo: sólo dos días.
+  assert.equal(buckets[0].label, "1/9");
+  assert.equal(buckets[0].count, 1);
+});
+
+test("no cuenta piezas publicadas fuera del período", () => {
+  const days = ["2026-09-10", "2026-09-11"];
+
+  assert.deepEqual(publishedBuckets(["2026-08-01T10:00:00Z"], days).map(({ count }) => count), [0, 0]);
+  assert.deepEqual(publishedBuckets([], []), []);
 });

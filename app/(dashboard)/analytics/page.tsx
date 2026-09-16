@@ -6,21 +6,30 @@ import { SyncNotice } from "@/components/home/sync-notice";
 import { InstagramConnectionNotice } from "@/components/states/instagram-connection-notice";
 import { AppHeader } from "@/components/shell/app-header";
 import { getAccountContext } from "@/lib/data/account-context";
+import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
-import { buildRangeHref, parseRangeDays } from "@/lib/analytics/range";
+import { buildAnalyticsHref, buildRangeHref, parseAnalyticsTab, parseRangeDays } from "@/lib/analytics/range";
 
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sync?: string | string[]; days?: string | string[] }>;
+  searchParams: Promise<{
+    sync?: string | string[];
+    days?: string | string[];
+    tab?: string | string[];
+  }>;
 }) {
   const account = await getAccountContext();
   const query = await searchParams;
   const rangeDays = parseRangeDays(query.days);
-  const dashboard = account?.workspace
-    ? await getInstagramDashboardData(account.workspace.id)
-    : null;
-  const series = dashboard ? dashboard.dailyMetrics.slice(-rangeDays) : [];
+  const tab = parseAnalyticsTab(query.tab);
+  // La biblioteca aporta portada, texto y formato de cada pieza para "Qué funcionó".
+  const [dashboard, contentLibrary] = account?.workspace
+    ? await Promise.all([
+        getInstagramDashboardData(account.workspace.id),
+        getInstagramContentLibrary(account.workspace.id),
+      ])
+    : [null, null];
   // Vinculada pero no sana: mostrar por qué, en vez de invitar a conectar de cero.
   const unhealthy =
     account?.instagram && account.instagram.status !== "connected"
@@ -46,20 +55,20 @@ export default async function AnalyticsPage({
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold tracking-[-0.02em]">Analíticas</h1>
-            <p className="mt-1 text-[13px] text-muted">
-              {!dashboard
-                ? "Rendimiento de tu cuenta de Instagram"
-                : hasAnyMetric
-                  ? `@${dashboard.username} · últimos ${series.length} días`
-                  : `@${dashboard.username} · esperando datos de Instagram`}
-            </p>
+            {/* Con datos a la vista, la cuenta ya la dice la barra lateral y el período
+                el selector: la línea sólo aparece cuando hay algo que explicar. */}
+            {hasAnyMetric ? null : (
+              <p className="mt-1 text-[13px] text-muted">
+                {dashboard
+                  ? `@${dashboard.username} · esperando datos de Instagram`
+                  : "Rendimiento de tu cuenta de Instagram"}
+              </p>
+            )}
           </div>
           {hasAnyMetric ? (
             <div className="flex items-center gap-2">
-              <DateRangePicker basePath="/analytics" selected={rangeDays} />
-              <SyncButton
-                redirectTo={buildRangeHref("/analytics", rangeDays)}
-              />
+              <DateRangePicker basePath="/analytics" selected={rangeDays} tab={tab} />
+              <SyncButton redirectTo={buildAnalyticsHref("/analytics", rangeDays, tab)} />
             </div>
           ) : null}
         </header>
@@ -83,7 +92,12 @@ export default async function AnalyticsPage({
             </div>
           </section>
         ) : dashboard ? (
-          <AnalyticsReport dashboard={dashboard} days={rangeDays} />
+          <AnalyticsReport
+            dashboard={dashboard}
+            contentItems={contentLibrary?.items ?? []}
+            days={rangeDays}
+            tab={tab}
+          />
         ) : (
           <section className="mt-8 max-w-xl rounded-card border border-mist p-6">
             <h2 className="text-lg font-semibold">Conectá Instagram para ver tus analíticas</h2>

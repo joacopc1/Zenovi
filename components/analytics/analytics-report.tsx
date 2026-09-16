@@ -1,404 +1,95 @@
-import { calculateTrend } from "@/components/home/trend";
-import ProgressMetricCard, { type CardTrend } from "@/components/ui/progress-metric-card";
-import { RadarChart } from "@/components/ui/radar-chart";
-import {
-  averageByWeekday,
-  countPublished,
-  engagementComposition,
-  followerChange,
-  ratio,
-  readEngagement,
-  strongestWeekday,
-} from "@/lib/analytics/account-insights";
-import {
-  closedWindow,
-  summarizePeriod,
-  type AdditiveMetric,
-  type PeriodTotal,
-} from "@/lib/analytics/period-totals";
-import type { InstagramDailyMetric } from "@/lib/data/daily-metric-series";
+import type { ReactNode } from "react";
+import { Eye, Globe, Heart, SquarePlay, Users } from "lucide-react";
+import { buildReportModel } from "@/lib/analytics/report-model";
+import type { AnalyticsTab, RangeDays } from "@/lib/analytics/range";
+import type { ContentLibraryItem } from "@/lib/content/library";
 import type { InstagramDashboardData } from "@/lib/data/instagram-dashboard";
-import { ContentInsights } from "./content-insights";
-import { DailyChart, type ChartPoint, type ChartSeries } from "./daily-chart";
-import { formatDayRange } from "@/lib/format/dates";
-import { formatCompact, formatDecimal, formatNumber, formatPercent } from "@/lib/format/numbers";
-import { ProportionBar } from "./proportion-blocks";
-import {
-  PendingPanel,
-  InlineStats,
-  PendingTile,
-  ReportCard,
-  ReportSection,
-  StatTile,
-  type TileDelta,
-} from "./report-blocks";
-
-const HUNDRED_FOLLOWERS =
-  "Meta sólo entrega este dato a cuentas con 100 seguidores o más, y todavía no se sincroniza.";
-
-const engagementSeries: ChartSeries[] = [
-  { key: "likes", label: "Me gusta", color: "var(--color-series-1)" },
-  { key: "comments", label: "Comentarios", color: "var(--color-series-2)" },
-  { key: "saves", label: "Guardados", color: "var(--color-series-3)" },
-  { key: "shares", label: "Compartidos", color: "var(--color-series-4)" },
-];
+import { AnalyticsTabs } from "./analytics-tabs";
+import { AudienceSection } from "./sections/audience-section";
+import { CommunitySection } from "./sections/community-section";
+import { ContentSection } from "./sections/content-section";
+import { EngagementSection } from "./sections/engagement-section";
+import { VisibilitySection } from "./sections/visibility-section";
 
 /**
- * Analíticas como informe: cada sección responde una pregunta, en el orden en que una
- * marca personal las necesita. Primero cómo le fue, después la calidad de la
- * interacción, la visibilidad, la comunidad y la audiencia; al final, qué funcionó.
+ * Analíticas como informe por pestañas: cada sección responde una pregunta y vive en su
+ * propio archivo. Acá sólo se arma el modelo —todas las cifras del período— y se elige
+ * qué sección mostrar.
  */
 export function AnalyticsReport({
   dashboard,
+  contentItems,
   days,
+  tab,
 }: {
   dashboard: InstagramDashboardData;
-  days: number;
+  contentItems: ContentLibraryItem[];
+  days: RangeDays;
+  tab: AnalyticsTab;
 }) {
-  const series = dashboard.dailyMetrics;
-  const period = (metric: AdditiveMetric) => summarizePeriod(series, metric, days);
+  const model = buildReportModel({ dashboard, contentItems, days });
 
-  const views = period("views");
-  const interactions = period("interactions");
-  const likes = period("likes");
-  const comments = period("comments");
-  const saves = period("saves");
-  const shares = period("shares");
-  const profileViews = period("profileViews");
-  const linkTaps = period("linkTaps");
-
-  // Todos los gráficos miran los mismos días que las cifras: el período ya cerrado.
-  const window = closedWindow(series, "views", days);
-  const firstDay = window[0]?.date;
-  const lastDay = window.at(-1)?.date;
-
-  const composition = engagementComposition({
-    likes: likes.current,
-    comments: comments.current,
-    saves: saves.current,
-    shares: shares.current,
-  });
-  const reading = readEngagement(composition);
-  const weekdays = averageByWeekday(window, "interactions");
-  const strongest = strongestWeekday(weekdays);
-  const followers = followerChange(series.slice(-days));
-  // Totales que calcula Meta para la ventana elegida: alcance y repartos de visualizaciones.
-  const breakdown = dashboard.periodBreakdowns.find((item) => item.days === days) ?? null;
-  const contentSlices = breakdown?.viewsByContent ? toSlices(breakdown.viewsByContent.map((item) => ({ key: item.type, value: item.value })), contentLabels) : null;
-  const audience = breakdown?.viewsByAudience ?? null;
-  const audienceSlices = audience
-    ? toSlices([{ key: "followers", value: audience.followers }, { key: "nonFollowers", value: audience.nonFollowers }], audienceLabels)
-    : null;
+  const sections: {
+    id: AnalyticsTab;
+    label: string;
+    icon: ReactNode;
+    question: string;
+    content: ReactNode;
+  }[] = [
+    {
+      id: "visibilidad",
+      label: "Visibilidad",
+      icon: <Eye size={14} strokeWidth={1.75} />,
+      question: "¿Te está descubriendo gente nueva?",
+      content: <VisibilitySection model={model} />,
+    },
+    {
+      id: "engagement",
+      label: "Engagement",
+      icon: <Heart size={14} strokeWidth={1.75} />,
+      question: "¿Qué tipo de interacción genera tu contenido?",
+      content: <EngagementSection model={model} />,
+    },
+    {
+      id: "contenido",
+      label: "Contenido",
+      icon: <SquarePlay size={14} strokeWidth={1.75} />,
+      question: "¿Qué piezas rindieron más de lo que publicaste?",
+      content: <ContentSection model={model} />,
+    },
+    {
+      id: "comunidad",
+      label: "Comunidad",
+      icon: <Users size={14} strokeWidth={1.75} />,
+      question: "¿Estás creciendo y cuándo interactúan más con vos?",
+      content: <CommunitySection model={model} />,
+    },
+    {
+      id: "audiencia",
+      label: "Audiencia",
+      icon: <Globe size={14} strokeWidth={1.75} />,
+      question: "¿A quién le hablás?",
+      content: <AudienceSection model={model} />,
+    },
+  ];
+  const current = sections.find((section) => section.id === tab) ?? sections[0];
 
   return (
     <>
-      <ReportSection title="Resumen" question={`¿Cómo te fue en los últimos ${days} días?`}>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ProgressMetricCard size="sm" unit="visualizaciones" {...heroCard("Visualizaciones", views, "views")} />
-          <ProgressMetricCard size="sm" unit="interacciones" {...heroCard("Interacciones", interactions, "interactions")} />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile
-            label="Tasa de engagement"
-            value={formatPercent(ratio(interactions.current, views.current))}
-            detail="Interacciones / visualizaciones"
-          />
-          <StatTile
-            label="Tasa de guardados"
-            value={formatPercent(ratio(saves.current, views.current))}
-            detail={saves.current === null ? pendingSync : "Guardados / visualizaciones"}
-          />
-          <StatTile
-            label="Visitas al perfil"
-            value={formatCompact(profileViews.current)}
-            delta={deltaFor(profileViews)}
-            detail={profileViews.current === null ? pendingSync : undefined}
-          />
-          <StatTile
-            label="Toques en el enlace"
-            value={formatCompact(linkTaps.current)}
-            delta={deltaFor(linkTaps)}
-            detail={linkTaps.current === null ? pendingSync : "Clics al enlace de la bio"}
-          />
-          <StatTile
-            label="Contenido publicado"
-            value={firstDay && lastDay ? formatNumber(countPublished(dashboard.publishedDates, firstDay, lastDay)) : "—"}
-            detail="Reels y publicaciones; no incluye historias"
-          />
-          <StatTile
-            label="Alcance del período"
-            value={formatCompact(breakdown?.reach ?? null)}
-            detail={
-              breakdown
-                ? `Cuentas únicas · ${formatDayRange(breakdown.fromDate, breakdown.toDate)}`
-                : pendingSync
-            }
-          />
-          <PendingTile label="Conversión perfil → seguidor" reason={HUNDRED_FOLLOWERS} />
-        </div>
-      </ReportSection>
-
-      <ReportSection
-        title="Calidad del engagement"
-        question="¿Qué tipo de interacción genera tu contenido?"
-      >
-        <ReportCard title="Interacciones por día" description="Me gusta, comentarios, guardados y compartidos">
-          <DailyChart
-            label="Interacciones por día según tipo"
-            mode="stacked"
-            series={engagementSeries}
-            points={toPoints(window, engagementSeries.map((item) => item.key as keyof InstagramDailyMetric))}
-          />
-        </ReportCard>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ReportCard title="Composición" description="Reparto del total del período">
-            {composition ? (
-              <ProportionBar
-                slices={composition.map((slice) => {
-                  const meta = engagementSeries.find((item) => item.key === slice.part)!;
-                  return { key: slice.part, label: meta.label, color: meta.color, value: slice.value, share: slice.share };
-                })}
-              />
-            ) : (
-              <p className="text-xs leading-5 text-muted">Todavía no hay interacciones informadas en el período.</p>
-            )}
-          </ReportCard>
-
-          <ReportCard title="Lectura" description="Regla fija sobre la composición, no IA">
-            <p className="text-sm leading-6 text-ink">
-              {reading ??
-                "Todavía no hay suficientes interacciones para leer un patrón. La lectura aparece desde 20 interacciones en el período."}
-            </p>
-          </ReportCard>
-        </div>
-      </ReportSection>
-
-      <ReportSection title="Visibilidad" question="¿Te está descubriendo gente nueva?">
-        <div className="grid gap-4 lg:grid-cols-3">
-          {(
-            [
-              { key: "views", title: "Visualizaciones", description: "Reproducciones de todo tu contenido" },
-              { key: "reach", title: "Alcance", description: "Cuentas únicas que te vieron" },
-              { key: "profileViews", title: "Visitas al perfil", description: "Personas que entraron a tu perfil" },
-            ] as const
-          ).map((chart) => (
-            <ReportCard key={chart.key} title={chart.title} description={chart.description}>
-              <DailyChart
-                label={`${chart.title} por día`}
-                mode="line"
-                series={[{ key: chart.key, label: chart.title, color: "var(--color-series-1)" }]}
-                points={toPoints(window, [chart.key])}
-              />
-            </ReportCard>
-          ))}
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ReportCard
-            title="Seguidores y no seguidores"
-            description="Quién hizo las visualizaciones del período"
-          >
-            {audienceSlices && audience ? (
-              <>
-                <ProportionBar slices={audienceSlices} />
-                <p className="mt-4 text-sm leading-6 text-ink">
-                  {formatPercent(ratio(audience.nonFollowers, audience.followers + audience.nonFollowers))} de tus
-                  visualizaciones vino de cuentas que todavía no te siguen.
-                </p>
-              </>
-            ) : (
-              <p className="text-xs leading-5 text-muted">{pendingSync}.</p>
-            )}
-          </ReportCard>
-
-          <ReportCard title="Visualizaciones por tipo de contenido" description="Un carrusel cuenta como publicación">
-            {contentSlices ? (
-              <ProportionBar slices={contentSlices} />
-            ) : (
-              <p className="text-xs leading-5 text-muted">{pendingSync}.</p>
-            )}
-          </ReportCard>
-        </div>
-      </ReportSection>
-
-      <ReportSection title="Comunidad" question="¿Estás creciendo y cuándo interactúan más con vos?">
-        {/* La evolución necesita más ancho que el radar, que se lee bien en poco espacio. */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <ReportCard title="Seguidores" description="Se registra el total cada día desde el 12 de septiembre">
-            <InlineStats
-              items={[
-                { label: "Total", value: formatNumber(dashboard.followers), detail: "Cifra exacta actual" },
-                {
-                  label: "Cambio en el período",
-                  value: followers ? signed(followers.change, formatNumber) : "—",
-                  detail: followers
-                    ? `En ${followers.days} ${followers.days === 1 ? "día" : "días"}`
-                    : "Hacen falta dos días registrados",
-                },
-                {
-                  label: "Promedio por día",
-                  value: followers?.perDay != null ? signed(followers.perDay, formatDecimal) : "—",
-                  detail: "Neto: nuevos menos bajas",
-                },
-              ]}
-            />
-            <div className="mt-4">
-              <DailyChart
-                label="Seguidores por día"
-                mode="line"
-                series={[{ key: "followers", label: "Seguidores", color: "var(--color-series-1)" }]}
-                points={toPoints(series.slice(-days), ["followers"])}
-              />
-            </div>
-            <p className="mt-3 text-xs leading-5 text-muted">
-              Los seguidores nuevos y las bajas por separado aparecen cuando la cuenta llegue a 100
-              seguidores: Meta no entrega ese dato antes, y todavía no se sincroniza.
-            </p>
-          </ReportCard>
-
-          <ReportCard title="Días con más interacción" description="Promedio diario de interacciones en el período">
-            {weekdays.every((entry) => entry.average !== null) ? (
-              <RadarChart
-                config={{ interactions: { label: "Interacciones" } }}
-                data={weekdays.map((entry) => ({
-                  weekday: entry.weekday,
-                  interactions: Math.round((entry.average ?? 0) * 10) / 10,
-                }))}
-                dataKey="weekday"
-                series={[{ dataKey: "interactions", name: "Interacciones promedio" }]}
-                colors={["var(--color-series-1)"]}
-                containerHeight={260}
-              />
-            ) : (
-              // Un día sin datos dibujado en cero deformaría la figura: mejor no dibujarla.
-              <p className="flex h-[260px] items-center justify-center rounded-control bg-canvas px-6 text-center text-xs leading-5 text-muted">
-                Todavía no hay datos de todos los días de la semana en el período.
-              </p>
-            )}
-            <p className="mt-4 text-xs leading-5 text-muted">
-              {strongest
-                ? `Los ${weekdayName(strongest.weekday)} recibís en promedio ${formatDecimal(strongest.average)} interacciones. Mide cuándo interactúan con vos, no qué día conviene publicar.`
-                : "Hacen falta al menos dos semanas de datos de cada día para señalar uno."}
-            </p>
-          </ReportCard>
-        </div>
-      </ReportSection>
-
-      <ReportSection title="Audiencia" question="¿A quién le hablás?">
-        <PendingPanel
-          title="Demografía"
-          items={["Género", "Edad", "País", "Ciudad"]}
-          reason={`${HUNDRED_FOLLOWERS} Meta tampoco permite elegir fechas: la entrega para períodos fijos, como los últimos 30 o 90 días.`}
+      {/* Aire entre el título de la página y las pestañas: son dos niveles distintos. */}
+      <div className="mt-6">
+        <AnalyticsTabs
+          tabs={sections.map(({ id, label, icon }) => ({ id, label, icon }))}
+          active={current.id}
+          days={days}
         />
-      </ReportSection>
+      </div>
 
-      <ReportSection title="Qué funcionó" question="¿Qué piezas rindieron más?">
-        <ContentInsights content={dashboard.topContent} />
-      </ReportSection>
+      <section className="mt-8">
+        <h2 className="sr-only">{current.label}</h2>
+        <p className="font-support text-[13px] text-graphite">{current.question}</p>
+        <div className="mt-4 space-y-4">{current.content}</div>
+      </section>
     </>
   );
-
-  /**
-   * Datos para la card destacada: la serie ya cerrada del período y la comparación
-   * contra el período anterior, calculada acá para que coincida con el resto del informe.
-   */
-  function heroCard(title: string, total: PeriodTotal, key: "views" | "interactions") {
-    const data = window.flatMap((point) =>
-      point[key] === null ? [] : [{ value: point[key], date: point.label }],
-    );
-    const comparable = total.current !== null && total.reportedDays === total.days && total.previous !== null && total.previous > 0;
-    const trend = comparable ? calculateTrend(total.current!, total.previous!, true) : null;
-
-    return {
-      title,
-      data,
-      total: formatCompact(total.current),
-      period: `Últimos ${days} días`,
-      percent: trend && trend.direction !== "unavailable" ? `${formatDecimal(Math.abs(trend.percentage ?? 0))}%` : null,
-      trend: (trend?.direction === "up" || trend?.direction === "down" ? trend.direction : "flat") as CardTrend,
-    };
-  }
-
-  function deltaFor(total: PeriodTotal): TileDelta | undefined {
-    if (total.current === null) return undefined;
-    if (total.reportedDays < total.days) {
-      return { direction: "unavailable", text: `${total.reportedDays} de ${total.days} días con datos` };
-    }
-    if (total.previous === null) {
-      return { direction: "unavailable", text: "Sin período anterior completo para comparar" };
-    }
-    if (total.previous === 0) {
-      return {
-        direction: "unavailable",
-        text: total.current === 0 ? "Sin actividad en ambos períodos" : "Sin actividad en el período anterior",
-      };
-    }
-
-    const trend = calculateTrend(total.current, total.previous, true);
-    if (trend.direction === "flat") return { direction: "flat", text: "Igual que el período anterior" };
-
-    return {
-      direction: trend.direction,
-      text: `${trend.direction === "up" ? "↗" : "↘"} ${formatDecimal(Math.abs(trend.percentage ?? 0))}% vs los ${days} días anteriores`,
-    };
-  }
-}
-
-const pendingSync = "Se completa con la próxima sincronización";
-
-// Orden y colores fijos: el color sigue a la categoría, no a su tamaño.
-const contentLabels: Record<string, { label: string; color: string }> = {
-  reels: { label: "Reels", color: "var(--color-series-1)" },
-  posts: { label: "Publicaciones", color: "var(--color-series-2)" },
-  stories: { label: "Historias", color: "var(--color-series-3)" },
-  other: { label: "Otros", color: "var(--color-series-4)" },
-};
-
-const audienceLabels: Record<string, { label: string; color: string }> = {
-  followers: { label: "Seguidores", color: "var(--color-series-1)" },
-  nonFollowers: { label: "No seguidores", color: "var(--color-series-2)" },
-};
-
-function toSlices(
-  parts: { key: string; value: number }[],
-  labels: Record<string, { label: string; color: string }>,
-) {
-  const total = parts.reduce((sum, part) => sum + part.value, 0);
-  if (total === 0) return null;
-
-  return parts.map((part) => ({
-    key: part.key,
-    label: labels[part.key].label,
-    color: labels[part.key].color,
-    value: part.value,
-    share: part.value / total,
-  }));
-}
-
-/** Cifra con signo explícito: "+2", "−1", "0". */
-function signed(value: number, format: (value: number) => string) {
-  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${format(Math.abs(value))}`;
-}
-
-function toPoints(points: readonly InstagramDailyMetric[], keys: readonly (keyof InstagramDailyMetric)[]): ChartPoint[] {
-  return points.map((point) => ({
-    date: point.date,
-    label: point.label,
-    values: Object.fromEntries(keys.map((key) => [key, point[key] as number | null])),
-  }));
-}
-
-function weekdayName(short: string) {
-  const names: Record<string, string> = {
-    Lun: "lunes",
-    Mar: "martes",
-    Mié: "miércoles",
-    Jue: "jueves",
-    Vie: "viernes",
-    Sáb: "sábados",
-    Dom: "domingos",
-  };
-  return names[short] ?? short;
 }

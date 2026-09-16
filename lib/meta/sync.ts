@@ -11,6 +11,7 @@ import {
   getInstagramDailyTotals,
   getInstagramMedia,
   getInstagramMediaInsights,
+  getInstagramFollowerDemographics,
   getInstagramPeriodInsights,
 } from "@/lib/meta/api";
 import {
@@ -18,6 +19,11 @@ import {
   buildPeriodWindows,
   periodKey,
 } from "@/lib/data/period-breakdowns";
+import {
+  DEMOGRAPHICS_METRIC,
+  DEMOGRAPHICS_PERIOD,
+  demographicMetricKey,
+} from "@/lib/data/follower-demographics";
 import {
   BACKFILL_METRICS,
   endOfDay,
@@ -278,6 +284,14 @@ export async function syncInstagramConnection({
     syncedAt,
   });
 
+  await storeFollowerDemographics({
+    admin,
+    socialAccountId,
+    providerAccountId,
+    accessToken,
+    syncedAt,
+  });
+
   await backfillDailyTotals({
     admin,
     socialAccountId,
@@ -428,5 +442,48 @@ async function storePeriodInsights({
       synced_at: syncedAt,
     })),
     { onConflict: "social_account_id,metric,period,end_time" },
+  );
+}
+
+/**
+ * Guarda la foto demográfica de los seguidores, reemplazando la anterior.
+ *
+ * Se borra antes de insertar porque Meta recorta país y ciudad a sus 45 valores más
+ * grandes: un país que sale del recorte quedaría guardado para siempre, inflando una
+ * lista que ya no lo incluye. Si Meta no devuelve nada —cuentas con menos de 100
+ * seguidores— no se borra lo que ya había.
+ */
+async function storeFollowerDemographics({
+  admin,
+  socialAccountId,
+  providerAccountId,
+  accessToken,
+  syncedAt,
+}: {
+  admin: AdminClient;
+  socialAccountId: string;
+  providerAccountId: string;
+  accessToken: string;
+  syncedAt: string;
+}) {
+  const demographics = await getInstagramFollowerDemographics(providerAccountId, accessToken);
+  if (demographics.length === 0) return;
+
+  await admin
+    .from("instagram_account_insights")
+    .delete()
+    .eq("social_account_id", socialAccountId)
+    .eq("period", DEMOGRAPHICS_PERIOD)
+    .like("metric", `${DEMOGRAPHICS_METRIC}.%`);
+
+  await admin.from("instagram_account_insights").insert(
+    demographics.map((entry) => ({
+      social_account_id: socialAccountId,
+      metric: demographicMetricKey(entry.dimension, entry.value),
+      period: DEMOGRAPHICS_PERIOD,
+      value: entry.count,
+      end_time: syncedAt,
+      synced_at: syncedAt,
+    })),
   );
 }

@@ -4,16 +4,21 @@ import Link from "next/link";
 import { useDismissibleDetails } from "@/components/shell/use-dismissible-details";
 import {
   RANGE_OPTIONS,
+  buildAnalyticsHref,
   buildRangeHref,
+  type AnalyticsTab,
   type RangeDays,
 } from "@/lib/analytics/range";
 
 export function DateRangePicker({
   basePath,
   selected,
+  tab,
 }: {
   basePath: string;
   selected: RangeDays;
+  /** Cambiar de período no debe cerrar la sección que la persona estaba mirando. */
+  tab?: AnalyticsTab;
 }) {
   const detailsRef = useDismissibleDetails();
 
@@ -32,7 +37,7 @@ export function DateRangePicker({
         {RANGE_OPTIONS.map((days) => (
           <Link
             key={days}
-            href={buildRangeHref(basePath, days)}
+            href={tab ? buildAnalyticsHref(basePath, days, tab) : buildRangeHref(basePath, days)}
             aria-current={days === selected ? "true" : undefined}
             className={`flex min-h-8 items-center rounded-control px-2.5 text-[13px] transition-colors ${
               days === selected

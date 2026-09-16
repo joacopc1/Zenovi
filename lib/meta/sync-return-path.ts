@@ -12,10 +12,14 @@ const PARSING_ORIGIN = "http://zenovi.invalid";
  * cualquier ruta permitiría usar el endpoint para redirigir a otro sitio. Todo lo que
  * no sea una pantalla conocida vuelve al onboarding, igual que antes.
  *
- * `rangeDays` son los períodos válidos de Analíticas; los recibe en lugar de
+ * `rangeDays` y `tabs` son los valores válidos de Analíticas; los recibe en lugar de
  * importarlos para que este módulo siga siendo puro y testeable sin el bundler.
  */
-export function resolveSyncReturnPath(raw: unknown, rangeDays: readonly number[]): string {
+export function resolveSyncReturnPath(
+  raw: unknown,
+  rangeDays: readonly number[],
+  tabs: readonly string[] = [],
+): string {
   if (typeof raw !== "string" || !raw.startsWith("/")) return ONBOARDING_PATH;
 
   let url: URL;
@@ -30,10 +34,16 @@ export function resolveSyncReturnPath(raw: unknown, rangeDays: readonly number[]
     return ONBOARDING_PATH;
   }
 
-  // Analíticas conserva el período elegido; cualquier otro parámetro se descarta.
-  const days = Number(url.searchParams.get("days"));
-  if (url.pathname === "/analytics" && rangeDays.includes(days)) {
-    return `/analytics?days=${days}`;
+  // Analíticas vuelve a la misma vista: mismo período y misma pestaña. El resto se descarta.
+  if (url.pathname === "/analytics") {
+    const kept = new URLSearchParams();
+    const days = Number(url.searchParams.get("days"));
+    const tab = url.searchParams.get("tab");
+    if (rangeDays.includes(days)) kept.set("days", String(days));
+    if (tab !== null && tabs.includes(tab)) kept.set("tab", tab);
+    const query = kept.toString();
+
+    return query.length > 0 ? `/analytics?${query}` : "/analytics";
   }
 
   return url.pathname;

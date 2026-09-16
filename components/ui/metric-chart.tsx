@@ -50,13 +50,11 @@ const CHART_MARGIN = { top: 64, right: 0, bottom: 52, left: 0 };
 export function MetricChart({
   series,
   view,
-  defaultIndex,
   valueFormatter,
   dateFormatter,
 }: {
   series: ChartSeries[];
   view: ChartView;
-  defaultIndex?: number;
   valueFormatter: (value: number) => string;
   dateFormatter: (date: string) => string;
 }) {
@@ -75,7 +73,6 @@ export function MetricChart({
 
   const tooltip = (
     <Tooltip
-      defaultIndex={defaultIndex}
       cursor={false}
       isAnimationActive={false}
       content={({ active, payload }) => {
@@ -119,7 +116,7 @@ export function MetricChart({
           <defs>
             {series.map((item, position) => (
               <linearGradient key={item.name} id={`${gradientId}-${position}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={item.color} stopOpacity={0.22} />
+                <stop offset="0%" stopColor={item.color} stopOpacity={0.14} />
                 <stop offset="100%" stopColor={item.color} stopOpacity={0} />
               </linearGradient>
             ))}

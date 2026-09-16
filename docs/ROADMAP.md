@@ -1,6 +1,6 @@
 # Zenovi - Roadmap operativo
 
-Actualizado: 2026-09-15
+Actualizado: 2026-09-16
 Estado general: Discovery  
 Objetivo inmediato: decidir viabilidad y congelar el scope del MVP
 
@@ -184,6 +184,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Mapear activación y primer valor.
 - [-] Wireframe del shell, onboarding y conexión: arquitectura, sidebar, header, navegación responsive y preflight de Instagram implementados; faltan estados posteriores a OAuth y validación con usuarios.
 - [-] Wireframe de dashboard: primer corte funcional con métricas, tendencias y contenido destacado; se perfeccionará al final después de aprender de las demás secciones. Responsable: Joaco/Codex.
+- [-] Analíticas por pestañas: Visibilidad, Engagement, Contenido, Comunidad y Audiencia, cada una en su archivo y todas alimentadas por un único modelo de cálculo (`lib/analytics/report-model.ts`). La pestaña y el período viajan en la URL. Se retiró Resumen: cada cifra quedó en la sección que la explica. Visibilidad abre con una card de embudo —visualizaciones y, debajo, alcance, visitas al perfil y toques en el enlace con su variación— y sigue con la evolución diaria de cada paso. Falta decidir si el radar de Comunidad sobrevive con datos reales. Responsable: Joaco/Claude.
 - [-] Wireframe de Analíticas: estructura en seis secciones, cada una con la pregunta que responde — Resumen, Calidad del engagement, Visibilidad, Comunidad, Audiencia y Qué funcionó —, tomando de Moka la información que junta y no su forma de graficar. Me gusta, comentarios, guardados, compartidos, visitas al perfil y toques en el enlace se reconstruyen día por día; conversión perfil → seguidor, seguidores nuevos y demografía quedan marcados como sin conectar (Meta exige 100 seguidores). Integradas la Progress Metric Card (21st.dev, reconstruida porque el registro exige login) en Visualizaciones e Interacciones y el radar de Intent UI en días con más interacción, ambos con los tokens de Zenovi. Falta validar cada cifra contra Instagram Insights nativo con una cuenta de actividad real y conectar una cuenta de más de 100 seguidores; el diseño fino de cards queda para después del MVP. Responsable: Joaco/Claude.
 - [-] Wireframe de Reels/detalle: biblioteca filtrable y detalle base con media autorizada y métricas oficiales implementados; faltan transcripción, benchmark y análisis persistente.
 - [ ] Wireframe de Stories/secuencia.
@@ -366,11 +367,13 @@ Solo entra si los gates anteriores justifican inversión.
 - [ ] Qué sistema utiliza Shortimize para competidores.
 - [ ] Cuál es el willingness-to-pay del ICP en LATAM, España y mercado anglo.
 - [x] Medir en DevTools el borde exterior de cards de ElevenLabs: negro al 10 %, clase estándar de 1 px con ancho fraccionario por escala y radio de 20 px. Zenovi adopta negro al 10 % pero conserva 1 px y radio propio de 14 px.
+- [x] Sincronizar demografía de seguidores: `follower_demographics` con `breakdown` en singular, `period=lifetime`, `metric_type=total_value` y `timeframe` obligatorio. Comprobado contra una cuenta real de 28.996 seguidores (`npm run probe:demographics`): edad devuelve 7 tramos, género 3 valores (M, F, U) y país y ciudad los 45 del tope de Meta. `engaged_audience_demographics` y `reached_audience_demographics` responden "Not enough users" incluso en esa cuenta. Cada sincronización reemplaza la foto anterior porque el recorte a 45 valores dejaría países fantasma. La pestaña Audiencia ya los muestra; con menos de 100 seguidores Meta no entrega nada y se mantiene el panel pendiente.
+- [x] Comparar rendimiento por formato: la pestaña Contenido muestra, para lo publicado en el período, cuántas piezas salieron de cada formato y su mediana de visualizaciones, con la mejor pieza como referencia. Se usa la mediana y no el promedio para que una pieza que explotó no haga parecer que el formato rinde siempre así, y un formato con menos de tres piezas se cuenta pero no afirma una mediana.
 - [ ] Auditar la sección Analíticas por preguntas de usuario, no por cantidad de cards: salud de cuenta, evolución, distribución por formato/objetivo, benchmarks propios, mejores/peores piezas y acciones derivadas.
 - [x] Corregir las consultas de Insights de cuenta: se comprobó empíricamente que Meta sólo entrega serie diaria de `reach`; `views` y `total_interactions` se reconstruyen pidiendo una ventana por día en lugar de inventarse. Los días sin informar quedan en `null` y nunca se convierten en cero.
 - [?] Validar si `Analíticas` es el nombre más claro para el ICP o si conviene `Rendimiento`, `Resultados` u otra etiqueta; no decidir por imitación de Moka.
 - [?] Reubicar Analíticas más abajo en la sidebar: Joaco no la pondría tan arriba. Decidirlo junto con la estructura final de la sección; la sidebar no se modifica hasta entonces.
-- [?] Definir una fuente secundaria para métricas y textos de apoyo: hoy Instrument Sans se usa para todo y la jerarquía depende sólo de tamaño y peso. Tomarla de las cards de referencia de 21st.dev, probarla primero en Analíticas y no extenderla a navegación ni sidebar sin decidirlo.
+- [x] Definir una fuente secundaria para métricas y textos de apoyo: DM Sans para números y textos de apoyo, Instrument Sans para títulos y navegación. Se comparó en pantalla con un laboratorio de fuentes temporal (Geist, Inter y DM Sans), ya retirado junto con las dos fuentes descartadas.
 
 ## Registro de decisiones
 
@@ -405,6 +408,12 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-09-15 | Días con más interacción se muestra en radar | Aceptada | Decisión de Joaco sobre la recomendación de barras; se revisa si cuesta leerlo con datos reales |
 | 2026-09-15 | Para el MVP prima que cada analítica sea correcta sobre la ubicación exacta de cada card | Aceptada | La estructura de Analíticas se considera suficiente; el diseño se itera después de validar las cifras contra Instagram |
 | 2026-09-15 | Lucide como única familia de íconos, con trazo fino | Aceptada | Es la que usan las cards de 21st.dev y shadcn; trazo tipo Apple como en Lovable o ElevenLabs |
+| 2026-09-16 | Analíticas se navega por pestañas y no en una página larga | Aceptada | Cinco secciones hacia abajo obligaban a scrollear; cada pestaña vive en la URL junto con el período, así sobrevive a cambiar de rango, sincronizar y compartir el enlace |
+| 2026-09-16 | Se elimina la sección Resumen | Aceptada | Repetía cifras que ya viven en su sección; cada número quedó en la pestaña que lo explica |
+| 2026-09-16 | Todas las gráficas comparten el azul de datos | Aceptada | La dirección la comunica la variación, no la línea; verde y rojo quedan para la variación y naranja y verde para categorías |
+| 2026-09-16 | Interacciones muestra el total de Meta y no la suma de sus partes | Aceptada | Es el número que la persona ve en Instagram; Meta cuenta acciones que no desglosa, así que Composición puede sumar menos |
+| 2026-09-16 | Las cifras se abrevian a partir de mil (1k, 1,2k) | Aceptada | Debajo de mil van enteras: una cuenta que arranca necesita ver "10", no "0,0k" |
+| 2026-09-16 | DM Sans para números y textos de apoyo; Instrument Sans para títulos | Aceptada | Cierra la decisión pendiente de fuente secundaria; se eligió con el laboratorio de fuentes, que ya se retiró junto con Geist e Inter |
 
 ## Registro de bloqueos
 

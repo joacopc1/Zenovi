@@ -17,6 +17,12 @@ import {
   type PeriodBreakdown,
   type StoredPeriodRow,
 } from "@/lib/data/period-breakdowns";
+import {
+  DEMOGRAPHICS_METRIC,
+  DEMOGRAPHICS_PERIOD,
+  buildFollowerDemographics,
+  type FollowerDemographics,
+} from "@/lib/data/follower-demographics";
 import { REPORTING_DELAY_DAYS } from "@/lib/analytics/period-totals";
 import {
   ACCOUNT_INSIGHT_LOOKBACK_DAYS,
@@ -90,6 +96,8 @@ export type InstagramDashboardData = {
   publishedDates: string[];
   /** Alcance y desgloses de visualizaciones por ventana, calculados por Meta. */
   periodBreakdowns: PeriodBreakdown[];
+  /** Quiénes siguen la cuenta; `null` mientras Meta no entregue el dato. */
+  followerDemographics: FollowerDemographics | null;
   topContent: InstagramContentSummary[];
   priority: {
     contentLabel: string;
@@ -143,6 +151,7 @@ export async function getInstagramDashboardData(
     { data: summaryInsights, error: summariesError },
     { data: publishedMedia, error: publishedError },
     { data: periodRows, error: periodError },
+    { data: demographicRows, error: demographicError },
   ] =
     await Promise.all([
       supabase
@@ -184,9 +193,18 @@ export async function getInstagramDashboardData(
         .in("period", PERIOD_WINDOW_DAYS.map(periodKey))
         .order("synced_at", { ascending: false })
         .limit(90),
+      // Foto demográfica de los seguidores: una fila por valor, reemplazada en cada
+      // sincronización. Meta recorta país y ciudad a 45 valores, así que son ~100 filas.
+      supabase
+        .from("instagram_account_insights")
+        .select("metric, value")
+        .eq("social_account_id", account.id)
+        .eq("period", DEMOGRAPHICS_PERIOD)
+        .like("metric", `${DEMOGRAPHICS_METRIC}.%`)
+        .limit(200),
     ]);
 
-  if (mediaError || insightsError || summariesError || publishedError || periodError) {
+  if (mediaError || insightsError || summariesError || publishedError || periodError || demographicError) {
     throw new Error("No pudimos cargar las métricas de Instagram.");
   }
 
@@ -276,6 +294,7 @@ export async function getInstagramDashboardData(
     topContent,
     publishedDates: (publishedMedia ?? []).map((item) => item.posted_at as string),
     periodBreakdowns: buildPeriodBreakdowns((periodRows ?? []) as StoredPeriodRow[]),
+    followerDemographics: buildFollowerDemographics(demographicRows ?? []),
     lastSyncedAt: findLatestTimestamp([
       connection.connected_at,
       ...mediaRows.map((item) => item.synced_at),

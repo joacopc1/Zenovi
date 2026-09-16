@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { RANGE_OPTIONS } from "@/lib/analytics/range";
+import { ANALYTICS_TABS, RANGE_OPTIONS } from "@/lib/analytics/range";
 import { syncStoredInstagramConnection } from "@/lib/meta/stored-sync";
 import { ONBOARDING_PATH, resolveSyncReturnPath } from "@/lib/meta/sync-return-path";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -58,12 +58,20 @@ export async function POST(request: NextRequest) {
   return NextResponse.redirect(destination, 303);
 }
 
+/**
+ * A dónde volver después de sincronizar.
+ *
+ * Si el cuerpo del formulario no se puede leer —pasa cuando la persona navega a otra
+ * pantalla con la sincronización en vuelo— se vuelve al inicio y no al onboarding:
+ * mandar a reconectar Instagram a alguien que ya lo tiene conectado asusta y no
+ * arregla nada.
+ */
 async function readRedirectPath(request: NextRequest) {
   try {
     const formData = await request.formData();
-    return resolveSyncReturnPath(formData.get("redirectTo"), RANGE_OPTIONS);
+    return resolveSyncReturnPath(formData.get("redirectTo"), RANGE_OPTIONS, ANALYTICS_TABS);
   } catch {
-    return ONBOARDING_PATH;
+    return "/";
   }
 }
 

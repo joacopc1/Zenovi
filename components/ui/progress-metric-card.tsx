@@ -12,7 +12,7 @@
  * - la variación del pie se colorea por su propio signo, no por la tendencia del período.
  */
 import { useId, useMemo, useState } from "react";
-import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import {
   ACCENTS,
   formatCompact,
@@ -48,7 +48,6 @@ export interface ProgressMetricCardProps {
   data?: SeriesPoint[];
   /** Varias series con nombre. Tiene prioridad sobre `data`. */
   series?: MetricSeries[];
-  defaultIndex?: number;
   size?: CardSize;
   /** Muestra máximo, mínimo y promedio en el pie. */
   showStats?: boolean;
@@ -68,7 +67,8 @@ const SIZES: Record<
   CardSize,
   { minH: string; pad: string; footer: string; title: string; headline: string }
 > = {
-  sm: { minH: "min-h-[260px]", pad: "px-6 pt-5", footer: "px-6 py-3", title: "text-[15px]", headline: "text-[46px]" },
+  // La cifra de `sm` iguala a la del embudo: las cards del informe se leen a la par.
+  sm: { minH: "min-h-[260px]", pad: "px-5 pt-5", footer: "px-5 py-3", title: "text-[15px]", headline: "text-[30px]" },
   md: { minH: "min-h-[380px]", pad: "px-8 pt-7", footer: "px-8 py-4", title: "text-[17px]", headline: "text-[72px]" },
   lg: { minH: "min-h-[460px]", pad: "px-10 pt-9", footer: "px-10 py-5", title: "text-[19px]", headline: "text-[88px]" },
 };
@@ -86,7 +86,6 @@ export default function ProgressMetricCard({
   accent,
   data,
   series,
-  defaultIndex,
   size = "md",
   showStats = true,
   valueFormatter,
@@ -130,11 +129,19 @@ export default function ProgressMetricCard({
 
   const resolvedTrend: CardTrend =
     trend ?? (Math.abs(stats.pct) < NEUTRAL_PCT ? "flat" : stats.net >= 0 ? "up" : "down");
-  const resolvedAccent: MetricAccent =
-    accent ?? (resolvedTrend === "up" ? "emerald" : resolvedTrend === "down" ? "rose" : "neutral");
+  // El gráfico va siempre en el azul de datos, como el resto del informe: quien dice si
+  // subió o bajó es la variación, no la línea. Así las cards conviven sin cambiar de color.
+  const resolvedAccent: MetricAccent = accent ?? "data";
   const color = ACCENTS[resolvedAccent];
+  const trendColor =
+    resolvedTrend === "up"
+      ? ACCENTS.emerald.text
+      : resolvedTrend === "down"
+        ? ACCENTS.rose.text
+        : ACCENTS.neutral.text;
+  // Diagonal para subir y bajar: una flecha recta se lee como "ir a", no como tendencia.
   const TrendIcon =
-    resolvedTrend === "flat" ? ArrowRight : resolvedTrend === "down" ? ArrowDown : ArrowUp;
+    resolvedTrend === "flat" ? ArrowRight : resolvedTrend === "down" ? ArrowDownRight : ArrowUpRight;
 
   const fmtCompact = valueFormatter ?? formatCompact;
   const fmtFull =
@@ -163,8 +170,6 @@ export default function ProgressMetricCard({
         : color.stroke,
   }));
 
-  const lastIndex = (primary?.data.length ?? 1) - 1;
-  const fallback = Math.min(defaultIndex ?? lastIndex, lastIndex);
 
   if (loading) {
     return (
@@ -204,12 +209,16 @@ export default function ProgressMetricCard({
     <div className={shell}>
       {/* Zona del gráfico, a la derecha y detrás del contenido */}
       <div className="absolute inset-y-0 right-0 z-0" style={{ width: `${REGION_W}%` }}>
+        {/* El tinte sólo dice algo cuando hay dirección: en verde que subió, en rojo que
+            bajó. Sin variación, un fondo gris es ruido, así que no se pinta. */}
+        {resolvedAccent === "neutral" ? null : (
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(to left, ${color.stroke}0d, transparent 78%)` }}
+          />
+        )}
         <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(to left, ${color.stroke}14, transparent 75%)` }}
-        />
-        <div
-          className="absolute inset-0 text-ink/[0.1]"
+          className="absolute inset-0 text-ink/[0.07]"
           style={{
             WebkitMaskImage: "linear-gradient(to right, transparent, black 55%)",
             maskImage: "linear-gradient(to right, transparent, black 55%)",
@@ -228,7 +237,6 @@ export default function ProgressMetricCard({
         <MetricChart
           series={chartSeries}
           view={view}
-          defaultIndex={fallback}
           valueFormatter={fmtFull}
           dateFormatter={fmtDate}
         />
@@ -241,9 +249,9 @@ export default function ProgressMetricCard({
             <h3 className={`${sz.title} font-semibold tracking-tight text-ink`}>{title}</h3>
             <ViewToggle value={view} onChange={setView} />
           </div>
-          <div className="flex items-center gap-3 text-[13px]">
+          <div className="font-support flex items-center gap-3 text-[13px]">
             {displayPercent !== null ? (
-              <span className="flex items-center gap-1 font-medium" style={{ color: color.text }}>
+              <span className="flex items-center gap-1 font-medium" style={{ color: trendColor }}>
                 <TrendIcon size={15} strokeWidth={2} aria-hidden />
                 {displayPercent}
               </span>
@@ -263,17 +271,17 @@ export default function ProgressMetricCard({
           </div>
         )}
 
-        <div className={`mt-5 ${sz.headline} font-medium leading-none tracking-tight text-ink`}>
+        <div className={`font-numeric mt-5 ${sz.headline} font-bold leading-none tracking-tight text-ink`}>
           {displayTotal}
         </div>
       </div>
 
       {/* Pie opaco: variación a la izquierda, estadísticas a la derecha */}
       <div
-        className={`relative z-10 flex items-center justify-between gap-4 border-t border-mist bg-paper ${sz.footer} text-[13px]`}
+        className={`font-support relative z-10 flex items-center justify-between gap-4 border-t border-mist bg-paper ${sz.footer} text-[13px]`}
       >
         <div>
-          <span className="font-medium" style={{ color: deltaColor }}>
+          <span className="font-numeric font-medium" style={{ color: deltaColor }}>
             {displayDelta}
           </span>{" "}
           <span className="text-muted">{deltaLabel}</span>
@@ -281,15 +289,15 @@ export default function ProgressMetricCard({
         {showStats && (
           <div className="flex items-center gap-2.5 text-[12px] text-muted">
             <span>
-              <span className="font-medium text-graphite">{fmtCompact(stats.peak)}</span> máx.
+              <span className="font-numeric font-medium text-graphite">{fmtCompact(stats.peak)}</span> máx.
             </span>
             <span className="opacity-40">·</span>
             <span>
-              <span className="font-medium text-graphite">{fmtCompact(stats.low)}</span> mín.
+              <span className="font-numeric font-medium text-graphite">{fmtCompact(stats.low)}</span> mín.
             </span>
             <span className="opacity-40">·</span>
             <span>
-              <span className="font-medium text-graphite">{fmtCompact(Math.round(stats.avg))}</span> prom.
+              <span className="font-numeric font-medium text-graphite">{fmtCompact(Math.round(stats.avg))}</span> prom.
             </span>
           </div>
         )}

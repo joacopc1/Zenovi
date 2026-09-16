@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildCohort,
+  formatBenchmarks,
+  rankAllFormats,
   searchContentItems,
   sortContentItems,
+  topContentInPeriod,
   viewsRank,
 } from "../lib/content/library.ts";
 
@@ -118,6 +121,32 @@ test("no cuenta las piezas sin vistas al calcular el puesto", () => {
   assert.equal(viewsRank(cohort, "sin-dato"), null);
 });
 
+test("mide cada pieza contra su propio formato", () => {
+  const ranked = rankAllFormats([
+    item("reel-a", "reel", null, 100), item("reel-b", "reel", null, 200), item("reel-c", "reel", null, 300),
+    item("post-a", "publication", null, 10), item("post-b", "publication", null, 20), item("post-c", "publication", null, 30),
+  ]);
+  const byId = new Map(ranked.map((entry) => [entry.id, entry.multiplier]));
+
+  // La mediana de Reels es 200 y la de publicaciones 20: un post de 30 rinde 1,5×, no 0,15×.
+  assert.equal(byId.get("reel-c"), 1.5);
+  assert.equal(byId.get("post-c"), 1.5);
+});
+
+test("lo que funcionó sale sólo de lo publicado en el período, por visualizaciones", () => {
+  const ranked = rankAllFormats([
+    { ...item("viejo", "reel", null, 999), postedAt: "2026-07-01T10:00:00Z" },
+    { ...item("medio", "reel", null, 50), postedAt: "2026-09-05T10:00:00Z" },
+    { ...item("mejor", "reel", null, 90), postedAt: "2026-09-10T10:00:00Z" },
+    { ...item("sin-dato", "reel", null, null), postedAt: "2026-09-11T10:00:00Z" },
+  ]);
+
+  assert.deepEqual(
+    topContentInPeriod(ranked, "2026-09-01", "2026-09-14").map(({ id }) => id),
+    ["mejor", "medio"],
+  );
+});
+
 function item(id, kind, caption = null, views = 0) {
   return {
     id,
@@ -142,3 +171,33 @@ function item(id, kind, caption = null, views = 0) {
     skipRate: null,
   };
 }
+
+test("compara formatos por su mediana y no por su promedio", () => {
+  const benchmarks = formatBenchmarks([
+    item("reel-a", "reel", null, 100),
+    item("reel-b", "reel", null, 200),
+    item("reel-c", "reel", null, 9000),
+    item("post-a", "publication", null, 30),
+    item("post-b", "publication", null, 40),
+    item("post-c", "publication", null, 50),
+  ]);
+  const byKind = new Map(benchmarks.map((entry) => [entry.kind, entry]));
+
+  // El promedio de Reels sería 3100; la mediana dice lo que pasa habitualmente.
+  assert.equal(byKind.get("reel").median, 200);
+  assert.equal(byKind.get("reel").best.id, "reel-c");
+  assert.equal(byKind.get("publication").median, 40);
+});
+
+test("un formato sin base suficiente se cuenta pero no afirma una mediana", () => {
+  const [benchmark] = formatBenchmarks([item("uno", "reel", null, 100), item("dos", "reel", null, 200)]);
+
+  assert.equal(benchmark.count, 2);
+  assert.equal(benchmark.median, null);
+});
+
+test("no inventa filas de formatos que no se publicaron", () => {
+  const benchmarks = formatBenchmarks([item("uno", "reel", null, 100)]);
+
+  assert.deepEqual(benchmarks.map(({ kind }) => kind), ["reel"]);
+});

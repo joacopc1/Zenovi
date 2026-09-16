@@ -76,21 +76,15 @@ export function DailyChart({
   }
 
   const activePoint = active === null ? null : points[active];
-  const tooltipLeft = active === null ? 0 : Math.min(Math.max(xOf(active) - 80, 0), Math.max(width - 160, 0));
+  // Una serie sola no necesita leyenda adentro: el título de la card ya la nombra.
+  const tooltipWidth = series.length === 1 ? 104 : 176;
+  const tooltipLeft =
+    active === null
+      ? 0
+      : Math.min(Math.max(xOf(active) - tooltipWidth / 2, 0), Math.max(width - tooltipWidth, 0));
 
   return (
     <div>
-      {series.length > 1 ? (
-        <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-graphite">
-          {series.map((item) => (
-            <li key={item.key} className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="size-2 rounded-full" style={{ background: item.color }} />
-              {item.label}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
       <div ref={containerRef} className="relative h-[204px]">
         {width > 0 ? (
           <svg
@@ -109,7 +103,7 @@ export function DailyChart({
             {ticks.map((tick) => (
               <g key={tick}>
                 <line x1={LEFT} x2={width - RIGHT} y1={yOf(tick)} y2={yOf(tick)} stroke="var(--color-mist)" />
-                <text x={LEFT - 8} y={yOf(tick) + 3} textAnchor="end" fontSize="10" fill="var(--color-muted)">
+                <text x={LEFT - 8} y={yOf(tick) + 3} textAnchor="end" fontSize="10" fill="var(--color-muted)" fontFamily="var(--font-numeric)">
                   {formatCompact(tick)}
                 </text>
               </g>
@@ -210,52 +204,93 @@ export function DailyChart({
 
         {activePoint ? (
           <div
-            className="pointer-events-none absolute top-0 z-10 w-40 rounded-control border border-mist bg-paper px-3 py-2 text-xs shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
-            style={{ left: tooltipLeft }}
+            className="pointer-events-none absolute top-0 z-10 rounded-control border border-mist bg-paper px-2.5 py-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
+            style={{ left: tooltipLeft, minWidth: tooltipWidth }}
           >
-            <p className="font-medium">{activePoint.label}</p>
-            <ul className="mt-1 space-y-0.5">
-              {series.map((item) => (
-                <li key={item.key} className="flex items-center justify-between gap-3 text-graphite">
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="size-2 rounded-full" style={{ background: item.color }} />
-                    {item.label}
-                  </span>
-                  <span className="tabular-nums text-ink">
-                    {activePoint.values[item.key] === null ? "Sin dato" : formatNumber(activePoint.values[item.key])}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <p className="font-support text-[11px] leading-4 text-muted">
+              {withWeekday(activePoint)}
+            </p>
+            {series.length === 1 ? (
+              <p className="font-numeric mt-0.5 text-[15px] font-bold leading-none tracking-[-0.02em]">
+                {activePoint.values[series[0].key] === null
+                  ? "Sin dato"
+                  : formatNumber(activePoint.values[series[0].key])}
+              </p>
+            ) : (
+              <ul className="mt-1 space-y-0.5">
+                {series.map((item) => (
+                  <li key={item.key} className="flex items-center justify-between gap-4 text-xs text-graphite">
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden="true" className="size-2 rounded-full" style={{ background: item.color }} />
+                      {item.label}
+                    </span>
+                    <span className="font-numeric font-semibold tabular-nums text-ink">
+                      {activePoint.values[item.key] === null ? "Sin dato" : formatNumber(activePoint.values[item.key])}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         ) : null}
       </div>
 
-      <table className="sr-only">
-        <caption>{label}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Día</th>
-            {series.map((item) => (
-              <th key={item.key} scope="col">{item.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.date}>
-              <th scope="row">{point.label}</th>
+
+      {/* La leyenda va debajo del gráfico y en columnas parejas: en flujo libre se
+          partía en dos renglones desalineados. */}
+      {series.length > 1 ? (
+        <ul className="font-support mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-mist pt-3 text-xs text-graphite">
+          {series.map((item) => (
+            <li key={item.key} className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: item.color }} />
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {/* La tabla equivalente del gráfico, para lectores de pantalla. El envoltorio
+          lleva `sr-only` y no la tabla: una caja `display: table` toma su alto como
+          mínimo e ignora el recorte, así que la tabla crecía con sus filas y estiraba
+          el área scrolleable de la página aunque no se viera. Un div sí recorta. */}
+      <div className="sr-only">
+        <table>
+          <caption>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Día</th>
               {series.map((item) => (
-                <td key={item.key}>
-                  {point.values[item.key] === null ? "Sin dato" : formatNumber(point.values[item.key])}
-                </td>
+                <th key={item.key} scope="col">{item.label}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {points.map((point) => (
+              <tr key={point.date}>
+                <th scope="row">{point.label}</th>
+                {series.map((item) => (
+                  <td key={item.key}>
+                    {point.values[item.key] === null ? "Sin dato" : formatNumber(point.values[item.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
+}
+
+const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+/**
+ * "Mié 25 ago.": saber qué día de la semana fue explica picos que la fecha sola no
+ * explica. Va sólo en el tooltip, que es donde hay lugar; el eje sigue con la fecha.
+ */
+function withWeekday(point: ChartPoint) {
+  const weekday = WEEKDAYS[new Date(`${point.date}T00:00:00Z`).getUTCDay()];
+  return weekday === undefined ? point.label : `${weekday} ${point.label}`;
 }
 
 function useElementWidth(ref: RefObject<HTMLElement | null>) {

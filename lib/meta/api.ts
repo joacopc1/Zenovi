@@ -14,6 +14,11 @@ import {
   readNextCursor,
 } from "@/lib/meta/media-sync-plan";
 import type { PeriodWindow } from "@/lib/data/period-breakdowns";
+import {
+  DEMOGRAPHICS_METRIC,
+  DEMOGRAPHIC_DIMENSIONS,
+  type DemographicDimension,
+} from "@/lib/data/follower-demographics";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_GRAPH_ORIGIN = "https://graph.instagram.com";
@@ -627,4 +632,64 @@ function readNonNegativeNumber(source: Record<string, unknown>, key: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Quiénes siguen a la cuenta, por edad, género, país y ciudad.
+ *
+ * Comprobado contra una cuenta real: el parámetro es `breakdown` en singular —con
+ * `breakdowns` Meta responde un conjunto vacío—, `timeframe` es obligatorio pero no
+ * cambia el resultado (es una foto de los seguidores de hoy, no del período), y las
+ * listas de país y ciudad vienen recortadas a los 45 valores más grandes.
+ *
+ * Una cuenta con menos de 100 seguidores no recibe nada: Meta responde sin datos.
+ */
+export async function getInstagramFollowerDemographics(
+  accountId: string,
+  accessToken: string,
+): Promise<{ dimension: DemographicDimension; value: string; count: number }[]> {
+  const results = await mapWithConcurrency(
+    [...DEMOGRAPHIC_DIMENSIONS],
+    ACCOUNT_INSIGHT_CONCURRENCY,
+    async (dimension) => {
+      const url = new URL(
+        `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(accountId)}/insights`,
+        INSTAGRAM_GRAPH_ORIGIN,
+      );
+      url.searchParams.set("metric", DEMOGRAPHICS_METRIC);
+      url.searchParams.set("period", "lifetime");
+      url.searchParams.set("metric_type", "total_value");
+      url.searchParams.set("timeframe", "last_90_days");
+      url.searchParams.set("breakdown", dimension);
+
+      const response = await requestMeta(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      return response.ok ? readDemographics(response.data, dimension) : [];
+    },
+  );
+
+  return results.flat();
+}
+
+function readDemographics(data: Record<string, unknown>, dimension: DemographicDimension) {
+  const entries = Array.isArray(data.data) ? data.data : [];
+  const item = entries.find((entry) => isRecord(entry) && entry.name === DEMOGRAPHICS_METRIC);
+  if (!isRecord(item) || !isRecord(item.total_value)) return [];
+
+  const breakdowns = Array.isArray(item.total_value.breakdowns) ? item.total_value.breakdowns : [];
+  const results = isRecord(breakdowns[0]) && Array.isArray(breakdowns[0].results) ? breakdowns[0].results : [];
+
+  return results.flatMap((result) => {
+    if (!isRecord(result)) return [];
+    const value = readNonNegativeNumber(result, "value");
+    const dimensionValue = Array.isArray(result.dimension_values)
+      ? result.dimension_values.at(-1)
+      : null;
+
+    return value === null || typeof dimensionValue !== "string" || dimensionValue.length === 0
+      ? []
+      : [{ dimension, value: dimensionValue, count: value }];
+  });
 }
