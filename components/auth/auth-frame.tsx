@@ -56,7 +56,15 @@ export function AuthFrame({
       <div className="mt-5">{children}</div>
 
       <p className="mt-6 text-center text-[11px] leading-5 text-muted">
-        Al continuar, aceptás los términos y la política de privacidad de Zenovi.
+        Al continuar, aceptás los{" "}
+        <Link href="/terms" className="text-graphite underline decoration-mist-strong underline-offset-2 hover:text-ink">
+          términos
+        </Link>{" "}
+        y la{" "}
+        <Link href="/privacy" className="text-graphite underline decoration-mist-strong underline-offset-2 hover:text-ink">
+          política de privacidad
+        </Link>{" "}
+        de Zenovi.
       </p>
     </div>
   );

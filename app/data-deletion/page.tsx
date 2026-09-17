@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { getInstagramOAuthConfig } from "@/lib/meta/config";
 import { readDeletionCode } from "@/lib/meta/signed-request";
@@ -45,6 +46,10 @@ export default async function DataDeletionPage({
             </p>
             <p className="font-support mt-4 border-t border-mist pt-4 text-xs leading-5 text-muted">
               Código de confirmación: <span className="break-all font-mono text-graphite">{code}</span>
+            </p>
+            <p className="font-support mt-3 text-xs leading-5 text-muted">
+              Más detalles en nuestra{" "}
+              <Link href="/privacy#eliminacion" className="text-graphite underline">política de privacidad</Link>.
             </p>
           </div>
         ) : (
