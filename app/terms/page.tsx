@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalDocument
+      documentId="terms"
       title="Términos y condiciones"
       intro={
         <p>

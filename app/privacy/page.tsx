@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <LegalDocument
+      documentId="privacy"
       title="Política de privacidad"
       intro={
         <>
