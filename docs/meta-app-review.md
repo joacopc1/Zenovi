@@ -55,7 +55,7 @@ Zenovi pide exactamente estos dos (`lib/meta/oauth.ts`). **No agregar** `instagr
 Van en el campo de *instrucciones de prueba* o *detalles de verificación de la app*. Antes de enviar, **crear un usuario de Zenovi exclusivo para la revisión** (email y contraseña, no Google) y completar las credenciales abajo.
 
 > 1. Go to https://app.zenovi.app/login and sign in with the test credentials below.
-> 2. On first sign-in you will be asked to connect Instagram. Click "Conectar con Instagram" (Connect with Instagram) and log in with any Instagram professional account (Business or Creator). Approve the two requested permissions.
+> 2. On the home screen, click "Conectar Instagram" (Connect Instagram). On the next screen, click "Conectar con Instagram" (Connect with Instagram) and log in with any Instagram professional account (Business or Creator). Approve the two requested permissions.
 > 3. After connecting, click "Sincronizar ahora" (Sync now). The first sync takes up to a minute.
 > 4. instagram_business_basic: the account username and profile picture appear in the top-left account selector. Open "Contenido" (Content) in the sidebar to see the library of Reels and posts.
 > 5. instagram_business_manage_insights: open "Analíticas" (Analytics) in the sidebar. Use the tabs to see views and reach (Visibilidad), interactions (Engagement), content performance (Contenido), followers (Comunidad) and follower demographics (Audiencia). Demographics require an account with at least 100 followers.
@@ -79,7 +79,7 @@ Un solo video sirve para los dos permisos si muestra claramente dónde se usa ca
 | # | Qué se muestra | Cartel en inglés |
 |---|---|---|
 | 1 | `app.zenovi.app/login`: iniciar sesión con el usuario de prueba. | "Signing in to Zenovi." |
-| 2 | Pantalla de conectar Instagram, con el texto que explica qué datos se piden. Click en *Conectar con Instagram*. | "The user connects their Instagram professional account." |
+| 2 | Inicio: click en *Conectar Instagram*. En la pantalla siguiente, con el texto que explica qué datos se piden, click en *Conectar con Instagram*. | "The user connects their Instagram professional account." |
 | 3 | **La pantalla de consentimiento de Instagram**, quieta unos segundos para que se lean los dos permisos. Aceptar. | "Instagram asks the user to approve instagram_business_basic and instagram_business_manage_insights." |
 | 4 | Vuelta a Zenovi y sincronización. | "Zenovi syncs the account." |
 | 5 | Selector de cuenta arriba a la izquierda: usuario y foto. | "instagram_business_basic: account username and profile picture." |
