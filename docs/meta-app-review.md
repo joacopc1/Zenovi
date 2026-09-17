@@ -74,7 +74,7 @@ Un solo video sirve para los dos permisos si muestra claramente dónde se usa ca
 - Grabar la pantalla en una resolución que se lea, sin editar cortes que oculten pasos.
 - Duración orientativa: 2 a 3 minutos.
 - Agregar subtítulos o carteles en inglés en cada toma (entre comillas abajo).
-- Usar una cuenta de Instagram con al menos 100 seguidores, así se ve también la demografía.
+- Grabar con la cuenta principal de Zenovi y conectar **@elcostarrica**. No sirve @samuromero.operator: ya está conectada en otra cuenta de Zenovi, y una misma cuenta de Instagram no puede estar en dos a la vez, así que la conexión fallaría. Con @elcostarrica la pestaña Audiencia muestra el aviso de que la demografía necesita 100 seguidores; alcanza, porque el resto de las métricas prueban el permiso.
 
 | # | Qué se muestra | Cartel en inglés |
 |---|---|---|
