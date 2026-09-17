@@ -133,6 +133,7 @@ export async function GET(request: NextRequest) {
         connection_id: connection.id,
         provider: "instagram",
         provider_account_id: profile.data.id,
+        professional_account_id: profile.data.professionalAccountId,
         username: profile.data.username,
         account_type: profile.data.accountType,
         profile_picture_url: profile.data.profilePictureUrl,

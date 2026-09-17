@@ -58,7 +58,13 @@ const ACCOUNT_INSIGHT_CONCURRENCY = 3;
 type MetaResult<T> = { ok: true; data: T } | { ok: false; code: string };
 
 export type InstagramAccountProfile = {
+  /** El id de la cuenta dentro de la app. */
   id: string;
+  /**
+   * El id de la cuenta profesional de Instagram. Es distinto de `id`, y es el que Meta
+   * usa para avisar desautorizaciones y pedidos de borrado.
+   */
+  professionalAccountId: string | null;
   username: string;
   accountType: "BUSINESS" | "MEDIA_CREATOR";
   profilePictureUrl: string | null;
@@ -199,7 +205,7 @@ export async function getInstagramAccountProfile(
   const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me`, INSTAGRAM_GRAPH_ORIGIN);
   url.searchParams.set(
     "fields",
-    "id,username,account_type,profile_picture_url,followers_count,follows_count,media_count",
+    "id,user_id,username,account_type,profile_picture_url,followers_count,follows_count,media_count",
   );
 
   const response = await requestMeta(url, {
@@ -222,6 +228,7 @@ export async function getInstagramAccountProfile(
     ok: true,
     data: {
       id,
+      professionalAccountId: readIdentifier(response.data, "user_id"),
       username,
       accountType,
       profilePictureUrl: readNonEmptyString(response.data, "profile_picture_url"),

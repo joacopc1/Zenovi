@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
   const { data: accounts, error } = await admin
     .from("social_accounts")
     .select("connection_id")
-    .eq("provider_account_id", parsed.userId);
+    // Meta avisa con el id de la cuenta profesional, pero se acepta también el de la app:
+    // cualquiera de los dos identifica sin ambigüedad a la misma cuenta. `userId` ya viene
+    // validado como sólo dígitos, así que es seguro dentro del filtro.
+    .or(`provider_account_id.eq.${parsed.userId},professional_account_id.eq.${parsed.userId}`);
 
   if (error) {
     logOutcome("lookup_failed", parsed.userId);

@@ -82,6 +82,8 @@ export async function syncInstagramConnection({
   const { data: refreshedAccount, error: profileError } = await admin
     .from("social_accounts")
     .update({
+      // Las cuentas conectadas antes de guardar este id lo completan en su próxima sincronización.
+      professional_account_id: profileResult.data.professionalAccountId,
       username: profileResult.data.username,
       account_type: profileResult.data.accountType,
       profile_picture_url: profileResult.data.profilePictureUrl,
