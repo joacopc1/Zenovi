@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ANALYTICS_TABS, RANGE_OPTIONS } from "@/lib/analytics/range";
 import { syncStoredInstagramConnection } from "@/lib/meta/stored-sync";
+import { requiresReauthorization } from "@/lib/meta/meta-error";
 import { ONBOARDING_PATH, resolveSyncReturnPath } from "@/lib/meta/sync-return-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
   const syncResult = await syncStoredInstagramConnection(admin, connection.id);
 
   if (!syncResult.ok) {
-    if (syncResult.code === "authorization_expired") {
+    if (requiresReauthorization(syncResult.code)) {
       return redirectWithError(request, ONBOARDING_PATH, syncResult.code);
     }
 

@@ -24,6 +24,7 @@ const oauthErrors: Record<string, string> = {
   account_lookup_failed: "No pudimos verificar la cuenta elegida. Intentá nuevamente.",
   account_unavailable: "No pudimos guardar la cuenta elegida. Revisá si ya está conectada.",
   authorization_expired: "La autorización venció. Conectá Instagram nuevamente.",
+  authorization_revoked: "Instagram ya no da acceso a Zenovi, por ejemplo porque se quitó la app desde Instagram. Conectala de nuevo para seguir.",
   initial_sync_failed: "La cuenta está autorizada, pero no pudimos sincronizarla. Intentá nuevamente.",
 };
 

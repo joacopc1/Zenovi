@@ -14,6 +14,7 @@ import {
   readNextCursor,
 } from "@/lib/meta/media-sync-plan";
 import type { PeriodWindow } from "@/lib/data/period-breakdowns";
+import { readMetaErrorCode } from "@/lib/meta/meta-error";
 import {
   DEMOGRAPHICS_METRIC,
   DEMOGRAPHIC_DIMENSIONS,
@@ -595,7 +596,7 @@ async function requestMeta(input: string | URL, init: RequestInit = {}): Promise
     const payload = await readJsonObject(response);
 
     if (!response.ok || !payload) {
-      return { ok: false, code: `meta_http_${response.status}` };
+      return { ok: false, code: readMetaErrorCode(response.status, payload) };
     }
 
     return { ok: true, data: payload };

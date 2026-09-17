@@ -30,6 +30,7 @@ import {
   planDailyBackfill,
 } from "@/lib/meta/daily-backfill";
 import { planMediaInsightRefresh } from "@/lib/meta/media-sync-plan";
+import { requiresReauthorization } from "@/lib/meta/meta-error";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -331,9 +332,10 @@ async function updateConnection(
 
 async function markSyncFailure(admin: AdminClient, connectionId: string, code: string) {
   return updateConnection(admin, connectionId, {
-    // The OAuth grant is still valid. Keep the connection retryable without
-    // forcing the user through Instagram authorization again.
-    status: "account_resolved",
+    // Un acceso revocado sólo se resuelve volviendo a autorizar: la conexión pasa a
+    // pedir acción, que es lo que hace aparecer el aviso para reconectar. Cualquier
+    // otra falla deja el permiso intacto y la conexión lista para reintentar.
+    status: requiresReauthorization(code) ? "action_required" : "account_resolved",
     last_error_code: code,
     last_error_at: new Date().toISOString(),
   });
