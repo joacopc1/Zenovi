@@ -92,11 +92,11 @@ Un solo video sirve para los dos permisos si muestra claramente dónde se usa ca
 
 ## Antes de enviar
 
-- [ ] Política de privacidad y términos publicados y revisados por los tres socios.
-- [ ] En *Información básica*: URL de privacidad, URL de términos, ícono de 1024×1024, categoría y email de contacto.
-- [ ] En *Eliminación de datos de usuario*: "URL de las instrucciones" apuntando a `https://app.zenovi.app/privacy#eliminacion`.
+- [-] Política de privacidad y términos publicados; falta la lectura de los tres socios.
+- [x] En *Información básica*: dominio `app.zenovi.app`, URL de privacidad, URL de términos, ícono de 1024×1024 (`public/brand/zenovi-app-icon.png`), categoría *Empresa y páginas* y email de contacto.
+- [x] En *Eliminación de datos de usuario*: "URL de las instrucciones" apuntando a `https://app.zenovi.app/privacy`. Meta rechaza la URL con `#eliminacion` como inválida; la política igual tiene la sección "Cómo borrar tus datos".
 - [x] En la configuración de inicio de sesión de empresa de Instagram: URL de desautorización y de eliminación de datos → `https://app.zenovi.app/api/integrations/instagram/data-deletion`.
 - [x] Prueba del borrado desde Instagram: confirmada en producción el 17 de septiembre.
 - [ ] Usuario de prueba creado con email y contraseña, **con el workspace ya creado** —si no, el revisor cae en el paso de crear marca antes que en el de conectar Instagram, y las instrucciones no coinciden— y credenciales cargadas en las instrucciones.
-- [ ] Verificación del negocio, si el panel la exige.
+- [x] Verificación del negocio: el panel no la pide por ahora (17 de septiembre). Si el formulario de revisión la exige al enviar, se hace en ese momento.
 - [ ] Video grabado con los carteles en inglés.
