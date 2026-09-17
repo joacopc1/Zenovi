@@ -25,11 +25,17 @@ export async function POST(request: NextRequest) {
     return badRequest();
   }
 
-  if (typeof signedRequest !== "string") return badRequest();
+  if (typeof signedRequest !== "string") {
+    logOutcome("missing_signed_request");
+    return badRequest();
+  }
 
   const { appSecret } = getInstagramOAuthConfig();
   const parsed = parseSignedRequest(signedRequest, appSecret);
-  if (parsed === null) return badRequest();
+  if (parsed === null) {
+    logOutcome("invalid_signature");
+    return badRequest();
+  }
 
   const admin = createAdminClient();
   const { data: accounts, error } = await admin
@@ -38,6 +44,7 @@ export async function POST(request: NextRequest) {
     .eq("provider_account_id", parsed.userId);
 
   if (error) {
+    logOutcome("lookup_failed", parsed.userId);
     return NextResponse.json({ error: "deletion_unavailable" }, { status: 503 });
   }
 
@@ -47,14 +54,36 @@ export async function POST(request: NextRequest) {
   );
 
   if (!result.ok) {
+    logOutcome("delete_failed", parsed.userId);
     return NextResponse.json({ error: "deletion_unavailable" }, { status: 503 });
   }
+
+  logOutcome("accepted", parsed.userId, result.deleted);
 
   const code = createDeletionCode(new Date(), appSecret);
   const statusUrl = new URL("/data-deletion", request.nextUrl.origin);
   statusUrl.searchParams.set("code", code);
 
   return NextResponse.json({ url: statusUrl.toString(), confirmation_code: code });
+}
+
+/**
+ * Deja rastro de cada pedido de Meta en los logs de Vercel, sin datos personales.
+ *
+ * Del id sólo se registran los últimos cuatro dígitos: alcanzan para compararlo con la
+ * cuenta guardada cuando un borrado no ocurre, y no identifican a nadie por sí solos.
+ * Sin este registro, un pedido rechazado o sin coincidencia es indistinguible de uno
+ * que nunca llegó.
+ */
+function logOutcome(outcome: string, userId?: string, deletedConnections?: number) {
+  console.info(
+    JSON.stringify({
+      event: "instagram_data_deletion",
+      outcome,
+      userIdSuffix: userId?.slice(-4) ?? null,
+      deletedConnections: deletedConnections ?? null,
+    }),
+  );
 }
 
 function badRequest() {
