@@ -82,10 +82,14 @@ function toSlices(
   }));
 }
 
+/**
+ * Meta manda el país como código ISO y la ciudad como "Ciudad, Región": de la ciudad
+ * se muestra sólo el nombre, que alcanza para reconocerla.
+ */
 function labelFor(dimension: DemographicDimension, key: string) {
   if (dimension === "gender") return GENDER_LABELS[key] ?? key;
-  // Meta devuelve el país como código ISO; la ciudad ya viene con su nombre.
   if (dimension === "country") return countryNames?.of(key) ?? key;
+  if (dimension === "city") return key.split(",")[0].trim();
   return key;
 }
 
@@ -107,6 +111,22 @@ function parseMetric(metric: string): { dimension: DemographicDimension; value: 
 
 function isDimension(value: string): value is DemographicDimension {
   return DEMOGRAPHIC_DIMENSIONS.includes(value as DemographicDimension);
+}
+
+const REGIONAL_INDICATOR_A = 0x1f1e6;
+const LETTER_A = "A".charCodeAt(0);
+
+/**
+ * La bandera del país a partir de su código ISO: dos letras convertidas en los
+ * "indicadores regionales" que el sistema dibuja como bandera. Devuelve `null` para
+ * cualquier cosa que no sean dos letras, así no se dibuja un cuadrado vacío.
+ */
+export function countryFlag(code: string) {
+  if (!/^[A-Za-z]{2}$/.test(code)) return null;
+
+  return [...code.toUpperCase()]
+    .map((letter) => String.fromCodePoint(REGIONAL_INDICATOR_A + letter.charCodeAt(0) - LETTER_A))
+    .join("");
 }
 
 /** `Intl.DisplayNames` no existe en todos los runtimes; sin él se muestra el código. */

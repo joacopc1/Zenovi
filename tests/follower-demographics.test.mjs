@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildFollowerDemographics,
+  countryFlag,
   demographicMetricKey,
 } from "../lib/data/follower-demographics.ts";
 
@@ -38,7 +39,7 @@ test("el país se muestra con su nombre y la ciudad tal como viene", () => {
   ]);
 
   assert.equal(demographics.country[0].label, "México");
-  assert.equal(demographics.city[0].label, "Mexico City, Distrito Federal");
+  assert.equal(demographics.city[0].label, "Mexico City");
 });
 
 test("descarta métricas ajenas, dimensiones desconocidas y valores vacíos", () => {
@@ -46,4 +47,23 @@ test("descarta métricas ajenas, dimensiones desconocidas y valores vacíos", ()
   assert.equal(buildFollowerDemographics([{ metric: "follower_demographics.planeta.Marte", value: 9 }]), null);
   assert.equal(buildFollowerDemographics([{ metric: "follower_demographics.age.18-24", value: 0 }]), null);
   assert.equal(buildFollowerDemographics([]), null);
+});
+
+test("la bandera sale del código ISO de dos letras", () => {
+  assert.equal(countryFlag("MX"), "🇲🇽");
+  assert.equal(countryFlag("ar"), "🇦🇷");
+});
+
+test("sin código válido no se dibuja una bandera rota", () => {
+  assert.equal(countryFlag("Mexico City"), null);
+  assert.equal(countryFlag("M"), null);
+  assert.equal(countryFlag(""), null);
+});
+
+test("una ciudad sin región se muestra sola", () => {
+  const demographics = buildFollowerDemographics([
+    { metric: "follower_demographics.city.Montevideo", value: 4 },
+  ]);
+
+  assert.equal(demographics.city[0].label, "Montevideo");
 });
