@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
+import { DisconnectInstagram } from "@/components/settings/disconnect-instagram";
 import { AppHeader } from "@/components/shell/app-header";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 
@@ -33,6 +35,10 @@ export default function SettingsPage() {
             </Link>
           </div>
         </section>
+
+        <Suspense>
+          <DisconnectInstagram username={identity.instagram?.username ? instagramAccount : null} />
+        </Suspense>
       </div>
     </>
   );

@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig } from "./config";
 
+const PUBLIC_PATHS = ["/api/integrations/instagram/data-deletion", "/data-deletion"];
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { supabaseUrl, supabasePublishableKey } = getSupabaseConfig();
@@ -33,11 +35,14 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
   const isCronRoute = request.nextUrl.pathname.startsWith("/api/cron/");
+  // Rutas que Meta y cualquier persona tienen que alcanzar sin sesión: el callback de
+  // borrado se autentica con la firma de Meta y la página de estado con su código.
+  const isPublicRoute = PUBLIC_PATHS.includes(request.nextUrl.pathname);
   const isGuestRoute = ["/login", "/register", "/forgot-password"].includes(
     request.nextUrl.pathname,
   );
 
-  if (!data?.claims && !isAuthRoute && !isCronRoute && !isGuestRoute) {
+  if (!data?.claims && !isAuthRoute && !isCronRoute && !isGuestRoute && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";

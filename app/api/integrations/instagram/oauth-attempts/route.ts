@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isSameOriginRequest } from "@/lib/http/same-origin";
 import { getInstagramOAuthConfig } from "@/lib/meta/config";
 import { buildInstagramAuthorizationUrl, createInstagramOAuthState } from "@/lib/meta/oauth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,7 +11,7 @@ const ONBOARDING_PATH = "/onboarding/instagram";
 const ATTEMPT_LIFETIME_MS = 10 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
-  if (!hasTrustedOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return new Response("Origen no permitido.", { status: 403 });
   }
 
@@ -98,11 +99,6 @@ export async function POST(request: NextRequest) {
   } catch {
     return redirectWithError(request, "configuration_unavailable");
   }
-}
-
-function hasTrustedOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === request.nextUrl.origin;
 }
 
 function redirectWithError(request: NextRequest, code: string) {
