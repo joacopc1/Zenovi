@@ -99,4 +99,6 @@ Un solo video sirve para los dos permisos si muestra claramente dónde se usa ca
 - [x] Prueba del borrado desde Instagram: confirmada en producción el 17 de septiembre.
 - [x] Usuario de prueba creado con email y contraseña (Prueba · marca Zenovi Review, 17 de septiembre), **con el workspace ya creado** —si no, el revisor cae en el paso de crear marca antes que en el de conectar Instagram, y las instrucciones no coinciden— y credenciales cargadas en las instrucciones.
 - [x] Verificación del negocio: el panel no la pide por ahora (17 de septiembre). Si el formulario de revisión la exige al enviar, se hace en ese momento.
-- [ ] Video grabado con los carteles en inglés.
+- [x] Video grabado: una sola toma de 3:45 con el flujo completo, sin carteles; la explicación va en las descripciones de cada permiso.
+- [x] Uso permitido, tratamiento de datos e instrucciones para revisores completos (18 de septiembre).
+- [ ] Verificación del negocio: bloqueada por falta de un documento con la razón social. Ver el registro de bloqueos del roadmap.
