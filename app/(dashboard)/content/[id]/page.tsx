@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AnalysisSection } from "@/components/content/analysis-section";
 import { ClipDuration } from "@/components/content/clip-duration";
 import { ContentThumbnail } from "@/components/content/content-thumbnail";
 import { PerformanceBadge } from "@/components/content/performance-badge";
 import { PerformanceStanding } from "@/components/content/performance-standing";
 import { AppHeader } from "@/components/shell/app-header";
+import type { AnalysisState } from "@/lib/content/analysis";
+import { EXAMPLE_ANALYSIS } from "@/lib/content/analysis-example";
 import { buildCohort, viewsRank } from "@/lib/content/library";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
@@ -20,11 +23,20 @@ const decimalFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits:
 
 export default async function ContentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ejemplo?: string | string[] }>;
 }) {
   const account = await getAccountContext();
   const { id } = await params;
+  const { ejemplo } = await searchParams;
+  // Mientras el pipeline no existe, `?ejemplo=1` permite mirar la pantalla con un
+  // análisis de muestra. Sólo en desarrollo: en producción no hay forma de verlo.
+  const analysisState: AnalysisState =
+    process.env.NODE_ENV !== "production" && ejemplo === "1"
+      ? { status: "ready", analysis: EXAMPLE_ANALYSIS }
+      : { status: "not_requested" };
   const library = account?.workspace
     ? await getInstagramContentLibrary(account.workspace.id)
     : null;
@@ -121,12 +133,7 @@ export default async function ContentDetailPage({
               </section>
             ) : null}
 
-            <section className="rounded-card border border-mist bg-paper px-5 py-4">
-              <h2 className="text-base font-semibold">Análisis</h2>
-              <p className="mt-2 text-sm leading-6 text-graphite">
-                El análisis persistente de hook, estructura, ritmo y CTA todavía no está disponible para esta pieza. Las métricas de arriba sí provienen de la sincronización oficial.
-              </p>
-            </section>
+            <AnalysisSection state={analysisState} />
           </div>
         </div>
       </main>
