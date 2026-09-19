@@ -10,7 +10,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "report:analytics": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/analytics-validation.mjs",
-    "probe:demographics": "node --env-file=.env.local --no-warnings scripts/probe-demographics.mjs"
+    "probe:demographics": "node --env-file=.env.local --no-warnings scripts/probe-demographics.mjs",
+    "probe:media": "node --env-file=.env.local --no-warnings scripts/probe-media-download.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
