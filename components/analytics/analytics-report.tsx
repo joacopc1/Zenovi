@@ -33,42 +33,36 @@ export function AnalyticsReport({
     id: AnalyticsTab;
     label: string;
     icon: ReactNode;
-    question: string;
     content: ReactNode;
   }[] = [
     {
       id: "visibilidad",
       label: "Visibilidad",
       icon: <Eye size={14} strokeWidth={1.75} />,
-      question: "¿Te está descubriendo gente nueva?",
       content: <VisibilitySection model={model} />,
     },
     {
       id: "engagement",
       label: "Engagement",
       icon: <Heart size={14} strokeWidth={1.75} />,
-      question: "¿Qué tipo de interacción genera tu contenido?",
       content: <EngagementSection model={model} />,
     },
     {
       id: "contenido",
       label: "Contenido",
       icon: <SquarePlay size={14} strokeWidth={1.75} />,
-      question: "¿Qué piezas rindieron más de lo que publicaste?",
       content: <ContentSection model={model} />,
     },
     {
       id: "comunidad",
       label: "Comunidad",
       icon: <Users size={14} strokeWidth={1.75} />,
-      question: "¿Estás creciendo y cuándo interactúan más con vos?",
       content: <CommunitySection model={model} />,
     },
     {
       id: "audiencia",
       label: "Audiencia",
       icon: <Globe size={14} strokeWidth={1.75} />,
-      question: "¿A quién le hablás?",
       content: <AudienceSection model={model} />,
     },
   ];
@@ -85,10 +79,9 @@ export function AnalyticsReport({
         />
       </div>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <h2 className="sr-only">{current.label}</h2>
-        <p className="font-support text-[13px] text-graphite">{current.question}</p>
-        <div className="mt-4 space-y-4">{current.content}</div>
+        <div className="space-y-4">{current.content}</div>
       </section>
     </>
   );

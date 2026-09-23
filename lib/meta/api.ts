@@ -87,6 +87,11 @@ export type InstagramMedia = {
   commentsCount: number | null;
 };
 
+export type InstagramMediaSource = {
+  mediaUrl: string;
+  thumbnailUrl: string | null;
+};
+
 export type InstagramInsight = {
   metric: string;
   period: string;
@@ -289,6 +294,40 @@ export async function getInstagramMedia(
   }
 
   return { ok: true, data: media.slice(0, MAX_MEDIA_ITEMS) };
+}
+
+/**
+ * Pide la URL vigente de una pieza justo antes de reproducirla.
+ *
+ * Meta rota las URLs del CDN, por lo que la copia guardada durante la sincronización
+ * sirve como respaldo, pero no como fuente confiable para un reproductor permanente.
+ */
+export async function getInstagramMediaSource(
+  mediaId: string,
+  accessToken: string,
+): Promise<MetaResult<InstagramMediaSource>> {
+  const url = new URL(
+    `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(mediaId)}`,
+    INSTAGRAM_GRAPH_ORIGIN,
+  );
+  url.searchParams.set("fields", "media_url,thumbnail_url");
+
+  const response = await requestMeta(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) return response;
+
+  const mediaUrl = readNonEmptyString(response.data, "media_url");
+  if (!mediaUrl) return { ok: false, code: "media_source_unavailable" };
+
+  return {
+    ok: true,
+    data: {
+      mediaUrl,
+      thumbnailUrl: readNonEmptyString(response.data, "thumbnail_url"),
+    },
+  };
 }
 
 export async function getInstagramMediaInsights(

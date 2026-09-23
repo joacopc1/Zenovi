@@ -30,6 +30,7 @@ import {
   planDailyBackfill,
 } from "@/lib/meta/daily-backfill";
 import { planMediaInsightRefresh } from "@/lib/meta/media-sync-plan";
+import { buildMediaInsightSnapshotRows } from "@/lib/meta/media-insight-snapshots";
 import { requiresReauthorization } from "@/lib/meta/meta-error";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -199,13 +200,28 @@ export async function syncInstagramConnection({
   }
 
   if (mediaInsightRows.length > 0) {
-    const { error } = await admin.from("instagram_media_insights").upsert(mediaInsightRows, {
-      onConflict: "instagram_media_id,metric,period",
-    });
+    const snapshotRows = buildMediaInsightSnapshotRows(mediaInsightRows, syncedAt);
+    const [{ error: insightsError }, { error: snapshotsError }] = await Promise.all([
+      admin.from("instagram_media_insights").upsert(mediaInsightRows, {
+        onConflict: "instagram_media_id,metric,period",
+      }),
+      admin.from("instagram_media_insight_snapshots").upsert(snapshotRows, {
+        onConflict: "instagram_media_id,metric,observed_on",
+      }),
+    ]);
 
-    if (error) {
+    if (insightsError) {
       await markSyncFailure(admin, connectionId, "media_insights_persistence_failed");
       return { ok: false, code: "media_insights_persistence_failed" };
+    }
+
+    // Las fotos diarias son un extra para la curva de evolución: si fallan, no se tira
+    // abajo una sincronización cuyas métricas sí se guardaron. Se reintentan en la
+    // próxima corrida, igual que el relleno diario.
+    if (snapshotsError) {
+      console.warn(
+        JSON.stringify({ event: "instagram_sync", warning: "media_insight_snapshots_failed" }),
+      );
     }
   }
 

@@ -1,6 +1,10 @@
 # Hallazgos de la prueba gratuita de Moka
 
-Actualizado: 2026-08-29
+Actualizado: 2026-09-22
+
+## Modelo de IA de Moka
+
+**[O] 2026-09-22:** Moka declara usar **Claude Sonnet 4** como modelo de IA. Dato para el benchmark propio de Zenovi: es un ancla de referencia, no una decisión. Zenovi elegirá su stack por evidencia (calidad en español, latencia, costo, estructuras), no por imitación de competidores.
 
 ## Primer acceso y onboarding
 

@@ -256,6 +256,7 @@ Objetivo: base productiva antes de features.
 
 - [-] Listado y detalle de medios: la sincronización pagina por cursor y trae al menos las últimas 100 piezas, más las de los últimos 90 días si hay más, con tope de 300; las estadísticas por pieza se actualizan para lo reciente y se completan una vez para lo viejo. La biblioteca muestra las últimas 100 en páginas de 24. Faltan transcripción, benchmark y análisis a pedido.
 - [-] Métricas oficiales: ingestión y visualización inicial implementadas; por contenido se solicitan views, reach, likes, comments, shares, saved y total interactions, más tiempo medio, tiempo total y skip rate para Reels. Cuenta solicita cada total por separado y muestra views, reach, total interactions, profile views, accounts engaged y link taps sin convertir ausentes en cero. Falta verificar nuevamente la sincronización completa contra Instagram Insights nativo.
+- [-] Evolución diaria por pieza: `instagram_media_insight_snapshots` guarda una foto diaria de cada acumulado lifetime por Reel, con una fila idempotente por pieza, métrica y fecha. El sync ya la alimenta y el detalle deriva visualizaciones nuevas entre días consecutivos para mostrar el pico y la caída sin repartir cifras cuando falta un día. La historia empieza el 19 de septiembre de 2026 y no puede reconstruir días anteriores; falta acumular al menos dos snapshots consecutivos y comprobar la gráfica con actividad real.
 - [ ] Presentar la evolución de seguidores: la foto diaria ya se guarda en `instagram_account_insights` con `metric=follower_count` y `period=day` desde 2026-09-12, pero todavía no se muestra en ninguna pantalla. Formato aún por comprobar —card KPI o gráfica—; la cifra exacta se reserva para esa vista dedicada y el resto de la interfaz usa notación compacta.
 - [x] Comprobar que se puede obtener el video de un Reel desde el servidor: `npm run probe:media`. Meta devuelve una `media_url` nueva en cada pedido, con un host de CDN distinto del guardado, y las dos se descargan sin credenciales, con `Range` y respuesta `206`. Un Reel de prueba pesó 6,1 MB. Conclusión para el pipeline: pedir la URL fresca en el momento del análisis en vez de confiar en la guardada, y traer el archivo por partes. Falta medir cuánto dura viva una URL.
 - [ ] Transcripción.
@@ -267,7 +268,8 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 4 - ADN y Director
 
-- [ ] ADN mínimo.
+- [-] ADN mínimo: sección `/brand` con mapa radial ("cerebro") como hero centrado y editor del nodo activo debajo (identidad, voz, diferenciación, objetivo, ofertas y cliente ideal), respaldada por `brand_profiles`, `offers` y `audience_profiles` con RLS de workspace. El guardado es un reemplazo completo de ofertas y audiencia en cada envío. Falta conectar el Director para que consuma este contexto y validar los textos con usuarios. Responsable: Joaco/Claude.
+- [ ] Definir la separación estructural entre el ADN de marca y la capacitación del Director: el ADN es data por cuenta (cambia por usuario, se guarda en las tablas de arriba) mientras que el system prompt del Director es la "capacitación" de cómo crear contenido, común a todos los workspaces y versionado por el equipo. No mezclar: un dato del ADN nunca se vuelca al system prompt global, y una regla de capacitación nunca se guarda por cuenta. Falta documentar dónde vive cada uno y cómo se combinan en el prompt final (ver decisión 2026-09-21).
 - [ ] Chats persistentes.
 - [ ] Streaming.
 - [ ] Model router.
@@ -277,14 +279,35 @@ Objetivo: base productiva antes de features.
 - [ ] Memoria/resumen.
 - [ ] Créditos y rate limits.
 
-### Sprint 5 - Baúl y Stories
+### Sprint 5 - Producción y Stories
 
-- [ ] Ideas y guiones persistentes.
-- [ ] Kanban.
-- [ ] Calendario.
-- [ ] Vínculo insight -> idea.
+- [ ] **Objeto de contenido único** (`content_items`) con `estado` (pipeline: idea → listo para grabar → editando → listo para publicar → publicado), `título`, `tipo de contenido` (corte, transaccional, etc.), `fecha objetivo`, `link de referencia`, `formato`, y `guion` como campo estructurado (hook/desarrollo/CTA). Validado contra el sistema de Moka: la idea es la card en estado "idea"; el guion se llena al avanzar. No hay dos listas separadas.
+- [ ] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal.
+- [ ] Calendario: vista por `fecha objetivo`, con piezas publicadas y pendientes en colores distintos, y acceso al detalle/métricas. Plus, no crítico.
+- [ ] Guardar desde el Director IA: "agregá esta idea a producción" crea la card en estado "idea", con el porqué de por qué es ganadora (origen: métricas propias, competidores, concepto propio).
+- [ ] Carga manual: texto suelto o link de Instagram como referencia.
+- [ ] Vista detallada en **panel derecho** (no modal): título, tipo de contenido, guion por componentes, recomendaciones del Director y comparación con Reels ya subidos (por confirmar).
+- [ ] Segmentación libre del creador (carpetas/etiquetas propias). El "tipo de contenido" es el lenguaje del usuario; los pilares de marketing son sugerencia opcional del Director.
+- [ ] Vínculo insight -> idea (contexto de origen).
 - [ ] Stories según gate.
 - [ ] Feedback y soporte.
+
+Fuera del MVP (trabajo en equipo futuro): links de entregables (video crudo/editado), roles de editor/publicador, y colaboración multi-manos.
+
+### Prioridades validadas de Producción (2026-09-22)
+
+Ordenadas por impacto para el creador; no todas entran en el primer corte:
+
+1. **[fundamental]** Cerrar el ciclo idea → publicado → "¿cómo me rindió?": al marcar una pieza como publicada, queda vinculada al Reel real y después se compara contra su resultado. Es la promesa central del producto.
+2. **[fundamental]** El guion como herramienta de grabación, no texto plano: bloques hook/desarrollo/CTA grandes, modo "apuntador"/teleprompter, y dirección de cómo decirlo (plano visual, cómo actuar) derivada de los Reels previos del creador. Clave de afinidad.
+3. **[alta]** Capturar la idea en el momento sin fricción: desde Instagram/móvil, "guardar para Zenovi" con el link cargado (share sheet o pegar URL). Incluye guardar el video crudo como referencia. El video crudo puede vivir debajo del pipeline o en otra vista/pestaña.
+4. **[alta]** Semáforo de cadencia: el pipeline avisa "te faltan X guiones, el miércoles no tenés nada". De grilla muerta a señal de compromiso de publicación.
+5. **[media]** Una vista/sección principal de Producción (no el kanban como protagonista): el kanban es registro de estados, pero el "modo próximo paso" ("hacé esto ahora: terminá este guion a medias") y el semáforo viven arriba, en una entrada principal tipo "Hoy".
+6. **[media]** Reutilizar piezas que rindieron: sugerir derivados (Reel ganador → versión Story o carrusel) en vez de empezar de cero.
+
+### Voz del producto
+
+- [ ] La app debe hablar como un **experto en marketing y marcas personales**: usar la jerga del rubro (hook, CTA, ángulo, pilar, autoridad, nutrición, conversión, transaccional, etc.). Es clave para la afinidad con el cliente y no sonar genérico. El vocabulario debe derivarse del lenguaje del avatar (ver `research/icp-avatar-research.md` §16), no imponerse desde la jerga del equipo.
 
 ### Sprint 6 - Hardening
 
@@ -419,6 +442,13 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-09-16 | Interacciones muestra el total de Meta y no la suma de sus partes | Aceptada | Es el número que la persona ve en Instagram; Meta cuenta acciones que no desglosa, así que Composición puede sumar menos |
 | 2026-09-16 | Las cifras se abrevian a partir de mil (1k, 1,2k) | Aceptada | Debajo de mil van enteras: una cuenta que arranca necesita ver "10", no "0,0k" |
 | 2026-09-16 | DM Sans para números y textos de apoyo; Instrument Sans para títulos | Aceptada | Cierra la decisión pendiente de fuente secundaria; se eligió con el laboratorio de fuentes, que ya se retiró junto con Geist e Inter |
+| 2026-09-20 | ADN de marca se guarda como reemplazo completo de ofertas y audiencia | Aceptada | Un workspace con un editor único no necesita diffing ni ids persistentes; borrar y reinsertar mantiene el form simple y evita sincronizar un estado intermedio |
+| 2026-09-21 | El ADN de marca (data por cuenta) es una capa distinta de la capacitación del Director (system prompt global) | Aceptada | El ADN cambia por usuario y se guarda en tablas con RLS; la capacitación es común a todos los workspaces y se versiona por el equipo. El objetivo de cada pieza pertenece al contenido (Baúl), no a la marca, y queda fuera del ADN por ahora. La zona de ADN es un plus, no el núcleo: no se prioriza por encima del ciclo Reel → idea |
+| 2026-09-21 | Baúl y Calendario se unifican en "Producción", bajo Decidir junto a Director | Aceptada | Son dos vistas de un único objeto `content_items` (Kanban por estado, calendario por fecha), no dos features. La clasificación por objetivo/formato es un campo del objeto. "Producción" refleja el lugar donde se crea y planifica; el calendario muestra también lo publicado hacia atrás vía el vínculo con la pieza |
+| 2026-09-22 | Ideas y Guiones se separan en pestañas distintas | Revertida | Ver decisión 2026-09-22 (un solo objeto). Moka valida que un único objeto con `estado` funciona mejor: la idea es la card en estado "idea" y el guión es un campo de esa misma card, no un objeto aparte |
+| 2026-09-22 | Ideas y Guiones son un solo objeto de contenido con `estado` y guión como campo | Aceptada | Tras ver el sistema de Moka (Loom "Mi sistema de contenido por dentro"): un pipeline con estados (idea → listo para grabar → editando → listo para publicar → publicado) donde el guión (hook/desarrollo/CTA) se llena al avanzar. Evita dos listas y el quilombo de "qué es idea y qué es guion". Los links de entregables (video crudo/editado) quedan fuera del MVP: es trabajo en equipo futuro |
+| 2026-09-22 | La segmentación del contenido es libre, del creador; el "tipo de contenido" (corte, transaccional…) es su lenguaje, no el del equipo | Aceptada | El creador ordena por carpetas/etiquetas propias. Los pilares de marketing (atracción, educación, autoridad, nutrición, venta) son sugerencia opcional del Director, no una taxonomía impuesta. Evita forzar jerga que el usuario no reconoce |
+| 2026-09-22 | La app habla como experto en marketing y marcas personales | Aceptada | Usar la jerga del rubro (hook, CTA, pilar, nutrición, conversión, transaccional) para afinidad con el cliente. Vocabulario derivado del lenguaje del avatar, no impuesto |
 
 ## Registro de bloqueos
 

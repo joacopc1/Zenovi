@@ -470,6 +470,15 @@ def main() -> None:
         "28 AGO 2026",
         compact=False,
     )
+    build_pdf(
+        ROOT / "docs" / "partner-brief.md",
+        OUTPUT_DIR / "zenovi-partner-brief.pdf",
+        "BRIEF PARA SOCIOS",
+        "Qué es Zenovi, qué problema resuelve y cómo funciona",
+        "0.1",
+        "20 SEP 2026",
+        compact=False,
+    )
     print(f"Generated PDFs in {OUTPUT_DIR}")
 
 

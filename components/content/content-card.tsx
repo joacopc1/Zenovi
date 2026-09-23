@@ -13,7 +13,7 @@ export function ContentCard({ item, priority }: { item: RankedContentItem; prior
       <Link href={detailHref} className="block" aria-label={`Abrir detalle de ${item.formatLabel} del ${item.dateLabel}`}>
         <ContentThumbnail item={item} priority={priority} interactive />
       </Link>
-      <PerformanceBadge multiplier={item.multiplier} className="absolute left-3 top-3" />
+      <PerformanceBadge multiplier={item.multiplier} overlay className="absolute left-3 top-3" />
       {item.permalink ? (
         <a
           href={item.permalink}

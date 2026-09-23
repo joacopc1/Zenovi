@@ -1,10 +1,12 @@
+import {
+  getPerformanceSignal,
+  type PerformanceSignal,
+} from "@/lib/content/metrics";
+
 const multiplierFormatter = new Intl.NumberFormat("es-UY", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
-
-/** Fuera de esta banda la diferencia deja de ser ruido y pasa a ser señal. */
-const SIGNAL_BAND = { low: 0.8, high: 1.2 } as const;
 
 /**
  * Cuántas veces rindió una pieza respecto de la mediana de su formato.
@@ -14,24 +16,78 @@ const SIGNAL_BAND = { low: 0.8, high: 1.2 } as const;
 export function PerformanceBadge({
   multiplier,
   className = "",
+  showUnavailable = false,
+  overlay = false,
 }: {
   multiplier: number | null;
   className?: string;
+  showUnavailable?: boolean;
+  overlay?: boolean;
 }) {
-  if (multiplier === null) return null;
+  if (multiplier === null && !showUnavailable) return null;
+
+  const presentation = getPresentation(multiplier);
+  const value = multiplier === null ? "Sin referencia" : `×${multiplierFormatter.format(multiplier)}`;
 
   return (
     <span
-      title={`Rindió ${multiplierFormatter.format(multiplier)} veces la mediana de este formato`}
-      className={`pointer-events-none z-10 rounded-full border border-white/50 bg-white/65 px-2 py-0.5 text-[11px] font-semibold tabular-nums backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_1px_3px_rgba(0,0,0,0.14)] ${toneClass(multiplier)} ${className}`}
+      title={
+        multiplier === null
+          ? "Todavía no existe una referencia suficiente para comparar esta pieza"
+          : `Rindió ${multiplierFormatter.format(multiplier)} veces la mediana de este formato`
+      }
+      className={`font-support pointer-events-none z-10 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold leading-none tabular-nums ${
+        overlay
+          ? `border-white/20 bg-black/55 backdrop-blur-sm ${presentation.overlayClassName}`
+          : `bg-transparent ${presentation.className}`
+      } ${className}`}
     >
-      ×{multiplierFormatter.format(multiplier)}
+      <DeltaIcon direction={presentation.direction} />
+      {value}
     </span>
   );
 }
 
-function toneClass(multiplier: number) {
-  if (multiplier >= SIGNAL_BAND.high) return "text-success";
-  if (multiplier <= SIGNAL_BAND.low) return "text-danger";
-  return "text-ink";
+function getPresentation(multiplier: number | null): {
+  direction: PerformanceSignal;
+  className: string;
+  overlayClassName: string;
+} {
+  const direction = getPerformanceSignal(multiplier);
+
+  if (direction === "up") {
+    return {
+      direction,
+      className: "border-success/30 text-success",
+      overlayClassName: "text-[#7ee2ae]",
+    };
+  }
+
+  if (direction === "down") {
+    return {
+      direction,
+      className: "border-danger/30 text-danger",
+      overlayClassName: "text-[#ff9aa2]",
+    };
+  }
+
+  return {
+    direction: "right",
+    className: "border-mist-strong text-graphite",
+    overlayClassName: "text-white/75",
+  };
+}
+
+function DeltaIcon({ direction }: { direction: PerformanceSignal }) {
+  const points = {
+    up: "6 3 10 9 2 9",
+    down: "2 3 10 3 6 9",
+    right: "3 2 9 6 3 10",
+  }[direction];
+
+  return (
+    <svg viewBox="0 0 12 12" className="size-3 shrink-0" fill="currentColor" aria-hidden="true">
+      <polygon points={points} />
+    </svg>
+  );
 }

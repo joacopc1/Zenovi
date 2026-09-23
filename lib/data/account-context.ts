@@ -1,10 +1,12 @@
 import "server-only";
 
+import { cache } from "react";
 import {
   isInstagramConnectionStatus,
   type InstagramAccountIdentity,
 } from "@/lib/meta/connection-state";
 import { createClient } from "@/lib/supabase/server";
+import { readEmbeddedRow } from "./embedded-row";
 
 export type AccountContext = {
   avatarUrl: string | null;
@@ -17,7 +19,14 @@ export type AccountContext = {
   instagram: InstagramAccountIdentity | null;
 };
 
-export async function getAccountContext(): Promise<AccountContext | null> {
+/**
+ * El contexto de la cuenta: quién es, qué marca tiene y en qué estado está su Instagram.
+ *
+ * Va envuelto en `cache` porque lo piden el layout y cada página: sin eso, una sola
+ * navegación pagaba dos veces los mismos viajes a la base, y la base está a unos 150 ms.
+ * Dentro de un mismo render se resuelve una vez y se reparte.
+ */
+export const getAccountContext = cache(async (): Promise<AccountContext | null> => {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
@@ -40,9 +49,11 @@ export async function getAccountContext(): Promise<AccountContext | null> {
   let instagram: AccountContext["instagram"] = null;
 
   if (workspace) {
+    // La cuenta viene incrustada en la misma consulta que la conexión: eran dos viajes
+    // seguidos a la base para dos filas que siempre se leen juntas.
     const { data: connection, error: connectionError } = await supabase
       .from("social_connections")
-      .select("id, status")
+      .select("status, social_accounts(username, profile_picture_url)")
       .eq("workspace_id", workspace.id)
       .maybeSingle();
 
@@ -55,20 +66,14 @@ export async function getAccountContext(): Promise<AccountContext | null> {
         throw new Error("El estado de la conexión de Instagram no es válido.");
       }
 
-      const { data: socialAccount, error: socialAccountError } = await supabase
-        .from("social_accounts")
-        .select("username, profile_picture_url")
-        .eq("connection_id", connection.id)
-        .maybeSingle();
-
-      if (socialAccountError) {
-        throw new Error("No pudimos cargar la cuenta de Instagram.");
-      }
+      const account = readEmbeddedRow<{ username: string | null; profile_picture_url: string | null }>(
+        connection.social_accounts,
+      );
 
       instagram = {
         status: connection.status,
-        username: socialAccount?.username ?? null,
-        profilePictureUrl: socialAccount?.profile_picture_url ?? null,
+        username: account?.username ?? null,
+        profilePictureUrl: account?.profile_picture_url ?? null,
       };
     }
   }
@@ -85,7 +90,7 @@ export async function getAccountContext(): Promise<AccountContext | null> {
       : null,
     instagram,
   };
-}
+});
 
 function getMetadataAvatar(metadata: Record<string, unknown>) {
   const value = metadata.avatar_url ?? metadata.picture;

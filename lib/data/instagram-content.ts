@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ContentKind, ContentLibraryItem } from "@/lib/content/library";
 import { createClient } from "@/lib/supabase/server";
+import { readEmbeddedRow } from "./embedded-row";
 
 type InstagramMediaRow = {
   id: string;
@@ -31,9 +32,11 @@ export async function getInstagramContentLibrary(
   workspaceId: string,
 ): Promise<InstagramContentLibrary | null> {
   const supabase = await createClient();
+  // La cuenta viene incrustada: eran dos viajes seguidos a la base para dos filas que
+  // siempre se leen juntas.
   const { data: connection, error: connectionError } = await supabase
     .from("social_connections")
-    .select("id")
+    .select("id, social_accounts(id, username)")
     .eq("workspace_id", workspaceId)
     .eq("provider", "instagram")
     .eq("status", "connected")
@@ -42,13 +45,7 @@ export async function getInstagramContentLibrary(
   if (connectionError) throw new Error("No pudimos cargar la conexión de Instagram.");
   if (!connection) return null;
 
-  const { data: account, error: accountError } = await supabase
-    .from("social_accounts")
-    .select("id, username")
-    .eq("connection_id", connection.id)
-    .maybeSingle();
-
-  if (accountError) throw new Error("No pudimos cargar la cuenta de Instagram.");
+  const account = readEmbeddedRow<{ id: string; username: string }>(connection.social_accounts);
   if (!account) return null;
 
   const { data: media, error: mediaError } = await supabase

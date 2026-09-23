@@ -1,12 +1,6 @@
 import type { RankedContentItem } from "@/lib/content/library";
-
-const multiplierFormatter = new Intl.NumberFormat("es-UY", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-/** Fuera de esta banda la diferencia deja de ser ruido y pasa a ser señal. */
-const SIGNAL_BAND = { low: 0.8, high: 1.2 } as const;
+import { getPerformanceSignal } from "@/lib/content/metrics";
+import { PerformanceBadge } from "./performance-badge";
 
 /**
  * El veredicto de la pieza, para el encabezado de su vista de detalle.
@@ -24,36 +18,22 @@ export function PerformanceStanding({
 }) {
   const { multiplier } = item;
 
-  if (multiplier === null) {
-    return (
-      <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted">
-        Todavía no hay suficientes {formatPlural} sincronizados con métricas para decir si
-        esta pieza rindió por encima o por debajo de lo habitual.
-      </p>
-    );
-  }
+  if (multiplier === null) return null;
 
   return (
-    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] leading-6 text-graphite">
-      <strong className={`text-lg font-semibold tabular-nums ${toneClass(multiplier)}`}>
-        ×{multiplierFormatter.format(multiplier)}
-      </strong>
+    <div className="font-support mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-5 text-graphite">
+      <PerformanceBadge multiplier={multiplier} />
       <span>
         {verdict(multiplier)} la mediana de tus {formatPlural}.
         {rank ? ` Es la número ${rank.position} de ${rank.total} por visualizaciones.` : ""}
       </span>
-    </p>
+    </div>
   );
 }
 
 function verdict(multiplier: number) {
-  if (multiplier >= SIGNAL_BAND.high) return "Rindió por encima de";
-  if (multiplier <= SIGNAL_BAND.low) return "Rindió por debajo de";
+  const signal = getPerformanceSignal(multiplier);
+  if (signal === "up") return "Rindió por encima de";
+  if (signal === "down") return "Rindió por debajo de";
   return "Rindió en línea con";
-}
-
-function toneClass(multiplier: number) {
-  if (multiplier >= SIGNAL_BAND.high) return "text-success";
-  if (multiplier <= SIGNAL_BAND.low) return "text-danger";
-  return "text-ink";
 }

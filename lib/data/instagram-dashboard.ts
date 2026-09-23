@@ -28,6 +28,7 @@ import {
   ACCOUNT_INSIGHT_LOOKBACK_DAYS,
 } from "@/lib/meta/insight-periods";
 import { createClient } from "@/lib/supabase/server";
+import { readEmbeddedRow } from "./embedded-row";
 
 export type { InstagramDailyMetric };
 
@@ -123,7 +124,9 @@ export async function getInstagramDashboardData(
   const supabase = await createClient();
   const { data: connection, error: connectionError } = await supabase
     .from("social_connections")
-    .select("id, connected_at")
+    // La cuenta viene incrustada: eran dos viajes seguidos a la base para dos filas que
+    // siempre se leen juntas.
+    .select("id, connected_at, social_accounts(id, username, followers_count)")
     .eq("workspace_id", workspaceId)
     .eq("provider", "instagram")
     .eq("status", "connected")
@@ -132,13 +135,11 @@ export async function getInstagramDashboardData(
   if (connectionError) throw new Error("No pudimos cargar la conexión de Instagram.");
   if (!connection) return null;
 
-  const { data: account, error: accountError } = await supabase
-    .from("social_accounts")
-    .select("id, username, followers_count")
-    .eq("connection_id", connection.id)
-    .maybeSingle();
-
-  if (accountError) throw new Error("No pudimos cargar la cuenta de Instagram.");
+  const account = readEmbeddedRow<{
+    id: string;
+    username: string;
+    followers_count: number | null;
+  }>(connection.social_accounts);
   if (!account) return null;
 
   const now = new Date();
