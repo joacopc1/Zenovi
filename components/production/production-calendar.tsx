@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { contentItemName } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 import {
   CALENDAR_WEEKDAYS,
@@ -111,9 +112,9 @@ export function ProductionCalendar({
                     type="button"
                     onClick={() => onOpen(item.id)}
                     className="block w-full truncate rounded-control bg-canvas px-2 py-1 text-left text-[11px] font-medium text-ink transition-colors hover:bg-control"
-                    title={item.title}
+                    title={contentItemName(item)}
                   >
-                    {item.title}
+                    {contentItemName(item)}
                   </button>
                 ))}
               </div>

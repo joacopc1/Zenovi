@@ -9,6 +9,7 @@ import {
   STATUS_LABELS,
   formatTargetDate,
   type ContentFormat,
+  contentItemName,
 } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 import { ProductionTeleprompter } from "./production-teleprompter";
@@ -55,7 +56,7 @@ export function ProductionDetail({
             {editing ? (
               <h2 className="text-base font-semibold tracking-[-0.01em]">Editar</h2>
             ) : (
-              <h2 className="text-base font-semibold leading-6 tracking-[-0.01em]">{item.title}</h2>
+              <h2 className="text-base font-semibold leading-6 tracking-[-0.01em]">{contentItemName(item)}</h2>
             )}
           </div>
           <button

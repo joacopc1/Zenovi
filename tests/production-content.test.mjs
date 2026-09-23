@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CONTENT_PIPELINE,
+  contentItemName,
   FORMAT_LABELS,
   STATUS_LABELS,
   formatTargetDate,
@@ -128,4 +129,28 @@ test("cada estado y cada formato tienen su nombre en español", () => {
     ["Idea", "Guión", "En producción", "Publicada"],
   );
   assert.equal(FORMAT_LABELS.reel, "Reel");
+});
+
+test("una idea se guarda con sólo el link, sin título", () => {
+  const result = sanitizeContentItem({ referenceUrl: "https://www.instagram.com/reel/abc/" });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.value.title, "");
+  assert.equal(result.value.referenceUrl, "https://www.instagram.com/reel/abc/");
+});
+
+test("sin título y sin link no hay idea que guardar", () => {
+  const result = sanitizeContentItem({ title: "  ", referenceUrl: "" });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.title, /título o pegá un link/);
+});
+
+test("una idea sin título se nombra con su link", () => {
+  assert.equal(
+    contentItemName({ title: "", referenceUrl: "https://www.instagram.com/reel/abc/" }),
+    "instagram.com/reel/abc",
+  );
+  assert.equal(contentItemName({ title: "Mitos de agenda", referenceUrl: "" }), "Mitos de agenda");
+  assert.equal(contentItemName({ title: "", referenceUrl: "" }), "Sin título");
 });

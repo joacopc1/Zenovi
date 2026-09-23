@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { contentItemName } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 
 /**
@@ -49,7 +50,7 @@ export function ProductionTeleprompter({
     <div className="fixed inset-0 z-50 flex flex-col bg-paper">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-mist px-5">
         <div className="flex items-center gap-3">
-          <h2 className="max-w-[40ch] truncate text-sm font-semibold">{item.title}</h2>
+          <h2 className="max-w-[40ch] truncate text-sm font-semibold">{contentItemName(item)}</h2>
           <button
             type="button"
             onClick={() => setPlaying((current) => !current)}

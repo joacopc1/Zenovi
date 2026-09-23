@@ -104,8 +104,13 @@ export function sanitizeContentItem(raw: unknown): ContentItemValidation {
   const itemSource = isContentSource(source.source) ? source.source : "manual";
 
   const title = sanitizeText(source.title, LIMITS.title);
-  if (title.length === 0) {
-    errors.title = "La idea necesita un título.";
+  const referenceUrl = sanitizeText(source.referenceUrl, LIMITS.referenceUrl);
+
+  // Alcanza con una de las dos: una idea nace muchas veces como un link pegado al pasar,
+  // y exigirle un título en ese momento es pedirle a alguien que nombre lo que todavía no
+  // pensó. Sin ninguna de las dos no hay idea que guardar.
+  if (title.length === 0 && referenceUrl.length === 0) {
+    errors.title = "Poné un título o pegá un link de referencia.";
   }
 
   const value: ContentItemDraft = {
@@ -114,7 +119,7 @@ export function sanitizeContentItem(raw: unknown): ContentItemValidation {
     format,
     status,
     targetDate: sanitizeDate(source.targetDate),
-    referenceUrl: sanitizeText(source.referenceUrl, LIMITS.referenceUrl),
+    referenceUrl,
     hook: sanitizeText(source.hook, LIMITS.hook),
     development: sanitizeText(source.development, LIMITS.development),
     cta: sanitizeText(source.cta, LIMITS.cta),
@@ -150,6 +155,30 @@ export function resolveDropStatus(overId: unknown, overData?: unknown): ContentS
   if (isContentStatus(carried)) return carried;
 
   return isContentStatus(overId) ? overId : null;
+}
+
+/**
+ * Cómo se llama una pieza en pantalla.
+ *
+ * Una idea guardada sólo con su link no tiene título todavía: se la nombra con el link,
+ * que es lo único que su autor eligió, en vez de mostrar un hueco.
+ */
+export function contentItemName(item: { title: string; referenceUrl: string }): string {
+  if (item.title.length > 0) return item.title;
+  if (item.referenceUrl.length > 0) return shortReference(item.referenceUrl);
+  return "Sin título";
+}
+
+/** El link acortado: dominio y final del camino, que es lo que lo hace reconocible. */
+export function shortReference(value: string): string {
+  try {
+    const url = new URL(value);
+    const path = url.pathname.replace(/\/+$/, "");
+    const host = url.hostname.replace(/^www\./, "");
+    return path.length > 1 ? `${host}${path.length > 24 ? `${path.slice(0, 24)}…` : path}` : host;
+  } catch {
+    return value.length > 32 ? `${value.slice(0, 32)}…` : value;
+  }
 }
 
 export function nextStatus(status: ContentStatus): ContentStatus {

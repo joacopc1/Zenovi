@@ -21,6 +21,8 @@ import {
   formatTargetDate,
   resolveDropStatus,
   type ContentStatus,
+  contentItemName,
+  shortReference,
 } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 
@@ -285,7 +287,7 @@ function CardBody({ item }: { item: ContentItem }) {
 
   return (
     <>
-      <p className="text-[13px] font-semibold leading-5 text-ink">{item.title}</p>
+      <p className="text-[13px] font-semibold leading-5 text-ink">{contentItemName(item)}</p>
 
       {snippet ? (
         <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-5 text-muted">{snippet}</p>
@@ -300,7 +302,7 @@ function CardBody({ item }: { item: ContentItem }) {
         {item.referenceUrl ? (
           <span className="flex min-w-0 items-center gap-1.5">
             <Link2 size={13} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
-            <span className="truncate text-[12px]">{shortUrl(item.referenceUrl)}</span>
+            <span className="truncate text-[12px]">{shortReference(item.referenceUrl)}</span>
           </span>
         ) : null}
         <span className="flex shrink-0 items-center gap-1.5">
@@ -326,14 +328,4 @@ function Badge({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
-}
-
-function shortUrl(value: string) {
-  try {
-    const url = new URL(value);
-    const path = url.pathname.replace(/\/+$/, "");
-    return path.length > 18 ? `${path.slice(0, 18)}…` : path || url.hostname;
-  } catch {
-    return value.length > 18 ? `${value.slice(0, 18)}…` : value;
-  }
 }

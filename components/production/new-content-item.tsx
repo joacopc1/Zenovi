@@ -37,7 +37,9 @@ export function NewContentItem({
       if (result.status === "saved") {
         onClose();
       } else {
-        setError(result.message ?? "No pudimos guardar la idea.");
+        // El primer error de campo dice qué falta; el genérico sólo si no hay ninguno.
+        const fieldError = Object.values(result.errors ?? {})[0];
+        setError(fieldError ?? result.message ?? "No pudimos guardar la idea.");
       }
     });
   }
