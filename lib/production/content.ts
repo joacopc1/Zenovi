@@ -28,10 +28,15 @@ export const STATUS_LABELS: Record<ContentStatus, string> = {
   publicada: "Publicada",
 };
 
+/**
+ * Lo que se ve en pantalla, que no tiene por qué ser lo que se guarda: adentro el
+ * formato se llama `publication` para coincidir con la biblioteca, y afuera "Post",
+ * que es como lo nombra la barra lateral y como lo nombra Joaco.
+ */
 export const FORMAT_LABELS: Record<ContentFormat, string> = {
   reel: "Reel",
-  story: "Historia",
-  publication: "Publicación",
+  story: "Story",
+  publication: "Post",
 };
 
 /**

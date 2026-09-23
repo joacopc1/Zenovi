@@ -133,6 +133,8 @@ test("cada estado y cada formato tienen su nombre en español", () => {
     ["Idea", "Guión", "En producción", "Publicada"],
   );
   assert.equal(FORMAT_LABELS.reel, "Reel");
+  // Adentro se llama publication, para coincidir con la biblioteca; afuera, "Post".
+  assert.equal(FORMAT_LABELS.publication, "Post");
 });
 
 test("una idea se guarda con sólo el link, sin título", () => {
