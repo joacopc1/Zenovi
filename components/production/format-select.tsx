@@ -2,13 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useDismissibleDetails } from "@/components/shell/use-dismissible-details";
-import { CONTENT_FORMATS, type ContentFormat } from "@/lib/production/content";
-
-const FORMAT_LABELS: Record<ContentFormat, string> = {
-  reel: "Reel",
-  story: "Story",
-  post: "Post",
-};
+import { CONTENT_FORMATS, FORMAT_LABELS, type ContentFormat } from "@/lib/production/content";
 
 export function FormatSelect({
   value,

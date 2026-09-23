@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { CONTENT_KINDS } from "../lib/content/library.ts";
 import {
+  CONTENT_FORMATS,
   CONTENT_PIPELINE,
   contentItemName,
   FORMAT_LABELS,
@@ -87,7 +89,9 @@ test("previousStatus retrocede y frena en idea", () => {
 test("guards distinguen enums válidos", () => {
   assert.equal(isContentStatus("guion"), true);
   assert.equal(isContentStatus("borrador"), false);
-  assert.equal(isContentFormat("post"), true);
+  assert.equal(isContentFormat("publication"), true);
+  // "post" era el nombre viejo, antes de unificar el vocabulario con la biblioteca.
+  assert.equal(isContentFormat("post"), false);
   assert.equal(isContentFormat("video"), false);
 });
 
@@ -153,4 +157,10 @@ test("una idea sin título se nombra con su link", () => {
   );
   assert.equal(contentItemName({ title: "Mitos de agenda", referenceUrl: "" }), "Mitos de agenda");
   assert.equal(contentItemName({ title: "", referenceUrl: "" }), "Sin título");
+});
+
+test("el formato de producción y el de la biblioteca son el mismo vocabulario", () => {
+  // Si alguien agrega un formato en un lado y no en el otro, vincular una idea con su
+  // pieza publicada dejaría de funcionar en silencio.
+  assert.deepEqual([...CONTENT_FORMATS], [...CONTENT_KINDS]);
 });

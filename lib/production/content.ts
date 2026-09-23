@@ -1,7 +1,13 @@
 export const CONTENT_STATUSES = ["idea", "guion", "produccion", "publicada"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 
-export const CONTENT_FORMATS = ["reel", "story", "post"] as const;
+/**
+ * El formato de una pieza planificada es el mismo que el de una pieza publicada: una
+ * idea de Reel termina siendo un Reel. Tiene que coincidir con `CONTENT_KINDS` de la
+ * biblioteca —es lo que permite vincular las dos sin traducir nada en el medio— y hay un
+ * test que falla si alguna de las dos listas se mueve sin la otra.
+ */
+export const CONTENT_FORMATS = ["reel", "story", "publication"] as const;
 export type ContentFormat = (typeof CONTENT_FORMATS)[number];
 
 export const CONTENT_SOURCES = ["manual", "director"] as const;
@@ -24,8 +30,8 @@ export const STATUS_LABELS: Record<ContentStatus, string> = {
 
 export const FORMAT_LABELS: Record<ContentFormat, string> = {
   reel: "Reel",
-  story: "Story",
-  post: "Post",
+  story: "Historia",
+  publication: "Publicación",
 };
 
 /**
