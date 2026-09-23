@@ -128,7 +128,7 @@ function getContentKind(item: InstagramMediaRow): ContentKind {
 function getFormatLabel(item: InstagramMediaRow) {
   const kind = getContentKind(item);
   if (kind === "reel") return "Reel";
-  if (kind === "story") return "Story";
+  if (kind === "story") return "Historia";
   if (item.media_type === "CAROUSEL_ALBUM") return "Carrusel";
   if (item.media_type === "VIDEO") return "Video";
   return "Publicación";
