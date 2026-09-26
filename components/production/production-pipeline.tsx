@@ -25,6 +25,8 @@ import {
   shortReference,
 } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
+import type { ProductionLinks, PublishedPerformance } from "@/lib/data/production-links";
+import { PerformanceBadge } from "@/components/content/performance-badge";
 
 const COLUMN_COLORS: Record<ContentStatus, string> = {
   idea: "var(--color-graphite)",
@@ -46,11 +48,13 @@ const MIN_DROP_AREA = "min-h-[30rem]";
 
 export function ProductionPipeline({
   items,
+  links,
   openId,
   onOpen,
   onCreate,
 }: {
   items: ContentItem[];
+  links: ProductionLinks;
   openId: string | null;
   onOpen: (id: string | null) => void;
   onCreate: (guion: boolean) => void;
@@ -102,6 +106,7 @@ export function ProductionPipeline({
   const boardView = (
     <Board
       items={board}
+      links={links}
       draggable={mounted}
       overStatus={overStatus}
       openId={openId}
@@ -143,6 +148,7 @@ export function ProductionPipeline({
 
 function Board({
   items,
+  links,
   draggable,
   overStatus,
   openId,
@@ -150,6 +156,7 @@ function Board({
   onCreate,
 }: {
   items: ContentItem[];
+  links: ProductionLinks;
   draggable: boolean;
   overStatus: ContentStatus | null;
   openId: string | null;
@@ -163,6 +170,7 @@ function Board({
           key={status}
           status={status}
           items={items.filter((item) => item.status === status)}
+          links={links}
           draggable={draggable}
           isOver={overStatus === status}
           openId={openId}
@@ -177,6 +185,7 @@ function Board({
 function Column({
   status,
   items,
+  links,
   draggable,
   isOver,
   openId,
@@ -185,6 +194,7 @@ function Column({
 }: {
   status: ContentStatus;
   items: ContentItem[];
+  links: ProductionLinks;
   draggable: boolean;
   isOver: boolean;
   openId: string | null;
@@ -230,6 +240,7 @@ function Column({
           <Card
             key={item.id}
             item={item}
+            performance={links.performance[item.id] ?? null}
             status={status}
             draggable={draggable}
             selected={openId === item.id}
@@ -248,12 +259,14 @@ function Column({
 
 function Card({
   item,
+  performance,
   status,
   draggable,
   selected,
   onOpen,
 }: {
   item: ContentItem;
+  performance: PublishedPerformance | null;
   status: ContentStatus;
   draggable: boolean;
   selected: boolean;
@@ -277,7 +290,7 @@ function Card({
         selected ? "border-mist-strong" : "border-mist"
       } ${isDragging ? "opacity-0" : ""} ${draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
     >
-      <CardBody item={item} />
+      <CardBody item={item} performance={performance} />
     </div>
   );
 }
@@ -285,12 +298,18 @@ function Card({
 function CardGhost({ item }: { item: ContentItem }) {
   return (
     <div className="cursor-grabbing rounded-card border border-mist bg-canvas p-3">
-      <CardBody item={item} />
+      <CardBody item={item} performance={null} />
     </div>
   );
 }
 
-function CardBody({ item }: { item: ContentItem }) {
+function CardBody({
+  item,
+  performance,
+}: {
+  item: ContentItem;
+  performance: PublishedPerformance | null;
+}) {
   const snippet = item.cta || item.development || item.hook;
 
   return (
@@ -301,9 +320,13 @@ function CardBody({ item }: { item: ContentItem }) {
         <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-5 text-muted">{snippet}</p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <Badge>{FORMAT_LABELS[item.format]}</Badge>
         {item.contentType ? <Badge>{item.contentType}</Badge> : null}
+        {performance ? <PerformanceBadge multiplier={performance.multiplier} /> : null}
+        {item.status === "publicada" && item.linkedMediaId === null ? (
+          <span className="font-support text-[11px] text-muted">¿Cuál publicación fue?</span>
+        ) : null}
       </div>
 
       <div className="mt-2.5 flex items-center gap-3 border-t border-mist pt-2.5 text-muted">

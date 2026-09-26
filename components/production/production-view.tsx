@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
+import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
 import { ProductionCalendar } from "./production-calendar";
 import { ProductionDetail } from "./production-detail";
 import { NewContentItemDialog } from "./new-content-item";
 
-export function ProductionView({ items }: { items: ContentItem[] }) {
+export function ProductionView({ items, links }: { items: ContentItem[]; links: ProductionLinks }) {
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
@@ -56,6 +57,7 @@ export function ProductionView({ items }: { items: ContentItem[] }) {
         {view === "pipeline" ? (
           <ProductionPipeline
             items={items}
+            links={links}
             openId={openId}
             onOpen={setOpenId}
             onCreate={(guion) => setCreateGuion(guion)}
@@ -66,7 +68,12 @@ export function ProductionView({ items }: { items: ContentItem[] }) {
       </div>
 
       {openItem ? (
-        <ProductionDetail item={openItem} onClose={() => setOpenId(null)} />
+        <ProductionDetail
+          item={openItem}
+          candidates={links.candidates[openItem.id] ?? []}
+          performance={links.performance[openItem.id] ?? null}
+          onClose={() => setOpenId(null)}
+        />
       ) : null}
 
       {createGuion !== null ? (

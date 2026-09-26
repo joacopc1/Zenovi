@@ -179,3 +179,72 @@ export async function updateContentItem(
   revalidatePath("/production");
   return { status: "saved" };
 }
+
+/**
+ * Ata una pieza del tablero a la publicación real que terminó siendo.
+ *
+ * La publicación se busca primero con la sesión de quien pide: la clave foránea sólo
+ * garantiza que el id exista en la base, y esa comprobación corre por fuera de RLS, así
+ * que sin este paso alguien podría atar su pieza a un Reel de otra cuenta.
+ */
+export async function linkPublishedMedia(
+  _previousState: ContentActionState,
+  raw: unknown,
+): Promise<ContentActionState> {
+  const source = asRecord(raw);
+  const id = typeof source.id === "string" ? source.id : "";
+  const mediaId = typeof source.mediaId === "string" ? source.mediaId : "";
+
+  if (!id || !mediaId) {
+    return { status: "error", message: "Falta identificar la pieza o la publicación." };
+  }
+
+  const supabase = await createClient();
+  const { data: media, error: mediaError } = await supabase
+    .from("instagram_media")
+    .select("id")
+    .eq("id", mediaId)
+    .maybeSingle();
+
+  if (mediaError || !media) {
+    return { status: "error", message: "No encontramos esa publicación en tu cuenta." };
+  }
+
+  const { error } = await supabase
+    .from("content_items")
+    .update({ linked_media_id: mediaId })
+    .eq("id", id);
+
+  if (error) {
+    return { status: "error", message: "No pudimos vincular la publicación." };
+  }
+
+  revalidatePath("/production");
+  return { status: "saved" };
+}
+
+/** Suelta el vínculo cuando el creador se equivocó de publicación. */
+export async function unlinkPublishedMedia(
+  _previousState: ContentActionState,
+  raw: unknown,
+): Promise<ContentActionState> {
+  const source = asRecord(raw);
+  const id = typeof source.id === "string" ? source.id : "";
+
+  if (!id) {
+    return { status: "error", message: "Falta identificar la pieza." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("content_items")
+    .update({ linked_media_id: null })
+    .eq("id", id);
+
+  if (error) {
+    return { status: "error", message: "No pudimos soltar el vínculo." };
+  }
+
+  revalidatePath("/production");
+  return { status: "saved" };
+}

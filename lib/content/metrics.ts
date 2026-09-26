@@ -20,6 +20,17 @@ export function getPerformanceSignal(multiplier: number | null): PerformanceSign
   return "right";
 }
 
+/**
+ * Cómo se lee un multiplicador en una frase. Vive junto a la banda que lo clasifica
+ * para que el texto y el umbral no puedan discrepar.
+ */
+export function getPerformanceVerdict(multiplier: number | null): string {
+  const signal = getPerformanceSignal(multiplier);
+  if (signal === "up") return "Rindió por encima de";
+  if (signal === "down") return "Rindió por debajo de";
+  return "Rindió en línea con";
+}
+
 export function getEngagementRate(
   interactions: number | null,
   views: number | null,

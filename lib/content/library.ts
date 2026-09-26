@@ -1,6 +1,13 @@
 /** Los formatos que Zenovi reconoce, en un solo lugar para toda la aplicación. */
 export const CONTENT_KINDS = ["reel", "story", "publication"] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
+
+/** Cómo se nombra un grupo de piezas: "la mediana de tus Reels". */
+export const CONTENT_KIND_PLURALS: Record<ContentKind, string> = {
+  reel: "Reels",
+  story: "Historias",
+  publication: "publicaciones",
+};
 export type ContentSort =
   | "recent"
   | "views"

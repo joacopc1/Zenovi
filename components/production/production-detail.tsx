@@ -12,7 +12,9 @@ import {
   contentItemName,
 } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
+import type { PublishCandidate, PublishedPerformance } from "@/lib/data/production-links";
 import { ProductionTeleprompter } from "./production-teleprompter";
+import { PublishedLink } from "./published-link";
 import { DateField } from "./date-field";
 import { FormatSelect } from "./format-select";
 
@@ -22,9 +24,13 @@ import { FormatSelect } from "./format-select";
  */
 export function ProductionDetail({
   item,
+  candidates,
+  performance,
   onClose,
 }: {
   item: ContentItem;
+  candidates: PublishCandidate[];
+  performance: PublishedPerformance | null;
   onClose: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -101,6 +107,10 @@ export function ProductionDetail({
                     {item.referenceUrl}
                   </a>
                 </div>
+              ) : null}
+
+              {item.status === "publicada" ? (
+                <PublishedLink itemId={item.id} candidates={candidates} performance={performance} />
               ) : null}
 
               <div className="space-y-3 border-t border-mist pt-4">

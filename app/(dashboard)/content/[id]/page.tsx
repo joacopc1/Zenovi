@@ -24,18 +24,12 @@ import { ContentCaption } from "@/components/content/content-caption";
 import { AppHeader } from "@/components/shell/app-header";
 import type { AnalysisState } from "@/lib/content/analysis";
 import { EXAMPLE_ANALYSIS } from "@/lib/content/analysis-example";
-import { buildCohort, viewsRank } from "@/lib/content/library";
+import { buildCohort, viewsRank, CONTENT_KIND_PLURALS } from "@/lib/content/library";
 import { getEngagementRate } from "@/lib/content/metrics";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source";
 import { getMediaViewEvolution } from "@/lib/data/media-view-evolution";
-
-const formatPlurals = {
-  reel: "Reels",
-  publication: "publicaciones",
-  story: "Historias",
-} as const;
 
 const numberFormatter = new Intl.NumberFormat("es-UY");
 const decimalFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 });
@@ -118,7 +112,7 @@ export default async function ContentDetailPage({
           className="font-support inline-flex min-h-8 items-center gap-2 text-[13px] text-graphite hover:text-ink"
         >
           <ArrowLeft aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
-          Volver a {formatPlurals[item.kind]}
+          Volver a {CONTENT_KIND_PLURALS[item.kind]}
         </Link>
 
         <div className="mt-5 grid items-start gap-6 lg:grid-cols-[270px_minmax(0,1fr)] lg:gap-8">
@@ -165,7 +159,7 @@ export default async function ContentDetailPage({
                 formatLabel={item.formatLabel}
               />
               {item.multiplier !== null ? (
-                <PerformanceStanding item={item} rank={rank} formatPlural={formatPlurals[item.kind]} />
+                <PerformanceStanding item={item} rank={rank} formatPlural={CONTENT_KIND_PLURALS[item.kind]} />
               ) : null}
             </div>
 

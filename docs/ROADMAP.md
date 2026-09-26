@@ -281,12 +281,12 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 5 - Producción y Stories
 
-- [ ] **Objeto de contenido único** (`content_items`) con `estado` (pipeline: idea → listo para grabar → editando → listo para publicar → publicado), `título`, `tipo de contenido` (corte, transaccional, etc.), `fecha objetivo`, `link de referencia`, `formato`, y `guion` como campo estructurado (hook/desarrollo/CTA). Validado contra el sistema de Moka: la idea es la card en estado "idea"; el guion se llena al avanzar. No hay dos listas separadas.
-- [ ] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal.
-- [ ] Calendario: vista por `fecha objetivo`, con piezas publicadas y pendientes en colores distintos, y acceso al detalle/métricas. Plus, no crítico.
+- [x] **Objeto de contenido único** (`content_items`) con `estado` (pipeline: idea → listo para grabar → editando → listo para publicar → publicado), `título`, `tipo de contenido` (corte, transaccional, etc.), `fecha objetivo`, `link de referencia`, `formato`, y `guion` como campo estructurado (hook/desarrollo/CTA). Validado contra el sistema de Moka: la idea es la card en estado "idea"; el guion se llena al avanzar. No hay dos listas separadas.
+- [x] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal. Cada columna mantiene una zona de drop del alto de cuatro o cinco tarjetas, así el tablero no se deforma al mover una pieza ni obliga a apuntarle a una franja de píxeles.
+- [-] Calendario: vista por `fecha objetivo` implementada, con acceso al detalle. Falta distinguir por color las piezas publicadas de las pendientes. Plus, no crítico.
 - [ ] Guardar desde el Director IA: "agregá esta idea a producción" crea la card en estado "idea", con el porqué de por qué es ganadora (origen: métricas propias, competidores, concepto propio).
-- [ ] Carga manual: texto suelto o link de Instagram como referencia.
-- [ ] Vista detallada en **panel derecho** (no modal): título, tipo de contenido, guion por componentes, recomendaciones del Director y comparación con Reels ya subidos (por confirmar).
+- [x] Carga manual: alcanza con un título o con un link de referencia; una idea se guarda con lo que haya a mano.
+- [-] Vista detallada en **panel derecho** (no modal): título, tipo de contenido, guion por componentes y comparación contra los Reels ya subidos implementados. Faltan las recomendaciones del Director.
 - [ ] Segmentación libre del creador (carpetas/etiquetas propias). El "tipo de contenido" es el lenguaje del usuario; los pilares de marketing son sugerencia opcional del Director.
 - [ ] Vínculo insight -> idea (contexto de origen).
 - [ ] Stories según gate.
@@ -298,7 +298,7 @@ Fuera del MVP (trabajo en equipo futuro): links de entregables (video crudo/edit
 
 Ordenadas por impacto para el creador; no todas entran en el primer corte:
 
-1. **[fundamental]** Cerrar el ciclo idea → publicado → "¿cómo me rindió?": al marcar una pieza como publicada, queda vinculada al Reel real y después se compara contra su resultado. Es la promesa central del producto.
+1. **[x] [fundamental]** Cerrar el ciclo idea → publicado → "¿cómo me rindió?" (2026-09-26). Al llegar a "Publicada", el detalle pregunta cuál de las publicaciones reales es esa idea: propone las del mismo formato ordenadas por cercanía a la fecha objetivo, descartando las que ya pertenecen a otra pieza. Confirmada la publicación, el panel deja de preguntar y contesta: visualizaciones, interacciones, alcance y guardados, y el multiplicador contra la mediana de ese formato con su puesto ("la número 3 de 14"). La tarjeta del tablero muestra el mismo multiplicador, o avisa que falta reconocer la publicación. El vínculo se puede soltar cuando se eligió mal. La acción comprueba que la publicación sea visible bajo RLS antes de escribir, porque la clave foránea sólo verifica que el id exista y esa comprobación corre por fuera de RLS. Verificado contra la base real: se vincula, se guarda, se suelta, una publicación inexistente la rechaza la clave foránea (23503) y una de otra cuenta no es visible.
 2. **[fundamental]** El guion como herramienta de grabación, no texto plano: bloques hook/desarrollo/CTA grandes, modo "apuntador"/teleprompter, y dirección de cómo decirlo (plano visual, cómo actuar) derivada de los Reels previos del creador. Clave de afinidad.
 3. **[alta]** Capturar la idea en el momento sin fricción: desde Instagram/móvil, "guardar para Zenovi" con el link cargado (share sheet o pegar URL). Incluye guardar el video crudo como referencia. El video crudo puede vivir debajo del pipeline o en otra vista/pestaña.
 4. **[alta]** Semáforo de cadencia: el pipeline avisa "te faltan X guiones, el miércoles no tenés nada". De grilla muerta a señal de compromiso de publicación.

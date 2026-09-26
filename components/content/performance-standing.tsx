@@ -1,5 +1,5 @@
 import type { RankedContentItem } from "@/lib/content/library";
-import { getPerformanceSignal } from "@/lib/content/metrics";
+import { getPerformanceVerdict } from "@/lib/content/metrics";
 import { PerformanceBadge } from "./performance-badge";
 
 /**
@@ -24,16 +24,9 @@ export function PerformanceStanding({
     <div className="font-support mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-5 text-graphite">
       <PerformanceBadge multiplier={multiplier} />
       <span>
-        {verdict(multiplier)} la mediana de tus {formatPlural}.
+        {getPerformanceVerdict(multiplier)} la mediana de tus {formatPlural}.
         {rank ? ` Es la número ${rank.position} de ${rank.total} por visualizaciones.` : ""}
       </span>
     </div>
   );
-}
-
-function verdict(multiplier: number) {
-  const signal = getPerformanceSignal(multiplier);
-  if (signal === "up") return "Rindió por encima de";
-  if (signal === "down") return "Rindió por debajo de";
-  return "Rindió en línea con";
 }
