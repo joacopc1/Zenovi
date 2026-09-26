@@ -3,9 +3,9 @@ import test from "node:test";
 import {
   MIN_POSTS_FOR_RHYTHM,
   RHYTHM_WEEKS,
+  horizonDates,
   readCadence,
   recentlyPublished,
-  upcomingDays,
   weeklyRhythm,
 } from "../lib/production/cadence.ts";
 
@@ -53,37 +53,29 @@ test("una fecha futura o rota no infla el ritmo", () => {
   assert.equal(weeklyRhythm(posted, AHORA), 1);
 });
 
-test("los próximos días arrancan hoy y son siete", () => {
-  const days = upcomingDays([], AHORA);
+test("el horizonte arranca hoy y son siete días", () => {
+  const dates = horizonDates(AHORA);
 
-  assert.equal(days.length, 7);
-  assert.equal(days[0].iso, enDias(0));
-  assert.equal(days[0].isToday, true);
-  assert.equal(days[6].iso, enDias(6));
-  assert.equal(days.filter((day) => day.isToday).length, 1);
+  assert.equal(dates.length, 7);
+  assert.equal(dates[0], enDias(0));
+  assert.equal(dates[6], enDias(6));
+  assert.equal(new Set(dates).size, 7);
 });
 
-test("la semana empieza el lunes", () => {
-  // El 24 de septiembre de 2026 es jueves: cuarto día de la semana, índice 3.
-  assert.equal(upcomingDays([], AHORA)[0].weekday, 3);
-});
-
-test("cada día sabe cuántas piezas le caen", () => {
-  const days = upcomingDays(
+test("sólo cuenta lo que cae dentro del horizonte", () => {
+  const reading = readCadence(
     [
       pieza({ targetDate: enDias(0) }),
-      pieza({ targetDate: enDias(2) }),
-      pieza({ targetDate: enDias(2) }),
-      pieza({ targetDate: null }),
+      pieza({ targetDate: enDias(6) }),
+      pieza({ targetDate: enDias(7) }),
       pieza({ targetDate: enDias(40) }),
+      pieza({ targetDate: null }),
     ],
+    [],
     AHORA,
   );
 
-  assert.equal(days[0].planned, 1);
-  assert.equal(days[1].planned, 0);
-  assert.equal(days[2].planned, 2);
-  assert.equal(days.reduce((total, day) => total + day.planned, 0), 3);
+  assert.equal(reading.planned, 2);
 });
 
 test("dice cuántas faltan para igualar el propio ritmo", () => {
@@ -145,8 +137,6 @@ test("una pieza ya publicada no cuenta como planificada", () => {
   );
 
   assert.equal(reading.planned, 1);
-  assert.equal(reading.days[1].planned, 0);
-  assert.equal(reading.days[2].planned, 1);
 });
 
 test("cuenta lo que ya salió en los últimos siete días", () => {

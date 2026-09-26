@@ -7,7 +7,7 @@ import {
   ChartNoAxesCombined,
   ChevronRight,
   Clapperboard,
-  Factory,
+  Kanban,
   Fingerprint,
   House,
   MessageSquareText,
@@ -26,6 +26,10 @@ type NavItem = {
 type NavGroup = { label: string; items: NavItem[] };
 
 const groups: NavGroup[] = [
+  { label: "Decidir", items: [
+    { href: "/director", label: "Director", icon: MessageSquareText },
+    { href: "/production", label: "Producción", icon: Kanban },
+  ]},
   { label: "Observar", items: [
     { href: "/analytics", label: "Analíticas", icon: ChartNoAxesCombined },
     {
@@ -38,10 +42,6 @@ const groups: NavGroup[] = [
         { href: "/content?type=story", label: "Historias", type: "story" },
       ],
     },
-  ]},
-  { label: "Decidir", items: [
-    { href: "/director", label: "Director", icon: MessageSquareText },
-    { href: "/production", label: "Producción", icon: Factory },
   ]},
   { label: "Setup", items: [
     { href: "/brand", label: "ADN de marca", icon: Fingerprint },

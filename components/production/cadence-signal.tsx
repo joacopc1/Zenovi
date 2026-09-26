@@ -1,12 +1,15 @@
 "use client";
 
-import { CALENDAR_WEEKDAYS } from "@/lib/production/calendar";
 import type { CadenceReading } from "@/lib/production/cadence";
 
 const rhythmFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 });
 
 /**
  * El semáforo de cadencia, debajo del tablero.
+ *
+ * Es una frase y nada más. Todo lo que se puede decir con palabras se dice con palabras:
+ * un gráfico chiquito que hay que aprender a leer cuesta más que la línea que reemplaza,
+ * y para ver los días uno por uno está el calendario.
  *
  * Una grilla de tarjetas no compromete a nadie; una frase que dice "venís publicando tres
  * por semana y para los próximos siete días tenés una" sí. Va abajo y no arriba porque al
@@ -27,13 +30,17 @@ export function CadenceSignal({
   return (
     <section
       aria-label="Ritmo de publicación"
-      className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3 sm:flex-nowrap"
+      className="mt-8 rounded-card border border-mist bg-paper px-4 py-3"
     >
       {/* Dos renglones a propósito: arriba lo que pasó, abajo lo que viene. En un solo
-          párrafo el corte cae donde alcanza el ancho y parte la frase al medio. El texto
-          se achica y envuelve, pero la tira nunca baja: es lo que se mira de un vistazo, y
-          si salta abajo deja de leerse como una semana. */}
-      <div className="font-support min-w-0 flex-1 text-[13px] leading-6 text-graphite">
+          párrafo el corte cae donde alcanza el ancho y parte la frase al medio.
+
+          Acá había una tira con los próximos siete días. Se sacó: arrancaba en el día de
+          hoy y no en lunes, así que parecía una semana sin serlo, y marcaba con dos
+          rellenos distintos "hoy" y "tiene piezas" sin decir en ningún lado cuál era
+          cuál. La pestaña Calendario ya hace eso bien, con los días en su lugar y su
+          referencia de colores, y está a un click. */}
+      <div className="font-support text-[13px] leading-6 text-graphite">
         <p>
           {/* Sin cuenta conectada no es que falte historial: es que no hay de dónde
               leerlo. Decir "todavía no publicaste lo suficiente" sería afirmar algo sobre
@@ -55,29 +62,6 @@ export function CadenceSignal({
         </p>
       </div>
 
-      <ol className="flex shrink-0 items-start gap-1">
-        {reading.days.map((day) => (
-          <li key={day.iso} className="w-8 text-center">
-            <span
-              className={`font-support block text-[10px] ${day.isToday ? "font-semibold text-ink" : "text-muted"}`}
-            >
-              {CALENDAR_WEEKDAYS[day.weekday]}
-            </span>
-            <span
-              title={`${day.planned} ${day.planned === 1 ? "pieza planificada" : "piezas planificadas"}`}
-              className={`font-numeric mt-1 grid h-7 place-items-center rounded-control text-[12px] ${
-                day.planned > 0
-                  ? "bg-ink font-semibold text-paper"
-                  : day.isToday
-                    ? "border border-mist-strong text-ink"
-                    : "border border-dashed border-mist text-muted"
-              }`}
-            >
-              {day.planned > 1 ? `${day.day}·${day.planned}` : day.day}
-            </span>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

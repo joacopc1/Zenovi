@@ -29,17 +29,6 @@ export const MIN_POSTS_FOR_RHYTHM = 4;
 /** Hasta dónde mira el tablero hacia adelante. */
 export const PLANNING_HORIZON_DAYS = 7;
 
-export type UpcomingDay = {
-  /** "YYYY-MM-DD" en la zona local. */
-  iso: string;
-  /** Día del mes, para rotular. */
-  day: number;
-  /** 0 = lunes. */
-  weekday: number;
-  isToday: boolean;
-  planned: number;
-};
-
 export type CadenceReading = {
   /** Publicaciones por semana, redondeado a una decimal; `null` sin historial suficiente. */
   rhythm: number | null;
@@ -53,7 +42,6 @@ export type CadenceReading = {
   withoutScript: number;
   /** Cuántas faltarían para igualar el ritmo propio; `null` si no hay ritmo que igualar. */
   missing: number | null;
-  days: UpcomingDay[];
 };
 
 /**
@@ -107,33 +95,14 @@ export function weeklyRhythm(postedAt: readonly string[], now: Date): number | n
   return Math.round((count / RHYTHM_WEEKS) * 10) / 10;
 }
 
-/** Los próximos días, desde hoy, con cuántas piezas caen en cada uno. */
-export function upcomingDays(
-  items: readonly { targetDate: string | null }[],
-  now: Date,
-  horizon: number = PLANNING_HORIZON_DAYS,
-): UpcomingDay[] {
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    if (item.targetDate === null) continue;
-    counts.set(item.targetDate, (counts.get(item.targetDate) ?? 0) + 1);
-  }
-
-  const days: UpcomingDay[] = [];
+/** Los días que entran en el horizonte, desde hoy, como "YYYY-MM-DD". */
+export function horizonDates(now: Date, horizon: number = PLANNING_HORIZON_DAYS): string[] {
+  const dates: string[] = [];
   for (let offset = 0; offset < horizon; offset += 1) {
-    const date = addDays(now, offset);
-    const iso = isoDateOf(date);
-    days.push({
-      iso,
-      day: date.getDate(),
-      // getDay() devuelve 0 para domingo; acá la semana empieza el lunes, como el calendario.
-      weekday: (date.getDay() + 6) % 7,
-      isToday: offset === 0,
-      planned: counts.get(iso) ?? 0,
-    });
+    dates.push(isoDateOf(addDays(now, offset)));
   }
 
-  return days;
+  return dates;
 }
 
 /**
@@ -148,12 +117,7 @@ export function readCadence(
   now: Date,
   horizon: number = PLANNING_HORIZON_DAYS,
 ): CadenceReading {
-  const days = upcomingDays(
-    items.filter((item) => item.status !== "publicada"),
-    now,
-    horizon,
-  );
-  const window = new Set(days.map((day) => day.iso));
+  const window = new Set(horizonDates(now, horizon));
   const planned = items.filter(
     (item) => item.status !== "publicada" && item.targetDate !== null && window.has(item.targetDate),
   );
@@ -171,7 +135,6 @@ export function readCadence(
     // Lo que ya salió cubre parte del ritmo: pedirle al creador que planifique tres más
     // cuando hoy publicó dos sería contarle la semana desde cero.
     missing: expected === null ? null : Math.max(0, expected - planned.length - published),
-    days,
   };
 }
 
