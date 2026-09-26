@@ -341,6 +341,45 @@ tokens, multimedia y costo total" y "Diseñar tabla provisional de créditos").
 
 - [x] **Reconciliar lo publicado con el tablero** (2026-09-26): debajo del semáforo, una línea plegada avisa "publicaste N piezas que no están en el tablero", leído de Instagram. Son dos olvidos distintos con el mismo síntoma —la idea estaba anotada y nadie movió la tarjeta, o la pieza nunca se planificó—, así que hay dos salidas por publicación: **"Es una idea mía"**, que la enlaza con la pieza del tablero que mejor coincide por texto (sólo se ofrecen las no publicadas, sin vínculo y del mismo formato), o **"Registrar"**, que crea la pieza ya publicada y atada. Al enlazar, la fecha de publicación pasa a ser **la del video** y no la del día que se movió la tarjeta, que puede ser días después. Una publicación sin caption se nombra "Reel del 31 de agosto" en vez de "Sin título", que repetido cuatro veces no se reconoce.
 
+### Trial Reels: se pueden crear, falta saber si se pueden reconocer (2026-09-26)
+
+Un Trial Reel se muestra sólo a quien no te sigue y después "gradúa" al perfil, a mano o
+por rendimiento. Importa porque **su audiencia es otra por diseño**: mezclado con los Reels
+normales corre la mediana del formato, y el multiplicador que Zenovi le muestra al creador
+termina comparando cosas distintas sin que nadie lo note. Moka los muestra, así que por
+algún camino se ven.
+
+Sondeado contra la API real con el token de @elcostarrica (`npm run probe:trial`):
+
+- **Crear**: la API lo soporta, con `trial_params.graduation_strategy` (`MANUAL` o
+  `SS_PERFORMANCE`) al crear el contenedor de publicación.
+- **Leer, por Instagram Login (el camino que usa Zenovi hoy)**: no se puede. `is_trial`,
+  `is_trial_reel`, `trial_params`, `trial`, `is_graduated` y `graduation_strategy` los
+  rechaza con "Tried accessing nonexisting field". `media_product_type` devuelve `REELS`
+  igual que cualquier otro y no existe métrica específica (`non_follower_reach`,
+  `trial_views` rechazadas). Lo único adyacente es `is_shared_to_feed`, que dio `true` y
+  describe otra cosa. `graph.instagram.com` tampoco soporta introspección: `metadata=1`
+  devuelve cero campos, así que ni siquiera se le puede pedir que liste lo que tiene.
+- **[!] Leer, por Facebook Login (`graph.facebook.com`): sin probar.** Es una superficie
+  más rica, sí soporta introspección, y es la hipótesis de por dónde lo ve Moka. La sonda
+  está escrita (`scripts/probe-trial-reels-facebook.mjs`: lista Páginas, encuentra la
+  cuenta Business y pide `metadata=1` sobre la cuenta y sobre un Reel, buscando cualquier
+  campo o conexión con "trial" en el nombre) pero el `FACEBOOK_USER_ACCESS_TOKEN` guardado
+  venció el 3 de septiembre. **Condición para desbloquear**: un token nuevo de Facebook
+  sobre una cuenta Business vinculada a una Página. Hasta correrla, "no se pueden ver los
+  Trial Reels" es una afirmación sobre nuestro camino, no sobre la plataforma.
+- **Por qué importa esa respuesta antes que cualquier otra cosa**: si por algún camino se
+  leen, Zenovi los reconoce solo y no hay nada que pedirle al creador. Pedirle que marque
+  la pieza a mano es trabajo manual a cambio de nada visible, así que sólo tendría sentido
+  si el camino automático no existe.
+- La sonda además devolvió **la lista completa de métricas válidas** de media insights,
+  útil para revisar qué no estamos sincronizando: `impressions, shares, comments, likes,
+  saved, replies, total_interactions, navigation, follows, profile_visits,
+  profile_activity, reach, ig_reels_video_view_total_time, ig_reels_avg_watch_time, views,
+  thread_replies, reposts, quotes, thread_shares, threads_views, threads_media_clicks,
+  reels_skip_rate, threads_reposts, facebook_views, crossposted_views, total_views,
+  total_likes, total_comments, link_clicks`.
+
 ### Voz del producto
 
 - [ ] La app debe hablar como un **experto en marketing y marcas personales**: usar la jerga del rubro (hook, CTA, ángulo, pilar, autoridad, nutrición, conversión, transaccional, etc.). Es clave para la afinidad con el cliente y no sonar genérico. El vocabulario debe derivarse del lenguaje del avatar (ver `research/icp-avatar-research.md` §16), no imponerse desde la jerga del equipo.
