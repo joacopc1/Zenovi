@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  addDays,
   buildMonthGrid,
+  calendarDateOf,
+  isoDateOf,
   monthTitle,
   toISODate,
   todayISODate,
@@ -35,4 +38,29 @@ test("monthTitle devuelve mes y año en español", () => {
 
 test("todayISODate devuelve YYYY-MM-DD", () => {
   assert.match(todayISODate(), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("una pieza publicada va el día que salió, no el que se planificó", () => {
+  // Planificada para el 23 y publicada el 26: ocurrió el 26.
+  assert.equal(
+    calendarDateOf({ publishedAt: "2026-09-26T15:00:00Z", targetDate: "2026-09-23" }),
+    isoDateOf(new Date("2026-09-26T15:00:00Z")),
+  );
+});
+
+test("una pieza sin publicar va en su fecha objetivo", () => {
+  assert.equal(calendarDateOf({ publishedAt: null, targetDate: "2026-09-23" }), "2026-09-23");
+});
+
+test("sin ninguna de las dos fechas no va a ningún día", () => {
+  assert.equal(calendarDateOf({ publishedAt: null, targetDate: null }), null);
+});
+
+test("una fecha de publicación rota cae de vuelta en la objetivo", () => {
+  assert.equal(calendarDateOf({ publishedAt: "ayer", targetDate: "2026-09-23" }), "2026-09-23");
+});
+
+test("addDays salta bien el fin de mes", () => {
+  assert.equal(isoDateOf(addDays(new Date(2026, 8, 30), 1)), "2026-10-01");
+  assert.equal(isoDateOf(addDays(new Date(2026, 0, 1), -1)), "2025-12-31");
 });

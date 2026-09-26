@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   CONTENT_PIPELINE,
+  FORMAT_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
   contentItemName,
@@ -12,16 +13,30 @@ import type { ContentItem } from "@/lib/data/production";
 import {
   CALENDAR_WEEKDAYS,
   buildMonthGrid,
+  calendarDateOf,
+  isoDateOf,
   monthTitle,
   todayISODate,
   toISODate,
 } from "@/lib/production/calendar";
+import type { PublishedPiece } from "@/lib/production/reconcile";
 
+/**
+ * El calendario de producción: lo que viene y lo que ya salió, en la misma grilla.
+ *
+ * Muestra las publicaciones reales de Instagram y no sólo las piezas del tablero, porque
+ * si no contestaba mal la pregunta más obvia que se le hace a un calendario —"¿qué subí
+ * y cuándo?"—: lo que el creador publicó sin anotarlo en Zenovi simplemente no existía.
+ * Las que sí están en el tablero se ubican por el día en que salieron, no por el día en
+ * que se habían planificado.
+ */
 export function ProductionCalendar({
   items,
+  published,
   onOpen,
 }: {
   items: ContentItem[];
+  published: PublishedPiece[];
   onOpen: (id: string) => void;
 }) {
   const today = new Date();
@@ -32,10 +47,24 @@ export function ProductionCalendar({
   const itemsByDate = new Map<string, ContentItem[]>();
 
   for (const item of items) {
-    if (!item.targetDate) continue;
-    const list = itemsByDate.get(item.targetDate) ?? [];
+    const date = calendarDateOf(item);
+    if (!date) continue;
+    const list = itemsByDate.get(date) ?? [];
     list.push(item);
-    itemsByDate.set(item.targetDate, list);
+    itemsByDate.set(date, list);
+  }
+
+  // Las publicaciones que ya reclamó una pieza del tablero no se repiten: esa pieza ya
+  // está en la grilla, con su nombre y su estado, que dice más que la publicación suelta.
+  const claimed = new Set(items.map((item) => item.linkedMediaId).filter(Boolean));
+  const publishedByDate = new Map<string, PublishedPiece[]>();
+
+  for (const piece of published) {
+    if (claimed.has(piece.id)) continue;
+    const date = isoDateOf(new Date(piece.postedAt));
+    const list = publishedByDate.get(date) ?? [];
+    list.push(piece);
+    publishedByDate.set(date, list);
   }
 
   function shift(delta: number) {
@@ -95,6 +124,7 @@ export function ProductionCalendar({
 
           const iso = toISODate(year, month, day);
           const dayItems = itemsByDate.get(iso) ?? [];
+          const dayPublished = publishedByDate.get(iso) ?? [];
           const isToday = iso === todayKey;
 
           return (
@@ -136,6 +166,20 @@ export function ProductionCalendar({
                     </button>
                   );
                 })}
+
+                {dayPublished.map((piece) => (
+                  <span
+                    key={piece.id}
+                    title={`${FORMAT_LABELS[piece.kind]} publicado, sin registrar en el tablero`}
+                    className="flex w-full items-center gap-1.5 rounded-control border border-dashed border-mist px-2 py-1 text-left text-[11px] font-medium text-muted"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 shrink-0 rounded-full border border-muted"
+                    />
+                    <span className="truncate">{FORMAT_LABELS[piece.kind]}</span>
+                  </span>
+                ))}
               </div>
             </div>
           );
@@ -153,6 +197,15 @@ export function ProductionCalendar({
             <span className="font-support text-[11px] text-muted">{STATUS_LABELS[status]}</span>
           </li>
         ))}
+        {published.length > 0 ? (
+          <li className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="size-1.5 shrink-0 rounded-full border border-muted"
+            />
+            <span className="font-support text-[11px] text-muted">Publicado, sin registrar</span>
+          </li>
+        ) : null}
       </ul>
     </div>
   );

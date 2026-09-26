@@ -43,3 +43,24 @@ export function addDays(date: Date, days: number): Date {
 export function monthTitle(year: number, month: number): string {
   return `${CALENDAR_MONTHS[month]} ${year}`;
 }
+
+/**
+ * En qué día del calendario va una pieza.
+ *
+ * Si ya salió, manda la fecha en que salió: una pieza planificada para el miércoles y
+ * publicada el sábado ocurrió el sábado, y ponerla el miércoles sería mostrar el plan
+ * como si fuera lo que pasó. Mientras no salga manda la fecha objetivo, que es lo único
+ * que hay. Devuelve `null` cuando no tiene ninguna de las dos y por lo tanto no va a
+ * ningún día.
+ */
+export function calendarDateOf(item: {
+  publishedAt: string | null;
+  targetDate: string | null;
+}): string | null {
+  if (item.publishedAt !== null) {
+    const date = new Date(item.publishedAt);
+    if (!Number.isNaN(date.getTime())) return isoDateOf(date);
+  }
+
+  return item.targetDate;
+}

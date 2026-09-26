@@ -114,17 +114,18 @@ export function ProductionView({
             onCreate={(guion) => setCreateGuion(guion)}
           />
         ) : (
-          <ProductionCalendar items={shown} onOpen={setOpenId} />
+          <ProductionCalendar items={shown} published={published} onOpen={setOpenId} />
         )}
       </div>
 
-      {view === "pipeline" && items.length > 0 ? (
+      {items.length === 0 ? null : view === "calendar" ? (
         <>
           <CadenceSignal reading={cadence} instagramConnected={instagramConnected} />
           <UnregisteredPublications publications={unregistered} items={items} />
-          <ProductionHistory items={older} links={links} onOpen={setOpenId} />
         </>
-      ) : null}
+      ) : (
+        <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+      )}
 
       {openItem ? (
         <ProductionDetail
