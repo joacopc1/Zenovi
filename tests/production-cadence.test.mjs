@@ -4,6 +4,7 @@ import {
   MIN_POSTS_FOR_RHYTHM,
   RHYTHM_WEEKS,
   readCadence,
+  recentlyPublished,
   upcomingDays,
   weeklyRhythm,
 } from "../lib/production/cadence.ts";
@@ -86,10 +87,13 @@ test("cada día sabe cuántas piezas le caen", () => {
 });
 
 test("dice cuántas faltan para igualar el propio ritmo", () => {
-  const posted = Array.from({ length: 24 }, (_, index) => haceDias(index * 2)); // 3 por semana
+  // 3 por semana sostenidas, pero nada en los últimos 7 días: ahí lo planificado es lo
+  // único que cubre la semana.
+  const posted = Array.from({ length: 24 }, (_, index) => haceDias(8 + index * 2));
   const reading = readCadence([pieza({ targetDate: enDias(1) })], posted, AHORA);
 
   assert.equal(reading.rhythm, 3);
+  assert.equal(reading.published, 0);
   assert.equal(reading.planned, 1);
   assert.equal(reading.missing, 2);
 });
@@ -143,4 +147,48 @@ test("una pieza ya publicada no cuenta como planificada", () => {
   assert.equal(reading.planned, 1);
   assert.equal(reading.days[1].planned, 0);
   assert.equal(reading.days[2].planned, 1);
+});
+
+test("cuenta lo que ya salió en los últimos siete días", () => {
+  const { count } = recentlyPublished([haceDias(1), haceDias(6), haceDias(8), haceDias(30)], AHORA);
+
+  assert.equal(count, 2);
+});
+
+test("sabe hace cuántos días salió la última", () => {
+  const { daysSinceLast } = recentlyPublished([haceDias(12), haceDias(3), haceDias(40)], AHORA);
+
+  assert.equal(daysSinceLast, 3);
+});
+
+test("sin publicaciones en la ventana no inventa una última", () => {
+  assert.equal(recentlyPublished([], AHORA).daysSinceLast, null);
+  assert.equal(recentlyPublished([haceDias(RHYTHM_WEEKS * 7 + 5)], AHORA).daysSinceLast, null);
+});
+
+test("lo que ya se publicó descuenta de lo que falta", () => {
+  // 3 por semana: si ya salieron 2 y hay 1 planificada, no falta ninguna.
+  const posted = Array.from({ length: 24 }, (_, index) => haceDias(index * 2));
+  const reading = readCadence([pieza({ targetDate: enDias(1) })], posted, AHORA);
+
+  assert.equal(reading.rhythm, 3);
+  assert.ok(reading.published >= 2, `esperaba al menos 2 publicadas, hubo ${reading.published}`);
+  assert.equal(reading.missing, 0);
+});
+
+test("lo publicado cuenta aunque no esté en el tablero", () => {
+  // El tablero está vacío y sin embargo publicó: no puede decirle que está en falta.
+  const posted = Array.from({ length: 8 }, (_, index) => haceDias(index * 5)); // 1 por semana
+  const reading = readCadence([], [...posted, haceDias(2)], AHORA);
+
+  assert.equal(reading.planned, 0);
+  assert.ok(reading.published >= 1);
+  assert.equal(reading.missing, 0);
+});
+
+test("una publicación futura no cuenta como ya salida", () => {
+  const futura = new Date(AHORA.getTime() + 2 * 86_400_000).toISOString();
+
+  assert.equal(recentlyPublished([futura], AHORA).count, 0);
+  assert.equal(recentlyPublished([futura], AHORA).daysSinceLast, null);
 });

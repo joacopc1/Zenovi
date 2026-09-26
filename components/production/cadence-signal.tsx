@@ -21,7 +21,7 @@ export function CadenceSignal({ reading }: { reading: CadenceReading }) {
   return (
     <section
       aria-label="Ritmo de publicación"
-      className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3"
+      className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3"
     >
       <p className="font-support min-w-0 text-[13px] leading-6 text-graphite">
         <Headline reading={reading} />
@@ -61,7 +61,7 @@ function Headline({ reading }: { reading: CadenceReading }) {
     return (
       <>
         Todavía no publicaste lo suficiente como para leer tu ritmo.{" "}
-        <Planned planned={planned} withoutScript={withoutScript} />
+        <Published reading={reading} /> <Planned planned={planned} withoutScript={withoutScript} />
       </>
     );
   }
@@ -71,7 +71,7 @@ function Headline({ reading }: { reading: CadenceReading }) {
       <strong className="font-semibold text-ink">
         Venís publicando {rhythmFormatter.format(rhythm)} por semana.
       </strong>{" "}
-      <Planned planned={planned} withoutScript={withoutScript} />{" "}
+      <Published reading={reading} /> <Planned planned={planned} withoutScript={withoutScript} />{" "}
       {missing !== null && missing > 0 ? (
         <span className="text-ink">
           Te {missing === 1 ? "falta" : "faltan"} {missing} para sostener el ritmo.
@@ -81,6 +81,31 @@ function Headline({ reading }: { reading: CadenceReading }) {
       )}
     </>
   );
+}
+
+/**
+ * Lo que ya salió. Sale de Instagram, no del tablero: si publicó algo sin anotarlo en
+ * Zenovi, decirle que no hizo nada esta semana sería directamente falso.
+ */
+function Published({ reading }: { reading: CadenceReading }) {
+  const { published, daysSinceLast } = reading;
+
+  if (published > 0) {
+    const when =
+      daysSinceLast === 0 ? "hoy" : daysSinceLast === 1 ? "ayer" : `hace ${daysSinceLast} días`;
+
+    return published === 1 ? (
+      <>Esta semana ya salió una, {when}.</>
+    ) : (
+      <>
+        Esta semana ya salieron {published}, la última {when}.
+      </>
+    );
+  }
+
+  if (daysSinceLast === null) return <>Esta semana no salió nada.</>;
+
+  return <>Esta semana no salió nada: la última fue hace {daysSinceLast} días.</>;
 }
 
 function Planned({ planned, withoutScript }: { planned: number; withoutScript: number }) {

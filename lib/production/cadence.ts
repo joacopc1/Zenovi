@@ -5,8 +5,9 @@
  * una línea "venís publicando tres por semana y para los próximos siete días tenés una".
  * Eso convierte la grilla en una señal.
  *
- * El ritmo no se le pregunta al creador ni se le impone una meta: se lee de lo que
- * realmente publicó. Es la única medida que no discute —es su propio historial— y no
+ * Tanto el ritmo como lo que ya salió se leen de Instagram y no del tablero: una pieza
+ * publicada cuenta aunque el creador nunca la haya anotado en Zenovi. El ritmo tampoco se
+ * le pregunta ni se le impone como meta: se lee de lo que realmente publicó. Es la única medida que no discute —es su propio historial— y no
  * exige configurar nada antes de servir.
  *
  * Todo lo de acá es cálculo puro sobre fechas: no toca la base ni la pantalla, para poder
@@ -42,6 +43,10 @@ export type UpcomingDay = {
 export type CadenceReading = {
   /** Publicaciones por semana, redondeado a una decimal; `null` sin historial suficiente. */
   rhythm: number | null;
+  /** Lo que ya salió en el horizonte hacia atrás, haya pasado o no por el tablero. */
+  published: number;
+  /** Días desde la última publicación; `null` si no hay ninguna en la ventana de ritmo. */
+  daysSinceLast: number | null;
   /** Piezas con fecha objetivo dentro del horizonte. */
   planned: number;
   /** De esas, cuántas todavía no tienen guion escrito. */
@@ -50,6 +55,36 @@ export type CadenceReading = {
   missing: number | null;
   days: UpcomingDay[];
 };
+
+/**
+ * Lo que ya salió, mirando hacia atrás.
+ *
+ * Se lee de Instagram y no del tablero a propósito: una pieza publicada cuenta para la
+ * cadencia aunque el creador nunca la haya anotado en Zenovi. Medir sólo lo documentado
+ * diría que está en falta cuando en realidad publicó.
+ */
+export function recentlyPublished(
+  postedAt: readonly string[],
+  now: Date,
+  horizon: number = PLANNING_HORIZON_DAYS,
+): { count: number; daysSinceLast: number | null } {
+  const since = addDays(now, -horizon).getTime();
+  const rhythmSince = addDays(now, -RHYTHM_WEEKS * 7).getTime();
+  let count = 0;
+  let latest: number | null = null;
+
+  for (const value of postedAt) {
+    const time = Date.parse(value);
+    if (Number.isNaN(time) || time > now.getTime()) continue;
+    if (time >= since) count += 1;
+    if (time >= rhythmSince && (latest === null || time > latest)) latest = time;
+  }
+
+  return {
+    count,
+    daysSinceLast: latest === null ? null : Math.floor((now.getTime() - latest) / 86_400_000),
+  };
+}
 
 /**
  * Cuántas veces por semana viene publicando, según lo que realmente subió.
@@ -125,12 +160,17 @@ export function readCadence(
 
   const rhythm = weeklyRhythm(postedAt, now);
   const expected = rhythm === null ? null : Math.round((rhythm * horizon) / 7);
+  const { count: published, daysSinceLast } = recentlyPublished(postedAt, now, horizon);
 
   return {
     rhythm,
+    published,
+    daysSinceLast,
     planned: planned.length,
     withoutScript: planned.filter((item) => !hasScript(item)).length,
-    missing: expected === null ? null : Math.max(0, expected - planned.length),
+    // Lo que ya salió cubre parte del ritmo: pedirle al creador que planifique tres más
+    // cuando hoy publicó dos sería contarle la semana desde cero.
+    missing: expected === null ? null : Math.max(0, expected - planned.length - published),
     days,
   };
 }

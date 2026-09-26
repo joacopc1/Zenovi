@@ -36,10 +36,8 @@ export function ProductionView({
   const cadence = readCadence(items, postedAt, new Date());
 
   return (
-    <div>
-      <CadenceSignal reading={cadence} />
-
-      <div className="mt-6 flex items-end justify-between gap-4 border-b border-mist">
+    <div className="mt-6">
+      <div className="flex items-end justify-between gap-4 border-b border-mist">
         <nav className="-mb-px flex gap-6" aria-label="Vistas de producción">
           <button
             type="button"
@@ -90,7 +88,10 @@ export function ProductionView({
       </div>
 
       {view === "pipeline" ? (
-        <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+        <>
+          <CadenceSignal reading={cadence} />
+          <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+        </>
       ) : null}
 
       {openItem ? (
