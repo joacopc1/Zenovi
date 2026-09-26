@@ -64,7 +64,11 @@ export async function getProductionLinks(
   const needsCandidates = items.filter(
     (item) => item.status === "publicada" && item.linkedMediaId === null,
   );
-  const linked = items.filter((item) => item.linkedMediaId !== null);
+  // Publicadas y atadas: el rendimiento es de una pieza que salió. Una que volvió a
+  // producción no rindió nada todavía, aunque conserve el vínculo de una vuelta anterior.
+  const linked = items.filter(
+    (item) => item.linkedMediaId !== null && item.status === "publicada",
+  );
 
   if (needsCandidates.length === 0 && linked.length === 0) return EMPTY;
 

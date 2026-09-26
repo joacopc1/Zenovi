@@ -103,7 +103,7 @@ export async function moveContentItem(
 
   const { error } = await supabase
     .from("content_items")
-    .update({ status: next, ...publishedAtFor(next) })
+    .update({ status: next, ...publishFieldsFor(next) })
     .eq("id", id);
 
   if (error) {
@@ -136,7 +136,7 @@ export async function moveContentItemToStatus(
   // no puede reescribir su fecha de publicación con la de hoy.
   const { error } = await supabase
     .from("content_items")
-    .update({ status, ...publishedAtFor(status) })
+    .update({ status, ...publishFieldsFor(status) })
     .eq("id", id)
     .neq("status", status);
 
@@ -151,13 +151,22 @@ export async function moveContentItemToStatus(
 }
 
 /**
- * La fecha real de publicación viaja con el cambio de estado.
+ * Lo que implica publicar, y lo que implica dejar de estar publicada.
  *
- * Volver una pieza atrás la borra: si quedara, el tablero seguiría contándola como algo
- * que salió esta semana cuando en realidad volvió a producción.
+ * Volver una pieza atrás borra su fecha —si no, el tablero la seguiría contando como algo
+ * que salió esta semana cuando en realidad volvió a producción— y también suelta el
+ * vínculo con el video. El vínculo afirma "esta pieza *es* esa publicación"; una pieza
+ * que está en guión no es ninguna publicación todavía. Y mientras lo conserva, deja ese
+ * video reservado: ninguna otra pieza puede reclamarlo, ni siquiera la que de verdad se
+ * publicó. Si vuelve a publicarse, se vuelve a reconocer sola.
  */
-function publishedAtFor(status: ContentStatus): { published_at: string | null } {
-  return { published_at: status === "publicada" ? new Date().toISOString() : null };
+function publishFieldsFor(status: ContentStatus): {
+  published_at: string | null;
+  linked_media_id?: null;
+} {
+  if (status === "publicada") return { published_at: new Date().toISOString() };
+
+  return { published_at: null, linked_media_id: null };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
