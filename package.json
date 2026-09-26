@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "report:analytics": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/analytics-validation.mjs",
     "probe:demographics": "node --env-file=.env.local --no-warnings scripts/probe-demographics.mjs",
-    "probe:media": "node --env-file=.env.local --no-warnings scripts/probe-media-download.mjs"
+    "probe:media": "node --env-file=.env.local --no-warnings scripts/probe-media-download.mjs",
     "probe:trial": "node --env-file=.env.local --no-warnings scripts/probe-trial-reels.mjs"
   },
   "dependencies": {
