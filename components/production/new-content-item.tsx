@@ -58,14 +58,33 @@ export function NewContentItem({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField
-          label="Tipo de contenido"
-          value={draft.contentType}
-          onChange={(value) => update("contentType", value)}
-          placeholder="Atracción, nutrición, venta…"
-          maxLength={120}
-          suggestions={contentTypes}
-        />
+        <div>
+          <TextField
+            label="Tipo de contenido"
+            value={draft.contentType}
+            onChange={(value) => update("contentType", value)}
+            placeholder="Escribí el tuyo"
+            maxLength={120}
+            suggestions={contentTypes}
+          />
+          {/* A la vista y no sólo en el desplegable del navegador: una sugerencia que hay
+              que descubrir haciendo click no existe. Se muestran mientras el campo está
+              vacío y desaparecen apenas escribe, que es cuando estorban. */}
+          {draft.contentType.trim().length === 0 && contentTypes.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {contentTypes.slice(0, 7).map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => update("contentType", suggestion)}
+                  className="h-6 rounded-full border border-mist px-2 text-[11px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <label className="block space-y-1.5">
           <span className="block text-sm font-medium text-ink">Formato</span>
           <FormatSelect value={draft.format} onChange={(value) => update("format", value)} />

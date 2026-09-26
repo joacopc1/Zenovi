@@ -71,6 +71,37 @@ export function splitRecentlyPublished<T extends { publishedAt: string | null }>
 }
 
 /**
+ * Tipos para arrancar, mientras el creador no tenga los suyos.
+ *
+ * Una función que aprende del usuario no le da nada el primer día, y alguien que recién
+ * empieza no sabe qué escribir en un campo vacío. Estos son los términos que el propio
+ * proyecto ya declaró como jerga del rubro, no una taxonomía inventada acá.
+ *
+ * Son provisionales a propósito: la investigación del avatar pide que el vocabulario se
+ * derive de cómo hablan los creadores entrevistados y no del equipo, así que esta lista
+ * se reemplaza cuando haya entrevistas, y más adelante el Director es quien debería
+ * proponer el tipo mirando la pieza. Nunca son obligatorios: el campo sigue siendo libre
+ * y en cuanto el creador escribe los suyos, estos desaparecen.
+ */
+export const STARTER_CONTENT_TYPES = [
+  "Atracción",
+  "Autoridad",
+  "Nutrición",
+  "Conversión",
+  "Transaccional",
+  "Testimonio",
+  "Objeciones",
+] as const;
+
+/**
+ * Lo que se ofrece en el campo de tipo: lo del creador si ya escribió algo, y si no, los
+ * de arranque. No se mezclan: ver los propios entre siete ajenos los esconde.
+ */
+export function contentTypeSuggestions(own: readonly string[]): readonly string[] {
+  return own.length > 0 ? own : STARTER_CONTENT_TYPES;
+}
+
+/**
  * Los tipos que el creador viene usando, con cuántas piezas tiene cada uno.
  *
  * Zenovi no impone una lista de pilares ni de categorías: el "tipo de contenido" es el

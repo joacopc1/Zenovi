@@ -19,7 +19,9 @@ import {
   splitRecentlyPublished,
   RECENTLY_PUBLISHED_DAYS,
   collectContentTypes,
+  contentTypeSuggestions,
   matchesContentType,
+  STARTER_CONTENT_TYPES,
 } from "../lib/production/content.ts";
 
 test("sanitizeContentItem exige título", () => {
@@ -250,4 +252,13 @@ test("matchesContentType compara con la misma laxitud", () => {
   assert.equal(matchesContentType({ contentType: " Atracción " }, "atraccion"), true);
   assert.equal(matchesContentType({ contentType: "venta" }, "autoridad"), false);
   assert.equal(matchesContentType({ contentType: "" }, ""), true);
+});
+
+test("sin tipos propios se ofrecen los de arranque", () => {
+  assert.deepEqual(contentTypeSuggestions([]), STARTER_CONTENT_TYPES);
+});
+
+test("con tipos propios los de arranque desaparecen", () => {
+  // Ver los propios perdidos entre siete ajenos es peor que no ver sugerencias.
+  assert.deepEqual(contentTypeSuggestions(["mi categoría"]), ["mi categoría"]);
 });

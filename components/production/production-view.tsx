@@ -5,6 +5,7 @@ import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
 import {
   collectContentTypes,
+  contentTypeSuggestions,
   matchesContentType,
   splitRecentlyPublished,
 } from "@/lib/production/content";
@@ -49,7 +50,9 @@ export function ProductionView({
   const boardItems = shown.filter(
     (item) => item.status !== "publicada" || recentIds.has(item.id),
   );
-  const contentTypes = collectContentTypes(items).map((entry) => entry.value);
+  const contentTypes = contentTypeSuggestions(
+    collectContentTypes(items).map((entry) => entry.value),
+  );
   const cadence = readCadence(
     items,
     published.map((piece) => piece.postedAt),
