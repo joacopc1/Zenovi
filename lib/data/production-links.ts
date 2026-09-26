@@ -1,12 +1,14 @@
 import "server-only";
 
+import { buildCohort, CONTENT_KIND_PLURALS, type ContentKind } from "@/lib/content/library";
 import {
-  buildCohort,
-  viewsRank,
-  CONTENT_KIND_PLURALS,
-  type ContentKind,
-} from "@/lib/content/library";
-import { rankPublishCandidates, takenMediaIds } from "@/lib/production/published-link";
+  autoMatch,
+  pieceMatchText,
+  scorePublishCandidates,
+  takenMediaIds,
+} from "@/lib/production/published-link";
+import { isContentFormat } from "@/lib/production/content";
+import { createClient } from "@/lib/supabase/server";
 import { getInstagramContentLibrary } from "./instagram-content";
 import type { ContentItem } from "./production";
 
@@ -20,21 +22,20 @@ export type PublishCandidate = {
   views: number | null;
 };
 
-/** Cómo rindió la pieza, una vez que se sabe cuál publicación es. */
+/**
+ * Cómo rindió la pieza, una vez que se sabe cuál publicación es.
+ *
+ * Es a propósito poco: las métricas, la evolución y los filtros son de Contenido, y
+ * repetirlas acá sería mantener dos versiones de lo mismo. Producción muestra el dato
+ * que le da sentido a haber planificado la pieza y abre la puerta al resto.
+ */
 export type PublishedPerformance = {
   id: string;
   dateLabel: string;
   thumbnailUrl: string | null;
-  permalink: string | null;
   formatPlural: string;
-  views: number | null;
-  reach: number | null;
-  interactions: number | null;
-  saves: number | null;
-  shares: number | null;
   /** Veces la mediana de su formato; `null` cuando no hay base para comparar. */
   multiplier: number | null;
-  rank: { position: number; total: number } | null;
 };
 
 export type ProductionLinks = {
@@ -72,11 +73,11 @@ export async function getProductionLinks(
 
   const candidates: Record<string, PublishCandidate[]> = {};
   for (const item of needsCandidates) {
-    candidates[item.id] = rankPublishCandidates(
+    candidates[item.id] = scorePublishCandidates(
       library.items,
-      item,
+      { ...item, text: pieceMatchText(item) },
       takenMediaIds(items, item.id),
-    ).map(toCandidate);
+    ).map((entry) => toCandidate(entry.media));
   }
 
   // El cohorte se arma una vez por formato: recorrer la biblioteca entera por cada pieza
@@ -97,15 +98,8 @@ export async function getProductionLinks(
       id: media.id,
       dateLabel: media.dateLabel,
       thumbnailUrl: media.thumbnailUrl,
-      permalink: media.permalink,
       formatPlural: CONTENT_KIND_PLURALS[media.kind],
-      views: media.views,
-      reach: media.reach,
-      interactions: media.interactions,
-      saves: media.saves,
-      shares: media.shares,
       multiplier: media.multiplier,
-      rank: viewsRank(cohort, media.id),
     };
   }
 
@@ -128,4 +122,64 @@ function toCandidate(media: {
     thumbnailUrl: media.thumbnailUrl,
     views: media.views,
   };
+}
+
+/**
+ * Ata la pieza a su publicación cuando no hay duda, sin preguntarle nada al creador.
+ *
+ * Corre al pasar la pieza a "Publicada". Nadie mueve la tarjeta el mismo día que sube el
+ * video —puede subirlo el lunes y acordarse el jueves, y ese jueves haber subido otra
+ * cosa—, así que la fecha no alcanza para decidir: quien decide es el texto. Si no hay
+ * una coincidencia clara no ata nada y no molesta; la pieza queda publicada igual.
+ *
+ * Nunca hace fallar la acción que la llama: no poder adivinar cuál publicación es no es
+ * un error, y que se rompa el movimiento de la tarjeta por eso sí lo sería.
+ */
+export async function autoLinkPublishedPiece(itemId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: item } = await supabase
+    .from("content_items")
+    .select("id, workspace_id, title, hook, format, target_date, linked_media_id")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (!item || item.linked_media_id !== null) return;
+  if (!isContentFormat(item.format)) return;
+
+  const [library, { data: siblings }] = await Promise.all([
+    getInstagramContentLibrary(item.workspace_id),
+    supabase
+      .from("content_items")
+      .select("id, linked_media_id")
+      .eq("workspace_id", item.workspace_id)
+      .not("linked_media_id", "is", null),
+  ]);
+
+  if (!library) return;
+
+  const taken = takenMediaIds(
+    (siblings ?? []).map((row) => ({
+      id: row.id,
+      format: "reel" as const,
+      targetDate: null,
+      linkedMediaId: row.linked_media_id,
+    })),
+    item.id,
+  );
+
+  const match = autoMatch(
+    scorePublishCandidates(
+      library.items,
+      {
+        format: item.format,
+        targetDate: item.target_date,
+        text: pieceMatchText({ title: item.title, hook: item.hook }),
+      },
+      taken,
+    ),
+  );
+
+  if (!match) return;
+
+  await supabase.from("content_items").update({ linked_media_id: match.id }).eq("id", item.id);
 }

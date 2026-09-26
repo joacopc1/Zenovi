@@ -17,6 +17,7 @@ import { moveContentItemToStatus } from "@/app/(dashboard)/production/actions";
 import {
   CONTENT_PIPELINE,
   FORMAT_LABELS,
+  STATUS_COLORS,
   STATUS_LABELS,
   formatTargetDate,
   resolveDropStatus,
@@ -28,15 +29,17 @@ import type { ContentItem } from "@/lib/data/production";
 import type { ProductionLinks, PublishedPerformance } from "@/lib/data/production-links";
 import { PerformanceBadge } from "@/components/content/performance-badge";
 
-const COLUMN_COLORS: Record<ContentStatus, string> = {
-  idea: "var(--color-graphite)",
-  guion: "var(--color-data)",
-  produccion: "var(--color-warning)",
-  publicada: "var(--color-success)",
-};
-
 /** Arrastrar empieza después de 6px: un click corto sigue abriendo la pieza. */
 const DRAG_THRESHOLD_PX = 6;
+
+/**
+ * Cuántas piezas publicadas se muestran antes de cortar.
+ *
+ * "Publicada" es la única columna que sólo crece: a los seis meses tiene ochenta
+ * tarjetas y el tablero deja de servir para lo que sirve, que es ver lo que falta hacer.
+ * Se muestran las últimas y el resto queda a un click.
+ */
+const PUBLISHED_PREVIEW = 6;
 
 /**
  * La zona donde se sueltan las piezas mide siempre como cuatro o cinco tarjetas, aunque
@@ -204,6 +207,10 @@ function Column({
   // Sólo las columnas reciben la tarjeta. Si las tarjetas también fueran destino, dnd-kit
   // elegiría la de abajo —gana por proporción de superposición— en lugar de la columna.
   const { setNodeRef } = useDroppable({ id: status, disabled: !draggable });
+  const [expanded, setExpanded] = useState(false);
+
+  const capped = status === "publicada" && !expanded && items.length > PUBLISHED_PREVIEW;
+  const visible = capped ? items.slice(0, PUBLISHED_PREVIEW) : items;
 
   return (
     <div
@@ -217,7 +224,7 @@ function Column({
         <span
           aria-hidden="true"
           className="size-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: COLUMN_COLORS[status] }}
+          style={{ backgroundColor: STATUS_COLORS[status] }}
         />
         <h3 className="text-[13px] font-semibold text-ink">{STATUS_LABELS[status]}</h3>
         <span className="font-numeric grid size-4 shrink-0 place-items-center rounded-full bg-canvas text-[10px] text-ink">
@@ -236,7 +243,7 @@ function Column({
       </div>
 
       <div className={`flex flex-1 flex-col gap-2 ${MIN_DROP_AREA}`}>
-        {items.map((item) => (
+        {visible.map((item) => (
           <Card
             key={item.id}
             item={item}
@@ -251,6 +258,16 @@ function Column({
           <div className="grid flex-1 place-items-center rounded-card border border-dashed border-mist px-3 py-4 text-center text-[12px] text-muted">
             Sin piezas
           </div>
+        ) : null}
+
+        {status === "publicada" && items.length > PUBLISHED_PREVIEW ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="mt-auto py-1 text-left text-[12px] font-medium text-graphite transition-colors hover:text-ink"
+          >
+            {expanded ? "Ver menos" : `Ver las ${items.length}`}
+          </button>
         ) : null}
       </div>
     </div>
@@ -324,9 +341,6 @@ function CardBody({
         <Badge>{FORMAT_LABELS[item.format]}</Badge>
         {item.contentType ? <Badge>{item.contentType}</Badge> : null}
         {performance ? <PerformanceBadge multiplier={performance.multiplier} /> : null}
-        {item.status === "publicada" && item.linkedMediaId === null ? (
-          <span className="font-support text-[11px] text-muted">¿Cuál publicación fue?</span>
-        ) : null}
       </div>
 
       <div className="mt-2.5 flex items-center gap-3 border-t border-mist pt-2.5 text-muted">

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { contentItemName } from "@/lib/production/content";
+import {
+  CONTENT_PIPELINE,
+  STATUS_COLORS,
+  STATUS_LABELS,
+  contentItemName,
+} from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 import {
   CALENDAR_WEEKDAYS,
@@ -84,7 +89,7 @@ export function ProductionCalendar({
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 border-b border-mist">
         {days.map((day, index) => {
           if (day === null) return <div key={`empty-${index}`} />;
 
@@ -106,22 +111,49 @@ export function ProductionCalendar({
               </span>
 
               <div className="mt-1 space-y-1">
-                {dayItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => onOpen(item.id)}
-                    className="block w-full truncate rounded-control bg-canvas px-2 py-1 text-left text-[11px] font-medium text-ink transition-colors hover:bg-control"
-                    title={contentItemName(item)}
-                  >
-                    {contentItemName(item)}
-                  </button>
-                ))}
+                {dayItems.map((item) => {
+                  const published = item.status === "publicada";
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onOpen(item.id)}
+                      className={`flex w-full items-center gap-1.5 rounded-control px-2 py-1 text-left text-[11px] font-medium transition-colors ${
+                        // Lo publicado ya salió: se lee, pero no compite con lo que falta hacer.
+                        published
+                          ? "bg-transparent text-muted hover:bg-canvas"
+                          : "bg-canvas text-ink hover:bg-control"
+                      }`}
+                      title={`${contentItemName(item)} · ${STATUS_LABELS[item.status]}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: STATUS_COLORS[item.status] }}
+                      />
+                      <span className="truncate">{contentItemName(item)}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
+
+      <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2.5">
+        {CONTENT_PIPELINE.map((status) => (
+          <li key={status} className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="size-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: STATUS_COLORS[status] }}
+            />
+            <span className="font-support text-[11px] text-muted">{STATUS_LABELS[status]}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

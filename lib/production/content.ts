@@ -40,6 +40,19 @@ export const FORMAT_LABELS: Record<ContentFormat, string> = {
 };
 
 /**
+ * El color de cada estado, compartido por el tablero y el calendario.
+ *
+ * Es el mismo punto en los dos lados a propósito: quien aprende que el verde es
+ * "publicada" mirando el pipeline no tiene que volver a aprenderlo en el calendario.
+ */
+export const STATUS_COLORS: Record<ContentStatus, string> = {
+  idea: "var(--color-graphite)",
+  guion: "var(--color-data)",
+  produccion: "var(--color-warning)",
+  publicada: "var(--color-success)",
+};
+
+/**
  * Una fecha "YYYY-MM-DD" leída al mediodía.
  *
  * Interpretarla a medianoche la corre un día para atrás en zonas al oeste de Greenwich,

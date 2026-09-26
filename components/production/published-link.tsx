@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { ArrowUpRight, Link2Off } from "lucide-react";
+import { ArrowRight, Link2Off } from "lucide-react";
 import { linkPublishedMedia, unlinkPublishedMedia } from "@/app/(dashboard)/production/actions";
 import { PerformanceBadge } from "@/components/content/performance-badge";
 import { getPerformanceVerdict } from "@/lib/content/metrics";
@@ -13,9 +13,13 @@ import type { PublishCandidate, PublishedPerformance } from "@/lib/data/producti
 /**
  * El cierre del ciclo, dentro del detalle de una pieza publicada.
  *
- * Mientras Zenovi no sabe cuál de las publicaciones reales es esta idea, pregunta; una
- * vez que lo sabe, deja de preguntar y contesta cómo rindió. Son los dos estados de una
- * misma cosa, por eso viven en el mismo archivo.
+ * Producción no repite lo que Contenido hace mejor: acá va el dato que justifica haber
+ * planificado la pieza —cómo rindió contra las demás de su formato— y una puerta a la
+ * vista completa, con sus métricas, su evolución y sus filtros.
+ *
+ * Cuando Zenovi no pudo reconocer sola cuál publicación es, lo dice en una línea y deja
+ * elegir. No pregunta de entrada: hacer trabajo manual para ver un número que ya está en
+ * Contenido no vale la pena, así que el selector espera a que alguien lo abra.
  */
 export function PublishedLink({
   itemId,
@@ -28,10 +32,81 @@ export function PublishedLink({
 }) {
   if (performance) return <Performance itemId={itemId} performance={performance} />;
 
-  return <Picker itemId={itemId} candidates={candidates} />;
+  return <Unmatched itemId={itemId} candidates={candidates} />;
 }
 
-function Picker({ itemId, candidates }: { itemId: string; candidates: PublishCandidate[] }) {
+function Performance({
+  itemId,
+  performance,
+}: {
+  itemId: string;
+  performance: PublishedPerformance;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function unlink() {
+    startTransition(async () => {
+      setError(null);
+      const result = await unlinkPublishedMedia({ status: "idle" }, { id: itemId });
+      if (result.status === "error") {
+        setError(result.message ?? "No pudimos soltar el vínculo.");
+      }
+    });
+  }
+
+  return (
+    <section className="border-t border-mist pt-4">
+      <div className="flex items-start gap-3">
+        <Thumbnail url={performance.thumbnailUrl} />
+        <div className="min-w-0 flex-1">
+          <p className="font-numeric text-[11px] text-muted">Salió el {performance.dateLabel}</p>
+
+          {performance.multiplier === null ? (
+            <p className="font-support mt-1 text-[12px] leading-5 text-muted">
+              Todavía no hay suficientes piezas de este formato para compararla.
+            </p>
+          ) : (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <PerformanceBadge multiplier={performance.multiplier} />
+              <p className="font-support text-[12px] leading-5 text-graphite">
+                {getPerformanceVerdict(performance.multiplier)} la mediana de tus{" "}
+                {performance.formatPlural}.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Link
+        href={`/content/${performance.id}`}
+        className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-control border border-mist-strong text-[12px] font-semibold text-ink transition-colors hover:bg-ink/[0.03]"
+      >
+        Ver los resultados
+        <ArrowRight size={14} strokeWidth={1.75} aria-hidden="true" />
+      </Link>
+
+      <button
+        type="button"
+        onClick={unlink}
+        disabled={pending}
+        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
+      >
+        <Link2Off size={12} strokeWidth={1.75} aria-hidden="true" />
+        No es esta publicación
+      </button>
+
+      {error ? (
+        <p role="alert" className="mt-2 text-[12px] text-danger">
+          {error}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function Unmatched({ itemId, candidates }: { itemId: string; candidates: PublishCandidate[] }) {
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -48,19 +123,33 @@ function Picker({ itemId, candidates }: { itemId: string; candidates: PublishCan
     });
   }
 
+  if (candidates.length === 0) {
+    return (
+      <section className="border-t border-mist pt-4">
+        <p className="font-support text-[12px] leading-5 text-muted">
+          Cuando sincronices Instagram y aparezca la publicación, Zenovi la reconoce y te
+          muestra acá cómo rindió.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="border-t border-mist pt-4">
-      <h3 className="text-[13px] font-semibold text-ink">¿Cuál de tus publicaciones es?</h3>
-      <p className="font-support mt-1 text-[12px] leading-5 text-muted">
-        Cuando la reconozcas, Zenovi puede decirte cómo rindió contra el resto de tu contenido.
-      </p>
-
-      {candidates.length === 0 ? (
-        <p className="font-support mt-3 rounded-control border border-dashed border-mist px-3 py-3 text-[12px] leading-5 text-muted">
-          Todavía no encontramos publicaciones de este formato en tu cuenta. Sincronizá
-          Instagram después de subirla y aparece acá.
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-support text-[12px] leading-5 text-muted">
+          No pudimos reconocer cuál publicación es.
         </p>
-      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="text-[12px] font-medium text-ink underline decoration-ink/30 underline-offset-4 transition-colors hover:decoration-ink"
+        >
+          {open ? "Dejarlo así" : "Elegirla"}
+        </button>
+      </div>
+
+      {open ? (
         <ul className="mt-3 space-y-1.5">
           {candidates.map((candidate) => (
             <li key={candidate.id}>
@@ -86,7 +175,7 @@ function Picker({ itemId, candidates }: { itemId: string; candidates: PublishCan
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
 
       {error ? (
         <p role="alert" className="mt-2 text-[12px] text-danger">
@@ -94,110 +183,6 @@ function Picker({ itemId, candidates }: { itemId: string; candidates: PublishCan
         </p>
       ) : null}
     </section>
-  );
-}
-
-function Performance({
-  itemId,
-  performance,
-}: {
-  itemId: string;
-  performance: PublishedPerformance;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function unlink() {
-    startTransition(async () => {
-      setError(null);
-      const result = await unlinkPublishedMedia({ status: "idle" }, { id: itemId });
-      if (result.status === "error") {
-        setError(result.message ?? "No pudimos soltar el vínculo.");
-      }
-    });
-  }
-
-  return (
-    <section className="border-t border-mist pt-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-ink">Cómo rindió</h3>
-        <button
-          type="button"
-          onClick={unlink}
-          disabled={pending}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
-        >
-          <Link2Off size={12} strokeWidth={1.75} aria-hidden="true" />
-          No es esta
-        </button>
-      </div>
-
-      <div className="mt-3 flex items-start gap-3">
-        <Thumbnail url={performance.thumbnailUrl} />
-        <div className="min-w-0 flex-1">
-          <p className="font-numeric text-[12px] text-muted">
-            Publicada el {performance.dateLabel}
-          </p>
-          {performance.multiplier === null ? (
-            <p className="font-support mt-1 text-[12px] leading-5 text-muted">
-              Todavía no hay suficientes piezas de este formato para compararla.
-            </p>
-          ) : (
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <PerformanceBadge multiplier={performance.multiplier} />
-              <p className="font-support text-[12px] leading-5 text-graphite">
-                {getPerformanceVerdict(performance.multiplier)} la mediana de tus {performance.formatPlural}.
-                {performance.rank
-                  ? ` Es la número ${performance.rank.position} de ${performance.rank.total}.`
-                  : ""}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5">
-        <Metric label="Visualizaciones" value={performance.views} />
-        <Metric label="Interacciones" value={performance.interactions} />
-        <Metric label="Alcance" value={performance.reach} />
-        <Metric label="Guardados" value={performance.saves} />
-      </dl>
-
-      <div className="mt-3 flex items-center gap-2">
-        <Link
-          href={`/content/${performance.id}`}
-          className="inline-flex h-8 flex-1 items-center justify-center rounded-control border border-mist-strong text-[12px] font-medium text-ink transition-colors hover:bg-ink/[0.03]"
-        >
-          Ver la pieza
-        </Link>
-        {performance.permalink ? (
-          <a
-            href={performance.permalink}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-8 items-center gap-1 rounded-control border border-mist px-3 text-[12px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink"
-          >
-            Instagram
-            <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden="true" />
-          </a>
-        ) : null}
-      </div>
-
-      {error ? (
-        <p role="alert" className="mt-2 text-[12px] text-danger">
-          {error}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number | null }) {
-  return (
-    <div>
-      <dt className="font-support text-[11px] text-muted">{label}</dt>
-      <dd className="font-numeric text-[15px] font-semibold text-ink">{formatCompact(value)}</dd>
-    </div>
   );
 }
 

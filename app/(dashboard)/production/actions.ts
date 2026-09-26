@@ -8,6 +8,7 @@ import {
   sanitizeContentItem,
   type ContentItemFieldErrors,
 } from "@/lib/production/content";
+import { autoLinkPublishedPiece } from "@/lib/data/production-links";
 import { createClient } from "@/lib/supabase/server";
 
 export type ContentActionState = {
@@ -105,6 +106,8 @@ export async function moveContentItem(
     return { status: "error", message: "No pudimos mover la pieza." };
   }
 
+  if (next === "publicada") await autoLinkPublishedPiece(id);
+
   revalidatePath("/production");
   return { status: "saved" };
 }
@@ -130,6 +133,8 @@ export async function moveContentItemToStatus(
   if (error) {
     return { status: "error", message: "No pudimos mover la pieza." };
   }
+
+  if (status === "publicada") await autoLinkPublishedPiece(id);
 
   revalidatePath("/production");
   return { status: "saved" };
