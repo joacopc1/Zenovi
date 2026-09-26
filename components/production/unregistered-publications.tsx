@@ -34,13 +34,15 @@ export function UnregisteredPublications({
   return (
     <section
       aria-label="Publicaciones fuera del tablero"
-      className="mt-8 overflow-hidden rounded-card border border-warning/40 bg-warning/[0.04]"
+      className="mt-8 overflow-hidden rounded-card border border-mist bg-paper"
     >
+      {/* El color vive sólo en el ícono. Un bloque entero teñido se lee como una falla y
+          esto no lo es: son piezas que salieron bien y que al tablero le falta saber. */}
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-warning/[0.07]"
+        className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-canvas"
       >
         <AlertCircle size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-warning" />
         <span className="min-w-0 flex-1 text-[13px] font-semibold text-ink">
@@ -57,7 +59,7 @@ export function UnregisteredPublications({
       </button>
 
       {open ? (
-        <ul className="border-t border-warning/30 bg-paper">
+        <ul className="border-t border-mist">
           {publications.map((publication) => (
             <Row key={publication.id} publication={publication} items={items} />
           ))}

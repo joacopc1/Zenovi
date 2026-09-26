@@ -119,12 +119,12 @@ export function ProductionView({
       </div>
 
       {items.length === 0 ? null : view === "calendar" ? (
-        <>
-          <CadenceSignal reading={cadence} instagramConnected={instagramConnected} />
-          <UnregisteredPublications publications={unregistered} items={items} />
-        </>
+        <CadenceSignal reading={cadence} instagramConnected={instagramConnected} />
       ) : (
-        <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+        <>
+          <UnregisteredPublications publications={unregistered} items={items} />
+          <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+        </>
       )}
 
       {openItem ? (
