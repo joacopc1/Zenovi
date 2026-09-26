@@ -1,19 +1,21 @@
 import "server-only";
 
 import { RHYTHM_WEEKS } from "@/lib/production/cadence";
+import { isContentKind } from "@/lib/content/library";
+import type { PublishedPiece } from "@/lib/production/reconcile";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Cuándo publicó de verdad, para leer su ritmo.
+ * Lo que realmente publicó en las últimas semanas.
  *
- * Se traen sólo las fechas y sólo las de las últimas semanas que se miran: para contar
- * publicaciones no hacen falta captions, miniaturas ni métricas, y la biblioteca completa
- * son cien filas con todo eso adentro.
+ * Sirve para dos cosas a la vez, por eso una sola consulta: leer el ritmo de publicación
+ * y descubrir lo que salió sin pasar por el tablero. Se traen sólo las últimas semanas
+ * —no la biblioteca entera— porque más atrás no cambia ninguna de las dos respuestas.
  *
  * Quedan fuera las Historias: se suben de a varias por día y taparían la cadencia que
  * importa, que es la de las piezas que se planifican.
  */
-export async function getRecentPostingDates(workspaceId: string): Promise<string[]> {
+export async function getRecentPublications(workspaceId: string): Promise<PublishedPiece[]> {
   const supabase = await createClient();
   const { data: connection, error: connectionError } = await supabase
     .from("social_connections")
@@ -31,14 +33,36 @@ export async function getRecentPostingDates(workspaceId: string): Promise<string
   const since = new Date(Date.now() - RHYTHM_WEEKS * 7 * 86_400_000).toISOString();
   const { data, error } = await supabase
     .from("instagram_media")
-    .select("posted_at")
+    .select("id, posted_at, caption, thumbnail_url, media_url, media_type, media_product_type")
     .eq("social_account_id", account)
     .neq("media_product_type", "STORY")
-    .gte("posted_at", since);
+    .gte("posted_at", since)
+    .order("posted_at", { ascending: false });
 
   if (error) throw new Error("No pudimos cargar tu historial de publicaciones.");
 
-  return (data ?? []).map((row) => row.posted_at as string);
+  return (data ?? []).map(toPublishedPiece);
+}
+
+function toPublishedPiece(row: {
+  id: string;
+  posted_at: string;
+  caption: string | null;
+  thumbnail_url: string | null;
+  media_url: string | null;
+  media_type: string;
+  media_product_type: string | null;
+}): PublishedPiece {
+  const kind = row.media_product_type?.toUpperCase() === "REELS" ? "reel" : "publication";
+
+  return {
+    id: row.id,
+    postedAt: row.posted_at,
+    caption: row.caption,
+    // Los videos no traen `media_url` servible como imagen; sin miniatura se muestra el hueco.
+    thumbnailUrl: row.thumbnail_url ?? (row.media_type === "VIDEO" ? null : row.media_url),
+    kind: isContentKind(kind) ? kind : "publication",
+  };
 }
 
 /** La cuenta llega incrustada, y PostgREST la entrega como objeto o como arreglo. */

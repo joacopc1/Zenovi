@@ -5,7 +5,9 @@ import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
 import { splitRecentlyPublished } from "@/lib/production/content";
 import { readCadence } from "@/lib/production/cadence";
+import { unregisteredPublications, type PublishedPiece } from "@/lib/production/reconcile";
 import { CadenceSignal } from "./cadence-signal";
+import { UnregisteredPublications } from "./unregistered-publications";
 import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
 import { ProductionCalendar } from "./production-calendar";
@@ -16,11 +18,11 @@ import { ProductionHistory } from "./production-history";
 export function ProductionView({
   items,
   links,
-  postedAt,
+  published,
 }: {
   items: ContentItem[];
   links: ProductionLinks;
-  postedAt: string[];
+  published: PublishedPiece[];
 }) {
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -33,7 +35,12 @@ export function ProductionView({
     items.filter((item) => item.status === "publicada"),
   );
   const boardItems = items.filter((item) => item.status !== "publicada").concat(recent);
-  const cadence = readCadence(items, postedAt, new Date());
+  const cadence = readCadence(
+    items,
+    published.map((piece) => piece.postedAt),
+    new Date(),
+  );
+  const unregistered = unregisteredPublications(published, items);
 
   return (
     <div className="mt-6">
@@ -90,6 +97,7 @@ export function ProductionView({
       {view === "pipeline" ? (
         <>
           <CadenceSignal reading={cadence} />
+          <UnregisteredPublications publications={unregistered} items={items} />
           <ProductionHistory items={older} links={links} onOpen={setOpenId} />
         </>
       ) : null}

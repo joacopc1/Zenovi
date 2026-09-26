@@ -10,6 +10,7 @@ import {
   type ContentStatus,
 } from "@/lib/production/content";
 import { autoLinkPublishedPiece } from "@/lib/data/production-links";
+import { titleForPublication } from "@/lib/production/reconcile";
 import { createClient } from "@/lib/supabase/server";
 
 export type ContentActionState = {
@@ -236,7 +237,7 @@ export async function linkPublishedMedia(
   const supabase = await createClient();
   const { data: media, error: mediaError } = await supabase
     .from("instagram_media")
-    .select("id")
+    .select("id, posted_at")
     .eq("id", mediaId)
     .maybeSingle();
 
@@ -244,9 +245,15 @@ export async function linkPublishedMedia(
     return { status: "error", message: "No encontramos esa publicación en tu cuenta." };
   }
 
+  // Reconocer la publicación también fecha la pieza: la fecha buena es cuándo salió el
+  // video, no cuándo el creador se acordó de mover la tarjeta, que puede ser días después.
   const { error } = await supabase
     .from("content_items")
-    .update({ linked_media_id: mediaId })
+    .update({
+      linked_media_id: mediaId,
+      status: "publicada",
+      published_at: media.posted_at,
+    })
     .eq("id", id);
 
   if (error) {
@@ -277,6 +284,73 @@ export async function unlinkPublishedMedia(
 
   if (error) {
     return { status: "error", message: "No pudimos soltar el vínculo." };
+  }
+
+  revalidatePath("/production");
+  return { status: "saved" };
+}
+
+/**
+ * Registra en el tablero algo que se publicó sin haber pasado por él.
+ *
+ * El creador subió un video que nunca planificó en Zenovi: en vez de pedirle que lo cargue
+ * a mano, se crea la pieza ya publicada y atada a él. El título sale de las primeras
+ * palabras del caption y, cuando no hay caption, del formato y la fecha: "Reel del 31 de
+ * agosto" se reconoce en el tablero, "Sin título" repetido cuatro veces no.
+ */
+export async function registerPublishedMedia(
+  _previousState: ContentActionState,
+  raw: unknown,
+): Promise<ContentActionState> {
+  const source = asRecord(raw);
+  const mediaId = typeof source.mediaId === "string" ? source.mediaId : "";
+
+  if (!mediaId) {
+    return { status: "error", message: "Falta identificar la publicación." };
+  }
+
+  const supabase = await createClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
+    return { status: "error", message: "Tu sesión venció. Volvé a iniciar sesión." };
+  }
+
+  const [{ data: workspace }, { data: media }] = await Promise.all([
+    supabase.from("workspaces").select("id").eq("created_by", authData.user.id).maybeSingle(),
+    supabase
+      .from("instagram_media")
+      .select("id, posted_at, caption, media_product_type")
+      .eq("id", mediaId)
+      .maybeSingle(),
+  ]);
+
+  if (!workspace) {
+    return { status: "error", message: "No encontramos tu workspace." };
+  }
+  if (!media) {
+    return { status: "error", message: "No encontramos esa publicación en tu cuenta." };
+  }
+
+  const format = media.media_product_type?.toUpperCase() === "REELS" ? "reel" : "publication";
+  const { error } = await supabase.from("content_items").insert({
+    workspace_id: workspace.id,
+    title: titleForPublication({
+      id: media.id,
+      postedAt: media.posted_at,
+      caption: media.caption,
+      thumbnailUrl: null,
+      kind: format,
+    }),
+    format,
+    status: "publicada",
+    published_at: media.posted_at,
+    linked_media_id: media.id,
+    source: "manual",
+  });
+
+  if (error) {
+    return { status: "error", message: "No pudimos registrar la publicación." };
   }
 
   revalidatePath("/production");

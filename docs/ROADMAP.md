@@ -339,6 +339,8 @@ tokens, multimedia y costo total" y "Diseñar tabla provisional de créditos").
   cobra. El análisis es barato en comparación con lo que aporta, así que la hipótesis es
   cobrarlo poco.
 
+- [x] **Reconciliar lo publicado con el tablero** (2026-09-26): debajo del semáforo, una línea plegada avisa "publicaste N piezas que no están en el tablero", leído de Instagram. Son dos olvidos distintos con el mismo síntoma —la idea estaba anotada y nadie movió la tarjeta, o la pieza nunca se planificó—, así que hay dos salidas por publicación: **"Es una idea mía"**, que la enlaza con la pieza del tablero que mejor coincide por texto (sólo se ofrecen las no publicadas, sin vínculo y del mismo formato), o **"Registrar"**, que crea la pieza ya publicada y atada. Al enlazar, la fecha de publicación pasa a ser **la del video** y no la del día que se movió la tarjeta, que puede ser días después. Una publicación sin caption se nombra "Reel del 31 de agosto" en vez de "Sin título", que repetido cuatro veces no se reconoce.
+
 ### Voz del producto
 
 - [ ] La app debe hablar como un **experto en marketing y marcas personales**: usar la jerga del rubro (hook, CTA, ángulo, pilar, autoridad, nutrición, conversión, transaccional, etc.). Es clave para la afinidad con el cliente y no sonar genérico. El vocabulario debe derivarse del lenguaje del avatar (ver `research/icp-avatar-research.md` §16), no imponerse desde la jerga del equipo.

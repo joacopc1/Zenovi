@@ -21,9 +21,11 @@ export function CadenceSignal({ reading }: { reading: CadenceReading }) {
   return (
     <section
       aria-label="Ritmo de publicación"
-      className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3"
+      className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3 sm:flex-nowrap"
     >
-      <p className="font-support min-w-0 text-[13px] leading-6 text-graphite">
+      {/* La frase se achica y envuelve; la tira nunca baja de renglón. Es la parte que se
+          mira de un vistazo, y si salta abajo deja de leerse como una semana. */}
+      <p className="font-support min-w-0 flex-1 text-[13px] leading-6 text-graphite">
         <Headline reading={reading} />
       </p>
 

@@ -2,6 +2,11 @@
 export const CONTENT_KINDS = ["reel", "story", "publication"] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
+/** ¿Es uno de los formatos que Zenovi reconoce? */
+export function isContentKind(value: unknown): value is ContentKind {
+  return typeof value === "string" && CONTENT_KINDS.includes(value as ContentKind);
+}
+
 /** Cómo se nombra un grupo de piezas: "la mediana de tus Reels". */
 export const CONTENT_KIND_PLURALS: Record<ContentKind, string> = {
   reel: "Reels",
