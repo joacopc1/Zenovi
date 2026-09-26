@@ -282,7 +282,7 @@ Objetivo: base productiva antes de features.
 ### Sprint 5 - Producción y Stories
 
 - [x] **Objeto de contenido único** (`content_items`) con `estado` (pipeline: idea → listo para grabar → editando → listo para publicar → publicado), `título`, `tipo de contenido` (corte, transaccional, etc.), `fecha objetivo`, `link de referencia`, `formato`, y `guion` como campo estructurado (hook/desarrollo/CTA). Validado contra el sistema de Moka: la idea es la card en estado "idea"; el guion se llena al avanzar. No hay dos listas separadas.
-- [x] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal. Cada columna mantiene una zona de drop del alto de cuatro o cinco tarjetas, así el tablero no se deforma al mover una pieza ni obliga a apuntarle a una franja de píxeles.
+- [x] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal. Cada columna mantiene una zona de drop del alto de cuatro o cinco tarjetas y hace scroll por dentro a partir de ahí: una columna con veinte ideas estiraría la página y dejaría a las otras tres en el aire. "Publicada" muestra sólo lo de los últimos 14 días; lo anterior baja a un historial en lista debajo del tablero, porque una columna que guarda todo lo publicado desde siempre deja de servir a los seis meses. Requiere `content_items.published_at` (migración 20260926120000): `target_date` es el plan y `updated_at` se mueve con cualquier edición, así que ninguna de las dos dice cuándo salió la pieza.
 - [x] Calendario: vista por `fecha objetivo`, con un punto del color de su estado en cada pieza y una referencia al pie. Lo publicado se apaga —texto en gris y sin fondo— porque ya salió y no compite con lo que falta hacer. Los colores son los mismos del pipeline: quien aprende que el verde es "publicada" en el tablero no lo vuelve a aprender acá.
 - [ ] Guardar desde el Director IA: "agregá esta idea a producción" crea la card en estado "idea", con el porqué de por qué es ganadora (origen: métricas propias, competidores, concepto propio).
 - [x] Carga manual: alcanza con un título o con un link de referencia; una idea se guarda con lo que haya a mano.
@@ -305,6 +305,39 @@ Ordenadas por impacto para el creador; no todas entran en el primer corte:
 4. **[alta]** Semáforo de cadencia: el pipeline avisa "te faltan X guiones, el miércoles no tenés nada". De grilla muerta a señal de compromiso de publicación.
 5. **[media]** Una vista/sección principal de Producción (no el kanban como protagonista): el kanban es registro de estados, pero el "modo próximo paso" ("hacé esto ahora: terminá este guion a medias") y el semáforo viven arriba, en una entrada principal tipo "Hoy".
 6. **[media]** Reutilizar piezas que rindieron: sugerir derivados (Reel ganador → versión Story o carrusel) en vez de empezar de cero.
+
+### Costo del análisis y cuándo se dispara (2026-09-26)
+
+Decidido en conversación, pendiente de medir contra el pipeline real (Fase 3: "Medir
+tokens, multimedia y costo total" y "Diseñar tabla provisional de créditos").
+
+- **Dos cosas distintas que se venían mezclando.** Leer métricas —visualizaciones,
+  guardados, alcance, likes— no cuesta nada: viene con la sincronización y ya está.
+  El análisis profundo del video —transcripción, frames, estructura, recomendaciones— es
+  lo único que consume créditos. Sólo lo segundo se cobra.
+- **Nunca analizar todo el contenido de golpe.** Una cuenta con 50 Reels no se analiza
+  entera al conectar: es gasto nuestro por piezas que la persona no va a mirar —nadie
+  abre el análisis de un Reel de hace tres meses— y no le sirve a ella tampoco.
+- **[ ] Analizar las últimas 3-5 publicaciones al conectar la cuenta**, como demostración
+  de qué hace Zenovi, y el resto a pedido. Decisión de Joaco.
+- **Estimación de costo, con los supuestos escritos** (precios Anthropic al 2026-06-24;
+  hay que medirlo, no darlo por bueno). Una pieza de 30-60 s: ~10 frames muestreados
+  (~1.200 tokens cada uno), transcripción, métricas y consigna ≈ **15k tokens de
+  entrada**; el análisis escrito más el razonamiento ≈ **5k de salida**. A eso da
+  ≈ **US$0,04 con Haiku 4.5**, ≈ **US$0,08 con Sonnet 5** y ≈ **US$0,20 con Opus 5**,
+  más la transcripción, que es de centavos por minuto y va por fuera (Claude no recibe
+  audio). Analizar 50 Reels de una serían ≈ US$4 por usuario; las 3-5 del arranque,
+  ≈ US$0,25-0,40.
+- **[ ] Dos palancas que bajan eso antes de tocar el modelo**: la consigna y la rúbrica
+  son idénticas en cada análisis, así que van con `cache_control` (las lecturas de caché
+  cuestan ~10%); y los análisis que no son urgentes —los del arranque, sobre todo— pueden
+  ir por la Batch API, que es la mitad de precio.
+- **Lo que más va a consumir no es esto, es el chat del Director.** El análisis es un
+  costo acotado y por pieza; la conversación crece con el historial en cada turno. La
+  tabla de créditos tiene que dimensionarse por ahí.
+- **[ ] Pendiente de Joaco**: rate limits de Meta y de los proveedores de IA, y dónde se
+  cobra. El análisis es barato en comparación con lo que aporta, así que la hipótesis es
+  cobrarlo poco.
 
 ### Voz del producto
 

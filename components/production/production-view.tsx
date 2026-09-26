@@ -3,17 +3,26 @@
 import { useState } from "react";
 import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
+import { splitRecentlyPublished } from "@/lib/production/content";
 import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
 import { ProductionCalendar } from "./production-calendar";
 import { ProductionDetail } from "./production-detail";
 import { NewContentItemDialog } from "./new-content-item";
+import { ProductionHistory } from "./production-history";
 
 export function ProductionView({ items, links }: { items: ContentItem[]; links: ProductionLinks }) {
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
   const openItem = items.find((item) => item.id === openId) ?? null;
+
+  // El tablero se queda con lo que está en curso y con lo que salió hace poco; lo viejo
+  // baja al historial. El calendario sigue recibiendo todo: ahí la fecha es el eje.
+  const { recent, older } = splitRecentlyPublished(
+    items.filter((item) => item.status === "publicada"),
+  );
+  const boardItems = items.filter((item) => item.status !== "publicada").concat(recent);
 
   return (
     <div className="mt-6">
@@ -56,7 +65,7 @@ export function ProductionView({ items, links }: { items: ContentItem[]; links: 
       <div className="mt-6">
         {view === "pipeline" ? (
           <ProductionPipeline
-            items={items}
+            items={boardItems}
             links={links}
             openId={openId}
             onOpen={setOpenId}
@@ -66,6 +75,10 @@ export function ProductionView({ items, links }: { items: ContentItem[]; links: 
           <ProductionCalendar items={items} onOpen={setOpenId} />
         )}
       </div>
+
+      {view === "pipeline" ? (
+        <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+      ) : null}
 
       {openItem ? (
         <ProductionDetail

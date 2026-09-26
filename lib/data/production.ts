@@ -17,6 +17,8 @@ export type ContentItem = {
   cta: string;
   source: ContentSource;
   linkedMediaId: string | null;
+  /** Cuándo salió de verdad; `null` mientras no se publicó. */
+  publishedAt: string | null;
 };
 
 type ContentItemRow = {
@@ -32,6 +34,7 @@ type ContentItemRow = {
   cta: string;
   source: string;
   linked_media_id: string | null;
+  published_at: string | null;
 };
 
 export async function getContentItems(workspaceId: string): Promise<ContentItem[]> {
@@ -39,7 +42,7 @@ export async function getContentItems(workspaceId: string): Promise<ContentItem[
   const { data, error } = await supabase
     .from("content_items")
     .select(
-      "id, title, content_type, format, status, target_date, reference_url, hook, development, cta, source, linked_media_id",
+      "id, title, content_type, format, status, target_date, reference_url, hook, development, cta, source, linked_media_id, published_at",
     )
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
@@ -63,5 +66,6 @@ function toContentItem(row: ContentItemRow): ContentItem {
     cta: row.cta,
     source: isContentSource(row.source) ? row.source : "manual",
     linkedMediaId: row.linked_media_id,
+    publishedAt: row.published_at,
   };
 }

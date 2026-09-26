@@ -16,6 +16,8 @@ import {
   previousStatus,
   resolveDropStatus,
   sanitizeContentItem,
+  splitRecentlyPublished,
+  RECENTLY_PUBLISHED_DAYS,
 } from "../lib/production/content.ts";
 
 test("sanitizeContentItem exige título", () => {
@@ -165,4 +167,36 @@ test("el formato de producción y el de la biblioteca son el mismo vocabulario",
   // Si alguien agrega un formato en un lado y no en el otro, vincular una idea con su
   // pieza publicada dejaría de funcionar en silencio.
   assert.deepEqual([...CONTENT_FORMATS], [...CONTENT_KINDS]);
+});
+
+const AHORA = new Date("2026-09-26T12:00:00Z");
+const haceDias = (days) => new Date(AHORA.getTime() - days * 86_400_000).toISOString();
+
+test("splitRecentlyPublished separa lo de las últimas dos semanas", () => {
+  const { recent, older } = splitRecentlyPublished(
+    [
+      { id: "ayer", publishedAt: haceDias(1) },
+      { id: "justo", publishedAt: haceDias(RECENTLY_PUBLISHED_DAYS - 0.5) },
+      { id: "viejo", publishedAt: haceDias(RECENTLY_PUBLISHED_DAYS + 1) },
+    ],
+    AHORA,
+  );
+
+  assert.deepEqual(recent.map((item) => item.id), ["ayer", "justo"]);
+  assert.deepEqual(older.map((item) => item.id), ["viejo"]);
+});
+
+test("splitRecentlyPublished manda al historial lo que no tiene fecha", () => {
+  // No se sabe cuándo salió: decir que salió recién sería inventarlo.
+  const { recent, older } = splitRecentlyPublished([{ id: "sinfecha", publishedAt: null }], AHORA);
+
+  assert.deepEqual(recent, []);
+  assert.deepEqual(older.map((item) => item.id), ["sinfecha"]);
+});
+
+test("splitRecentlyPublished no rompe con una fecha inválida", () => {
+  const { recent, older } = splitRecentlyPublished([{ id: "rota", publishedAt: "ayer" }], AHORA);
+
+  assert.deepEqual(recent, []);
+  assert.deepEqual(older.map((item) => item.id), ["rota"]);
 });

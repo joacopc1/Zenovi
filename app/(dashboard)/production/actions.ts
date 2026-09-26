@@ -7,6 +7,7 @@ import {
   previousStatus,
   sanitizeContentItem,
   type ContentItemFieldErrors,
+  type ContentStatus,
 } from "@/lib/production/content";
 import { autoLinkPublishedPiece } from "@/lib/data/production-links";
 import { createClient } from "@/lib/supabase/server";
@@ -100,7 +101,10 @@ export async function moveContentItem(
 
   if (next === current) return { status: "idle" };
 
-  const { error } = await supabase.from("content_items").update({ status: next }).eq("id", id);
+  const { error } = await supabase
+    .from("content_items")
+    .update({ status: next, ...publishedAtFor(next) })
+    .eq("id", id);
 
   if (error) {
     return { status: "error", message: "No pudimos mover la pieza." };
@@ -128,7 +132,13 @@ export async function moveContentItemToStatus(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("content_items").update({ status }).eq("id", id);
+  // `neq` deja pasar sólo el cambio real: soltar una pieza en la columna donde ya estaba
+  // no puede reescribir su fecha de publicación con la de hoy.
+  const { error } = await supabase
+    .from("content_items")
+    .update({ status, ...publishedAtFor(status) })
+    .eq("id", id)
+    .neq("status", status);
 
   if (error) {
     return { status: "error", message: "No pudimos mover la pieza." };
@@ -138,6 +148,16 @@ export async function moveContentItemToStatus(
 
   revalidatePath("/production");
   return { status: "saved" };
+}
+
+/**
+ * La fecha real de publicación viaja con el cambio de estado.
+ *
+ * Volver una pieza atrás la borra: si quedara, el tablero seguiría contándola como algo
+ * que salió esta semana cuando en realidad volvió a producción.
+ */
+function publishedAtFor(status: ContentStatus): { published_at: string | null } {
+  return { published_at: status === "publicada" ? new Date().toISOString() : null };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

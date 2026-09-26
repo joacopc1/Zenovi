@@ -33,21 +33,14 @@ import { PerformanceBadge } from "@/components/content/performance-badge";
 const DRAG_THRESHOLD_PX = 6;
 
 /**
- * Cuántas piezas publicadas se muestran antes de cortar.
+ * La zona donde se sueltan las piezas mide siempre lo mismo, tenga una tarjeta o veinte.
  *
- * "Publicada" es la única columna que sólo crece: a los seis meses tiene ochenta
- * tarjetas y el tablero deja de servir para lo que sirve, que es ver lo que falta hacer.
- * Se muestran las últimas y el resto queda a un click.
+ * El mínimo existe porque una columna vacía que midiera su contenido quedaría en una
+ * franja de pocos píxeles a la que habría que apuntarle. El máximo, porque una columna
+ * con veinte ideas estiraría la página entera y dejaría a las otras tres en el aire: a
+ * partir de ahí la columna hace scroll por dentro y el tablero no se mueve.
  */
-const PUBLISHED_PREVIEW = 6;
-
-/**
- * La zona donde se sueltan las piezas mide siempre como cuatro o cinco tarjetas, aunque
- * la columna tenga una sola o ninguna. Si midiera lo que hay adentro, una columna vacía
- * quedaría en una franja de pocos píxeles y habría que apuntarle; con el alto fijo el
- * tablero no se deforma al mover una pieza y siempre hay dónde soltarla.
- */
-const MIN_DROP_AREA = "min-h-[30rem]";
+const DROP_AREA = "min-h-[26rem] max-h-[34rem] overflow-y-auto";
 
 export function ProductionPipeline({
   items,
@@ -207,10 +200,6 @@ function Column({
   // Sólo las columnas reciben la tarjeta. Si las tarjetas también fueran destino, dnd-kit
   // elegiría la de abajo —gana por proporción de superposición— en lugar de la columna.
   const { setNodeRef } = useDroppable({ id: status, disabled: !draggable });
-  const [expanded, setExpanded] = useState(false);
-
-  const capped = status === "publicada" && !expanded && items.length > PUBLISHED_PREVIEW;
-  const visible = capped ? items.slice(0, PUBLISHED_PREVIEW) : items;
 
   return (
     <div
@@ -242,8 +231,8 @@ function Column({
         ) : null}
       </div>
 
-      <div className={`flex flex-1 flex-col gap-2 ${MIN_DROP_AREA}`}>
-        {visible.map((item) => (
+      <div className={`flex flex-1 flex-col gap-2 ${DROP_AREA}`}>
+        {items.map((item) => (
           <Card
             key={item.id}
             item={item}
@@ -258,16 +247,6 @@ function Column({
           <div className="grid flex-1 place-items-center rounded-card border border-dashed border-mist px-3 py-4 text-center text-[12px] text-muted">
             Sin piezas
           </div>
-        ) : null}
-
-        {status === "publicada" && items.length > PUBLISHED_PREVIEW ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((current) => !current)}
-            className="mt-auto py-1 text-left text-[12px] font-medium text-graphite transition-colors hover:text-ink"
-          >
-            {expanded ? "Ver menos" : `Ver las ${items.length}`}
-          </button>
         ) : null}
       </div>
     </div>

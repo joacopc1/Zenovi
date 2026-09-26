@@ -40,6 +40,37 @@ export const FORMAT_LABELS: Record<ContentFormat, string> = {
 };
 
 /**
+ * Cuántos días se considera que una pieza "salió recién".
+ *
+ * Después de dos semanas ya no es algo que acabás de publicar: es historial. El tablero
+ * es para ver en qué anda la producción, no para guardar todo lo que salió alguna vez.
+ */
+export const RECENTLY_PUBLISHED_DAYS = 14;
+
+/**
+ * Separa lo que salió hace poco de lo que ya es historial.
+ *
+ * Una pieza publicada sin fecha —las que quedaron de antes de registrarla— se trata como
+ * historial: afirmar que salió recién cuando no se sabe sería inventar.
+ */
+export function splitRecentlyPublished<T extends { publishedAt: string | null }>(
+  items: readonly T[],
+  now: Date = new Date(),
+): { recent: T[]; older: T[] } {
+  const cutoff = now.getTime() - RECENTLY_PUBLISHED_DAYS * 86_400_000;
+  const recent: T[] = [];
+  const older: T[] = [];
+
+  for (const item of items) {
+    const published = item.publishedAt === null ? Number.NaN : Date.parse(item.publishedAt);
+    if (!Number.isNaN(published) && published >= cutoff) recent.push(item);
+    else older.push(item);
+  }
+
+  return { recent, older };
+}
+
+/**
  * El color de cada estado, compartido por el tablero y el calendario.
  *
  * Es el mismo punto en los dos lados a propósito: quien aprende que el verde es
