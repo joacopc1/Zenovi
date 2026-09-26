@@ -36,6 +36,14 @@ const COLUMN_COLORS: Record<ContentStatus, string> = {
 /** Arrastrar empieza después de 6px: un click corto sigue abriendo la pieza. */
 const DRAG_THRESHOLD_PX = 6;
 
+/**
+ * La zona donde se sueltan las piezas mide siempre como cuatro o cinco tarjetas, aunque
+ * la columna tenga una sola o ninguna. Si midiera lo que hay adentro, una columna vacía
+ * quedaría en una franja de pocos píxeles y habría que apuntarle; con el alto fijo el
+ * tablero no se deforma al mover una pieza y siempre hay dónde soltarla.
+ */
+const MIN_DROP_AREA = "min-h-[30rem]";
+
 export function ProductionPipeline({
   items,
   openId,
@@ -149,7 +157,7 @@ function Board({
   onCreate: (guion: boolean) => void;
 }) {
   return (
-    <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {CONTENT_PIPELINE.map((status) => (
         <Column
           key={status}
@@ -191,7 +199,7 @@ function Column({
     <div
       ref={setNodeRef}
       data-status={status}
-      className={`rounded-card border bg-paper p-3 transition-colors ${
+      className={`flex flex-col rounded-card border bg-paper p-3 transition-colors ${
         isOver ? "border-mist-strong bg-canvas/60" : "border-mist"
       }`}
     >
@@ -217,7 +225,7 @@ function Column({
         ) : null}
       </div>
 
-      <div className="space-y-2">
+      <div className={`flex flex-1 flex-col gap-2 ${MIN_DROP_AREA}`}>
         {items.map((item) => (
           <Card
             key={item.id}
@@ -229,7 +237,7 @@ function Column({
           />
         ))}
         {items.length === 0 ? (
-          <div className="rounded-card border border-dashed border-mist px-3 py-4 text-center text-[12px] text-muted">
+          <div className="grid flex-1 place-items-center rounded-card border border-dashed border-mist px-3 py-4 text-center text-[12px] text-muted">
             Sin piezas
           </div>
         ) : null}
