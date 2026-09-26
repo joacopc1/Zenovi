@@ -356,3 +356,33 @@ export async function registerPublishedMedia(
   revalidatePath("/production");
   return { status: "saved" };
 }
+
+/**
+ * Borra una pieza del tablero.
+ *
+ * Existe sobre todo para deshacer: registrar una publicación es un click y equivocarse
+ * también. Borra la pieza de Zenovi y nada más —el video sigue publicado en Instagram y
+ * sus métricas quedan donde estaban—, así que lo único que se pierde es lo que se escribió
+ * acá. Por eso la pantalla pide confirmar antes de llamar.
+ */
+export async function deleteContentItem(
+  _previousState: ContentActionState,
+  raw: unknown,
+): Promise<ContentActionState> {
+  const source = asRecord(raw);
+  const id = typeof source.id === "string" ? source.id : "";
+
+  if (!id) {
+    return { status: "error", message: "Falta identificar la pieza." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("content_items").delete().eq("id", id);
+
+  if (error) {
+    return { status: "error", message: "No pudimos borrar la pieza." };
+  }
+
+  revalidatePath("/production");
+  return { status: "saved" };
+}

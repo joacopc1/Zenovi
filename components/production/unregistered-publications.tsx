@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { ChevronDown } from "lucide-react";
+import { AlertCircle, ChevronDown } from "lucide-react";
 import { linkPublishedMedia, registerPublishedMedia } from "@/app/(dashboard)/production/actions";
 import { FORMAT_LABELS, contentItemName } from "@/lib/production/content";
 import { suggestBoardPieces, type PublishedPiece } from "@/lib/production/reconcile";
@@ -32,26 +32,37 @@ export function UnregisteredPublications({
   if (publications.length === 0) return null;
 
   return (
-    <section aria-label="Publicaciones fuera del tablero" className="mt-3">
+    <section
+      aria-label="Publicaciones fuera del tablero"
+      className="mt-8 overflow-hidden rounded-card border border-warning/40 bg-warning/[0.04]"
+    >
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className="font-support flex items-center gap-1.5 text-[12px] text-graphite transition-colors hover:text-ink"
+        className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-warning/[0.07]"
       >
+        <AlertCircle size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-warning" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-ink">
+            {publications.length === 1
+              ? "Publicaste una pieza que no está en el tablero"
+              : `Publicaste ${publications.length} piezas que no están en el tablero`}
+          </span>
+          <span className="font-support mt-0.5 block text-[11px] leading-4 text-graphite">
+            Hasta que estén acá, Zenovi no puede decirte cómo rindió lo que planificaste.
+          </span>
+        </span>
         <ChevronDown
-          size={13}
+          size={15}
           strokeWidth={1.75}
           aria-hidden="true"
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-graphite transition-transform ${open ? "rotate-180" : ""}`}
         />
-        {publications.length === 1
-          ? "Publicaste una pieza que no está en el tablero"
-          : `Publicaste ${publications.length} piezas que no están en el tablero`}
       </button>
 
       {open ? (
-        <ul className="mt-2 space-y-1.5">
+        <ul className="border-t border-warning/30 bg-paper">
           {publications.map((publication) => (
             <Row key={publication.id} publication={publication} items={items} />
           ))}
@@ -78,7 +89,7 @@ function Row({ publication, items }: { publication: PublishedPiece; items: Conte
   }
 
   return (
-    <li className="rounded-control border border-mist p-2">
+    <li className="border-b border-mist px-4 py-2.5 last:border-b-0">
       <div className="flex items-center gap-3">
         <Thumbnail url={publication.thumbnailUrl} />
         <div className="min-w-0 flex-1">
@@ -91,16 +102,22 @@ function Row({ publication, items }: { publication: PublishedPiece; items: Conte
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {suggestions.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setChoosing((current) => !current)}
-              disabled={pending}
-              className="h-7 rounded-control border border-mist px-2.5 text-[11px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink disabled:opacity-50"
-            >
-              Es una idea mía
-            </button>
-          ) : null}
+          {/* Siempre visible, aunque no haya a qué enlazar: un botón que aparece en una
+              fila y no en la otra se lee como un error de la app, no como una diferencia
+              entre las piezas. Cuando no hay candidatas, dice por qué. */}
+          <button
+            type="button"
+            onClick={() => setChoosing((current) => !current)}
+            disabled={pending || suggestions.length === 0}
+            title={
+              suggestions.length === 0
+                ? `No tenés ideas sin publicar de tipo ${FORMAT_LABELS[publication.kind]} para enlazar`
+                : undefined
+            }
+            className="h-7 rounded-control border border-mist px-2.5 text-[11px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+          >
+            Enlazar con una idea
+          </button>
           <button
             type="button"
             onClick={() => run(() => registerPublishedMedia({ status: "idle" }, { mediaId: publication.id }))}

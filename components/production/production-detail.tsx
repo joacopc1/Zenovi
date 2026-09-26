@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ChevronLeft, ChevronRight, Play, X } from "lucide-react";
-import { moveContentItem, updateContentItem } from "@/app/(dashboard)/production/actions";
+import { ChevronLeft, ChevronRight, Play, Trash2, X } from "lucide-react";
+import {
+  deleteContentItem,
+  moveContentItem,
+  updateContentItem,
+} from "@/app/(dashboard)/production/actions";
 import {
   CONTENT_PIPELINE,
   FORMAT_LABELS,
@@ -137,6 +141,8 @@ export function ProductionDetail({
                   Grabar
                 </button>
               </div>
+
+              <DeleteButton item={item} onDeleted={onClose} />
             </div>
           )}
         </div>
@@ -167,6 +173,74 @@ export function ProductionDetail({
 
       {recording ? <ProductionTeleprompter item={item} onClose={() => setRecording(false)} /> : null}
     </>
+  );
+}
+
+/**
+ * Borrar la pieza, con la confirmación en el mismo botón.
+ *
+ * No abre un diálogo: el primer click descubre la advertencia y el segundo borra, que
+ * para una acción de esta escala alcanza y no interrumpe. Se aclara qué se pierde —sólo
+ * lo que se escribió en Zenovi— porque la duda al borrar una pieza publicada es si
+ * también le pasa algo al video, y no le pasa nada.
+ */
+function DeleteButton({ item, onDeleted }: { item: ContentItem; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-danger"
+      >
+        <Trash2 size={12} strokeWidth={1.75} aria-hidden="true" />
+        Borrar la pieza
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-support text-[12px] leading-5 text-graphite">
+        Se borra de Zenovi con lo que hayas escrito acá.
+        {item.linkedMediaId ? " El video sigue publicado en Instagram." : ""}
+      </p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            startTransition(async () => {
+              const result = await deleteContentItem({ status: "idle" }, { id: item.id });
+              if (result.status === "error") {
+                setError(result.message ?? "No pudimos borrar la pieza.");
+                setConfirming(false);
+              } else {
+                onDeleted();
+              }
+            })
+          }
+          disabled={pending}
+          className="h-8 rounded-control bg-danger px-3 text-[12px] font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          {pending ? "Borrando…" : "Borrar"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="h-8 rounded-control px-2 text-[12px] font-medium text-graphite transition-colors hover:text-ink"
+        >
+          Cancelar
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-1 text-[12px] text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
