@@ -24,10 +24,19 @@ export function toISODate(year: number, month: number, day: number): string {
   return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
 }
 
+/** El día de una fecha, leído en la zona local y no en UTC. */
+export function isoDateOf(date: Date): string {
+  return toISODate(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 /** "YYYY-MM-DD" de hoy en la zona local. */
 export function todayISODate(): string {
-  const now = new Date();
-  return toISODate(now.getFullYear(), now.getMonth(), now.getDate());
+  return isoDateOf(new Date());
+}
+
+/** La misma hora, tantos días después. Salta bien fin de mes y cambios de horario. */
+export function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
 /** "Septiembre 2026" en español. */

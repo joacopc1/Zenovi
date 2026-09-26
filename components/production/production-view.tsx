@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
 import { splitRecentlyPublished } from "@/lib/production/content";
+import { readCadence } from "@/lib/production/cadence";
+import { CadenceSignal } from "./cadence-signal";
 import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
 import { ProductionCalendar } from "./production-calendar";
@@ -11,7 +13,15 @@ import { ProductionDetail } from "./production-detail";
 import { NewContentItemDialog } from "./new-content-item";
 import { ProductionHistory } from "./production-history";
 
-export function ProductionView({ items, links }: { items: ContentItem[]; links: ProductionLinks }) {
+export function ProductionView({
+  items,
+  links,
+  postedAt,
+}: {
+  items: ContentItem[];
+  links: ProductionLinks;
+  postedAt: string[];
+}) {
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
@@ -23,10 +33,13 @@ export function ProductionView({ items, links }: { items: ContentItem[]; links: 
     items.filter((item) => item.status === "publicada"),
   );
   const boardItems = items.filter((item) => item.status !== "publicada").concat(recent);
+  const cadence = readCadence(items, postedAt, new Date());
 
   return (
-    <div className="mt-6">
-      <div className="flex items-end justify-between gap-4 border-b border-mist">
+    <div>
+      <CadenceSignal reading={cadence} />
+
+      <div className="mt-6 flex items-end justify-between gap-4 border-b border-mist">
         <nav className="-mb-px flex gap-6" aria-label="Vistas de producción">
           <button
             type="button"
