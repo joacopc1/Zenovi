@@ -17,7 +17,13 @@ const rhythmFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 
  * que él mismo viene sosteniendo, y mientras no haya historial suficiente para afirmarlo,
  * lo dice en vez de inventar un número.
  */
-export function CadenceSignal({ reading }: { reading: CadenceReading }) {
+export function CadenceSignal({
+  reading,
+  instagramConnected,
+}: {
+  reading: CadenceReading;
+  instagramConnected: boolean;
+}) {
   return (
     <section
       aria-label="Ritmo de publicación"
@@ -29,14 +35,19 @@ export function CadenceSignal({ reading }: { reading: CadenceReading }) {
           si salta abajo deja de leerse como una semana. */}
       <div className="font-support min-w-0 flex-1 text-[13px] leading-6 text-graphite">
         <p>
-          {reading.rhythm === null ? (
+          {/* Sin cuenta conectada no es que falte historial: es que no hay de dónde
+              leerlo. Decir "todavía no publicaste lo suficiente" sería afirmar algo sobre
+              una cuenta que Zenovi nunca vio. */}
+          {!instagramConnected ? (
+            <>Conectá Instagram y Zenovi lee tu ritmo de publicación.</>
+          ) : reading.rhythm === null ? (
             <>Todavía no publicaste lo suficiente como para leer tu ritmo.</>
           ) : (
             <strong className="font-semibold text-ink">
               Venís publicando {rhythmFormatter.format(reading.rhythm)} por semana.
             </strong>
           )}{" "}
-          <Published reading={reading} />
+          {instagramConnected ? <Published reading={reading} /> : null}
         </p>
         <p>
           <Planned planned={reading.planned} withoutScript={reading.withoutScript} />{" "}

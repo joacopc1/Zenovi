@@ -191,7 +191,7 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [ ] Wireframe de Director e historial.
 - [ ] Wireframe de ADN.
 - [ ] Wireframe de Baúl Kanban/calendario.
-- [-] Diseñar estados vacíos, carga, error y permisos: Inicio, Analíticas, Contenido y el detalle tienen carga, error y no encontrado; Analíticas distingue cuenta conectada sin métricas, y Analíticas y Contenido distinguen conexión vinculada pero no sana (requiere acción, error, sincronizando, OAuth incompleto) de cuenta nunca conectada. Inicio recibe el mismo tratamiento. Falta validar los textos con usuarios.
+- [-] Diseñar estados vacíos, carga, error y permisos: Inicio, Analíticas, Contenido, Producción y el detalle tienen carga, error y no encontrado; Analíticas distingue cuenta conectada sin métricas, y Analíticas y Contenido distinguen conexión vinculada pero no sana (requiere acción, error, sincronizando, OAuth incompleto) de cuenta nunca conectada. Inicio recibe el mismo tratamiento. Producción se sumó el 2026-09-26: `loading.tsx` con el esqueleto de las cuatro columnas y el mismo alto que el tablero real —para que nada salte al terminar de cargar—, `error.tsx` que aclara que las ideas y los guiones siguen guardados, un estado inicial que cuenta el recorrido completo en vez de mostrar cuatro columnas vacías, y el semáforo distinguiendo "no hay cuenta conectada" de "no hay historial suficiente", que no es lo mismo. Falta validar los textos con usuarios.
 - [ ] Validar wireframes con 3-5 usuarios.
 - [-] Congelar tokens light del MVP: base implementada; pendiente calibrar el borde de cards contra valores computados de referencias y validar contraste.
 - [x] Crear `.interface-design/system.md` después de aprobación.

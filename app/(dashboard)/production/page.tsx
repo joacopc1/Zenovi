@@ -26,7 +26,12 @@ export default async function ProductionPage() {
       <main className="mx-auto w-full max-w-[1240px] px-5 py-6 md:px-8 md:py-8 lg:px-10">
         <h1 className="text-xl font-semibold tracking-[-0.02em]">Producción</h1>
 
-        <ProductionView items={items} links={links} published={published} />
+        <ProductionView
+          items={items}
+          links={links}
+          published={published}
+          instagramConnected={account.instagram?.status === "connected"}
+        />
       </main>
     </>
   );
