@@ -6,12 +6,12 @@ import type { CadenceReading } from "@/lib/production/cadence";
 const rhythmFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 });
 
 /**
- * El semáforo de cadencia, arriba del tablero.
+ * El semáforo de cadencia, debajo del tablero.
  *
  * Una grilla de tarjetas no compromete a nadie; una frase que dice "venís publicando tres
- * por semana y para los próximos siete días tenés una" sí. Por eso lo primero que se lee
- * es esa frase, y la tira de días está abajo para ver dónde están los huecos sin tener
- * que abrir el calendario.
+ * por semana y para los próximos siete días tenés una" sí. Va abajo y no arriba porque al
+ * kanban se entra a lo que se entra: nada puede interponerse entre el menú de vistas y el
+ * tablero. La tira de días acompaña para ver los huecos sin abrir el calendario.
  *
  * Nunca reta ni pone metas que el creador no eligió: el ritmo con el que se compara es el
  * que él mismo viene sosteniendo, y mientras no haya historial suficiente para afirmarlo,
@@ -23,11 +23,26 @@ export function CadenceSignal({ reading }: { reading: CadenceReading }) {
       aria-label="Ritmo de publicación"
       className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-mist bg-paper px-4 py-3 sm:flex-nowrap"
     >
-      {/* La frase se achica y envuelve; la tira nunca baja de renglón. Es la parte que se
-          mira de un vistazo, y si salta abajo deja de leerse como una semana. */}
-      <p className="font-support min-w-0 flex-1 text-[13px] leading-6 text-graphite">
-        <Headline reading={reading} />
-      </p>
+      {/* Dos renglones a propósito: arriba lo que pasó, abajo lo que viene. En un solo
+          párrafo el corte cae donde alcanza el ancho y parte la frase al medio. El texto
+          se achica y envuelve, pero la tira nunca baja: es lo que se mira de un vistazo, y
+          si salta abajo deja de leerse como una semana. */}
+      <div className="font-support min-w-0 flex-1 text-[13px] leading-6 text-graphite">
+        <p>
+          {reading.rhythm === null ? (
+            <>Todavía no publicaste lo suficiente como para leer tu ritmo.</>
+          ) : (
+            <strong className="font-semibold text-ink">
+              Venís publicando {rhythmFormatter.format(reading.rhythm)} por semana.
+            </strong>
+          )}{" "}
+          <Published reading={reading} />
+        </p>
+        <p>
+          <Planned planned={reading.planned} withoutScript={reading.withoutScript} />{" "}
+          <Verdict missing={reading.missing} />
+        </p>
+      </div>
 
       <ol className="flex shrink-0 items-start gap-1">
         {reading.days.map((day) => (
@@ -56,35 +71,6 @@ export function CadenceSignal({ reading }: { reading: CadenceReading }) {
   );
 }
 
-function Headline({ reading }: { reading: CadenceReading }) {
-  const { rhythm, planned, withoutScript, missing } = reading;
-
-  if (rhythm === null) {
-    return (
-      <>
-        Todavía no publicaste lo suficiente como para leer tu ritmo.{" "}
-        <Published reading={reading} /> <Planned planned={planned} withoutScript={withoutScript} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <strong className="font-semibold text-ink">
-        Venís publicando {rhythmFormatter.format(rhythm)} por semana.
-      </strong>{" "}
-      <Published reading={reading} /> <Planned planned={planned} withoutScript={withoutScript} />{" "}
-      {missing !== null && missing > 0 ? (
-        <span className="text-ink">
-          Te {missing === 1 ? "falta" : "faltan"} {missing} para sostener el ritmo.
-        </span>
-      ) : (
-        <span className="text-success">Vas al día.</span>
-      )}
-    </>
-  );
-}
-
 /**
  * Lo que ya salió. Sale de Instagram, no del tablero: si publicó algo sin anotarlo en
  * Zenovi, decirle que no hizo nada esta semana sería directamente falso.
@@ -108,6 +94,18 @@ function Published({ reading }: { reading: CadenceReading }) {
   if (daysSinceLast === null) return <>Esta semana no salió nada.</>;
 
   return <>Esta semana no salió nada: la última fue hace {daysSinceLast} días.</>;
+}
+
+function Verdict({ missing }: { missing: number | null }) {
+  if (missing === null) return null;
+
+  return missing > 0 ? (
+    <span className="text-ink">
+      Te {missing === 1 ? "falta" : "faltan"} {missing} para sostener el ritmo.
+    </span>
+  ) : (
+    <span className="text-success">Vas al día.</span>
+  );
 }
 
 function Planned({ planned, withoutScript }: { planned: number; withoutScript: number }) {

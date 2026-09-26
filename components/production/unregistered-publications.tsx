@@ -43,15 +43,10 @@ export function UnregisteredPublications({
         className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-warning/[0.07]"
       >
         <AlertCircle size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-warning" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold text-ink">
-            {publications.length === 1
-              ? "Publicaste una pieza que no está en el tablero"
-              : `Publicaste ${publications.length} piezas que no están en el tablero`}
-          </span>
-          <span className="font-support mt-0.5 block text-[11px] leading-4 text-graphite">
-            Hasta que estén acá, Zenovi no puede decirte cómo rindió lo que planificaste.
-          </span>
+        <span className="min-w-0 flex-1 text-[13px] font-semibold text-ink">
+          {publications.length === 1
+            ? "Publicaste una pieza que no está en el tablero"
+            : `Publicaste ${publications.length} piezas que no están en el tablero`}
         </span>
         <ChevronDown
           size={15}
@@ -102,21 +97,23 @@ function Row({ publication, items }: { publication: PublishedPiece; items: Conte
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {/* Siempre visible, aunque no haya a qué enlazar: un botón que aparece en una
-              fila y no en la otra se lee como un error de la app, no como una diferencia
-              entre las piezas. Cuando no hay candidatas, dice por qué. */}
+          {/* "Enlazar" a secas y no "enlazar con una idea": lo que ya se publicó pudo no
+              haber nacido como idea en el tablero, pudo estar ahí como guion o a medio
+              producir. Siempre visible aunque no haya a qué enlazar, porque un botón que
+              aparece en una fila y no en la otra se lee como un error de la app; cuando no
+              hay candidatas queda apagado y dice por qué. */}
           <button
             type="button"
             onClick={() => setChoosing((current) => !current)}
             disabled={pending || suggestions.length === 0}
             title={
               suggestions.length === 0
-                ? `No tenés ideas sin publicar de tipo ${FORMAT_LABELS[publication.kind]} para enlazar`
+                ? `No tenés piezas sin publicar de tipo ${FORMAT_LABELS[publication.kind]} para enlazar`
                 : undefined
             }
             className="h-7 rounded-control border border-mist px-2.5 text-[11px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink disabled:pointer-events-none disabled:opacity-40"
           >
-            Enlazar con una idea
+            Enlazar
           </button>
           <button
             type="button"

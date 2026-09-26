@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { PerformanceBadge } from "@/components/content/performance-badge";
 import { FORMAT_LABELS, RECENTLY_PUBLISHED_DAYS, contentItemName } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
@@ -44,8 +45,9 @@ export function ProductionHistory({
               <button
                 type="button"
                 onClick={() => onOpen(item.id)}
-                className="flex w-full items-center gap-4 px-4 py-2.5 text-left transition-colors hover:bg-canvas"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-canvas"
               >
+                <Thumbnail url={performance?.thumbnailUrl ?? null} />
                 <span className="font-numeric w-14 shrink-0 text-[12px] text-muted">
                   {item.publishedAt ? dateFormatter.format(new Date(item.publishedAt)) : "—"}
                 </span>
@@ -66,5 +68,22 @@ export function ProductionHistory({
         })}
       </ul>
     </section>
+  );
+}
+
+/** La portada, o su hueco: sin un tamaño fijo las filas dejarían de estar alineadas. */
+function Thumbnail({ url }: { url: string | null }) {
+  if (!url) {
+    return <span aria-hidden="true" className="size-9 shrink-0 rounded-control bg-canvas" />;
+  }
+
+  return (
+    <Image
+      src={url}
+      alt=""
+      width={36}
+      height={36}
+      className="size-9 shrink-0 rounded-control object-cover"
+    />
   );
 }

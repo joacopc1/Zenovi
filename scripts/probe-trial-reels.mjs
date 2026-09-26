@@ -93,7 +93,36 @@ console.log(
 const reel = items.find((item) => item.media_product_type?.toUpperCase() === "REELS") ?? items[0];
 if (!reel) exit("\nNo hay ninguna pieza para sondear campos.");
 
-// 2. Campo por campo: ¿cuáles acepta la API sobre un medio ya publicado?
+// 2. Que la API liste ella misma todos sus campos, en vez de adivinar nombres.
+console.log(`\nTodos los campos que declara el nodo ${reel.id} (metadata=1):`);
+const metadata = await graph(reel.id, { metadata: "1" });
+if (metadata.error) {
+  console.log(`  no disponible — ${metadata.error.message}`);
+} else {
+  const fields = metadata.metadata?.fields ?? [];
+  console.log(`  ${fields.length} campos: ${fields.map((f) => f.name).join(", ")}`);
+  const sospechosos = fields.filter((f) => /trial|graduat|test|experiment/i.test(f.name));
+  console.log(
+    sospechosos.length > 0
+      ? `  RELACIONADOS CON PRUEBA: ${sospechosos.map((f) => `${f.name} (${f.description})`).join(" · ")}`
+      : "  ninguno relacionado con pruebas",
+  );
+  const edges = metadata.metadata?.connections ?? {};
+  console.log(`  conexiones: ${Object.keys(edges).join(", ") || "ninguna"}`);
+}
+
+// 2b. Lo mismo sobre la cuenta: quizá los Reels de prueba viven en otra conexión.
+console.log(`\nCampos y conexiones de la cuenta (metadata=1):`);
+const userMeta = await graph(account.provider_account_id, { metadata: "1" });
+if (userMeta.error) {
+  console.log(`  no disponible — ${userMeta.error.message}`);
+} else {
+  const fields = (userMeta.metadata?.fields ?? []).map((f) => f.name);
+  console.log(`  campos: ${fields.join(", ")}`);
+  console.log(`  conexiones: ${Object.keys(userMeta.metadata?.connections ?? {}).join(", ")}`);
+}
+
+// 3. Campo por campo: ¿cuáles acepta la API sobre un medio ya publicado?
 console.log(`\nCampos sobre ${reel.id} (${reel.media_product_type}):`);
 for (const field of CANDIDATE_FIELDS) {
   const result = await graph(reel.id, { fields: field });
@@ -105,7 +134,7 @@ for (const field of CANDIDATE_FIELDS) {
   }
 }
 
-// 3. ¿Y las métricas que separarían la audiencia de prueba?
+// 4. ¿Y las métricas que separarían la audiencia de prueba?
 console.log(`\nMétricas sobre ${reel.id}:`);
 for (const metric of CANDIDATE_METRICS) {
   const result = await graph(`${reel.id}/insights`, { metric });
