@@ -18,6 +18,8 @@ import {
   sanitizeContentItem,
   splitRecentlyPublished,
   RECENTLY_PUBLISHED_DAYS,
+  collectContentTypes,
+  matchesContentType,
 } from "../lib/production/content.ts";
 
 test("sanitizeContentItem exige título", () => {
@@ -199,4 +201,53 @@ test("splitRecentlyPublished no rompe con una fecha inválida", () => {
 
   assert.deepEqual(recent, []);
   assert.deepEqual(older.map((item) => item.id), ["rota"]);
+});
+
+test("collectContentTypes junta los tipos y los cuenta", () => {
+  const types = collectContentTypes([
+    { contentType: "atracción" },
+    { contentType: "testimonio" },
+    { contentType: "atracción" },
+    { contentType: "" },
+    { contentType: "   " },
+  ]);
+
+  assert.deepEqual(types, [
+    { value: "atracción", count: 2 },
+    { value: "testimonio", count: 1 },
+  ]);
+});
+
+test("collectContentTypes no separa por tildes ni mayúsculas", () => {
+  // Si "Atracción" y "atraccion" contaran como dos, el filtro se llenaría de duplicados
+  // que el creador cree que son lo mismo, y lo son.
+  const types = collectContentTypes([
+    { contentType: "Atracción" },
+    { contentType: "atraccion" },
+    { contentType: "ATRACCION" },
+  ]);
+
+  assert.equal(types.length, 1);
+  assert.equal(types[0].count, 3);
+  assert.equal(types[0].value, "Atracción", "se muestra la forma que escribió primero");
+});
+
+test("collectContentTypes ordena por uso y después alfabéticamente", () => {
+  const types = collectContentTypes([
+    { contentType: "venta" },
+    { contentType: "autoridad" },
+    { contentType: "nutrición" },
+    { contentType: "nutrición" },
+  ]);
+
+  assert.deepEqual(
+    types.map((type) => type.value),
+    ["nutrición", "autoridad", "venta"],
+  );
+});
+
+test("matchesContentType compara con la misma laxitud", () => {
+  assert.equal(matchesContentType({ contentType: " Atracción " }, "atraccion"), true);
+  assert.equal(matchesContentType({ contentType: "venta" }, "autoridad"), false);
+  assert.equal(matchesContentType({ contentType: "" }, ""), true);
 });

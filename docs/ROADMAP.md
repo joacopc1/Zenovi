@@ -287,7 +287,7 @@ Objetivo: base productiva antes de features.
 - [ ] Guardar desde el Director IA: "agregá esta idea a producción" crea la card en estado "idea", con el porqué de por qué es ganadora (origen: métricas propias, competidores, concepto propio).
 - [x] Carga manual: alcanza con un título o con un link de referencia; una idea se guarda con lo que haya a mano.
 - [-] Vista detallada en **panel derecho** (no modal): título, tipo de contenido, guion por componentes y comparación contra los Reels ya subidos implementados. Faltan las recomendaciones del Director.
-- [ ] Segmentación libre del creador (carpetas/etiquetas propias). El "tipo de contenido" es el lenguaje del usuario; los pilares de marketing son sugerencia opcional del Director.
+- [-] Segmentación libre del creador. Hecho (2026-09-26) sin tabla nueva: el campo "tipo de contenido" que ya existía pasó a ser una etiqueta de verdad. Zenovi **no impone** una lista de pilares ni de categorías —es el vocabulario del creador, lo que él llame "atracción" o "testimonio"— y la app lo aprende de lo que escribe: al cargar o editar una pieza sugiere los tipos que ya usó, y arriba del tablero aparece una fila de filtros con cada tipo y su cantidad. Los tipos se agrupan sin distinguir mayúsculas ni tildes, para que "Atracción" y "atraccion" no se cuenten como dos cosas. El filtro aparece recién con dos tipos en uso —con uno no hay nada que filtrar— y afecta al tablero y al calendario, no al semáforo ni al historial, porque el ritmo de publicación es de la cuenta entera. Falta decidir si una pieza necesita **varias** etiquetas a la vez, que sí pediría una tabla aparte.
 - [ ] Vínculo insight -> idea (contexto de origen).
 - [ ] Stories según gate.
 - [ ] Feedback y soporte.

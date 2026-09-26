@@ -3,10 +3,15 @@
 import { useState } from "react";
 import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
-import { splitRecentlyPublished } from "@/lib/production/content";
+import {
+  collectContentTypes,
+  matchesContentType,
+  splitRecentlyPublished,
+} from "@/lib/production/content";
 import { readCadence } from "@/lib/production/cadence";
 import { unregisteredPublications, type PublishedPiece } from "@/lib/production/reconcile";
 import { CadenceSignal } from "./cadence-signal";
+import { ContentTypeFilter } from "./content-type-filter";
 import { UnregisteredPublications } from "./unregistered-publications";
 import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
@@ -29,6 +34,7 @@ export function ProductionView({
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
+  const [type, setType] = useState<string | null>(null);
   const openItem = items.find((item) => item.id === openId) ?? null;
 
   // El tablero se queda con lo que está en curso y con lo que salió hace poco; lo viejo
@@ -36,7 +42,14 @@ export function ProductionView({
   const { recent, older } = splitRecentlyPublished(
     items.filter((item) => item.status === "publicada"),
   );
-  const boardItems = items.filter((item) => item.status !== "publicada").concat(recent);
+  // El filtro cambia el tablero y el calendario, no el semáforo ni el historial: el ritmo
+  // de publicación y lo que ya salió son de la cuenta entera, no de una categoría.
+  const shown = type === null ? items : items.filter((item) => matchesContentType(item, type));
+  const recentIds = new Set(recent.map((item) => item.id));
+  const boardItems = shown.filter(
+    (item) => item.status !== "publicada" || recentIds.has(item.id),
+  );
+  const contentTypes = collectContentTypes(items).map((entry) => entry.value);
   const cadence = readCadence(
     items,
     published.map((piece) => piece.postedAt),
@@ -82,6 +95,10 @@ export function ProductionView({
         </button>
       </div>
 
+      {items.length > 0 ? (
+        <ContentTypeFilter items={items} active={type} onChange={setType} />
+      ) : null}
+
       <div className="mt-6">
         {items.length === 0 ? (
           <EmptyBoard onCreate={() => setCreateGuion(false)} />
@@ -94,7 +111,7 @@ export function ProductionView({
             onCreate={(guion) => setCreateGuion(guion)}
           />
         ) : (
-          <ProductionCalendar items={items} onOpen={setOpenId} />
+          <ProductionCalendar items={shown} onOpen={setOpenId} />
         )}
       </div>
 
@@ -111,6 +128,7 @@ export function ProductionView({
           item={openItem}
           candidates={links.candidates[openItem.id] ?? []}
           performance={links.performance[openItem.id] ?? null}
+          contentTypes={contentTypes}
           onClose={() => setOpenId(null)}
         />
       ) : null}
@@ -118,6 +136,7 @@ export function ProductionView({
       {createGuion !== null ? (
         <NewContentItemDialog
           initialGuion={createGuion}
+          contentTypes={contentTypes}
           onClose={() => setCreateGuion(null)}
         />
       ) : null}

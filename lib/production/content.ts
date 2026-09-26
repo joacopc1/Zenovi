@@ -71,6 +71,50 @@ export function splitRecentlyPublished<T extends { publishedAt: string | null }>
 }
 
 /**
+ * Los tipos que el creador viene usando, con cuántas piezas tiene cada uno.
+ *
+ * Zenovi no impone una lista de pilares ni de categorías: el "tipo de contenido" es el
+ * vocabulario del creador —"atracción", "testimonio", "objeciones", lo que sea que él
+ * llame así— y la app lo aprende de lo que escribe en vez de pedirle que elija de un
+ * menú ajeno. Se comparan sin distinguir mayúsculas ni tildes para que "Atracción" y
+ * "atraccion" no se cuenten como dos cosas, y se muestra la forma que escribió primero.
+ */
+export function collectContentTypes(
+  items: readonly { contentType: string }[],
+): { value: string; count: number }[] {
+  const byKey = new Map<string, { value: string; count: number }>();
+
+  for (const item of items) {
+    const value = item.contentType.trim();
+    if (value.length === 0) continue;
+
+    const key = value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const found = byKey.get(key);
+    if (found) found.count += 1;
+    else byKey.set(key, { value, count: 1 });
+  }
+
+  return [...byKey.values()].sort(
+    (a, b) => b.count - a.count || a.value.localeCompare(b.value, "es"),
+  );
+}
+
+/** ¿Esta pieza lleva este tipo? Misma comparación laxa que al agruparlos. */
+export function matchesContentType(item: { contentType: string }, type: string): boolean {
+  const normalize = (value: string) =>
+    value
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  return normalize(item.contentType) === normalize(type);
+}
+
+/**
  * El color de cada estado, compartido por el tablero y el calendario.
  *
  * Es el mismo punto en los dos lados a propósito: quien aprende que el verde es

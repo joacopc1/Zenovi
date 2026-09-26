@@ -10,9 +10,12 @@ import { FormatSelect } from "./format-select";
 
 export function NewContentItem({
   initialGuion = false,
+  contentTypes = [],
   onClose,
 }: {
   initialGuion?: boolean;
+  /** Los tipos que el creador ya usó, para no reinventar una categoría por pieza. */
+  contentTypes?: readonly string[];
   onClose: () => void;
 }) {
   const [isGuion, setIsGuion] = useState(initialGuion);
@@ -61,6 +64,7 @@ export function NewContentItem({
           onChange={(value) => update("contentType", value)}
           placeholder="Atracción, nutrición, venta…"
           maxLength={120}
+          suggestions={contentTypes}
         />
         <label className="block space-y-1.5">
           <span className="block text-sm font-medium text-ink">Formato</span>
@@ -155,9 +159,11 @@ export function NewContentItem({
 
 export function NewContentItemDialog({
   initialGuion = false,
+  contentTypes = [],
   onClose,
 }: {
   initialGuion?: boolean;
+  contentTypes?: readonly string[];
   onClose: () => void;
 }) {
   return (
@@ -174,7 +180,7 @@ export function NewContentItemDialog({
             <X size={15} strokeWidth={1.75} />
           </button>
         </div>
-        <NewContentItem initialGuion={initialGuion} onClose={onClose} />
+        <NewContentItem initialGuion={initialGuion} contentTypes={contentTypes} onClose={onClose} />
       </div>
     </div>
   );

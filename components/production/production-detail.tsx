@@ -30,11 +30,14 @@ export function ProductionDetail({
   item,
   candidates,
   performance,
+  contentTypes,
   onClose,
 }: {
   item: ContentItem;
   candidates: PublishCandidate[];
   performance: PublishedPerformance | null;
+  /** Los tipos que el creador ya usó, para que editar no invente una categoría nueva. */
+  contentTypes: readonly string[];
   onClose: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -81,7 +84,7 @@ export function ProductionDetail({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {editing ? (
-            <EditForm item={item} onDone={() => setEditing(false)} />
+            <EditForm item={item} contentTypes={contentTypes} onDone={() => setEditing(false)} />
           ) : (
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -244,7 +247,15 @@ function DeleteButton({ item, onDeleted }: { item: ContentItem; onDeleted: () =>
   );
 }
 
-function EditForm({ item, onDone }: { item: ContentItem; onDone: () => void }) {
+function EditForm({
+  item,
+  contentTypes,
+  onDone,
+}: {
+  item: ContentItem;
+  contentTypes: readonly string[];
+  onDone: () => void;
+}) {
   const [draft, setDraft] = useState({
     title: item.title,
     contentType: item.contentType,
@@ -299,7 +310,15 @@ function EditForm({ item, onDone }: { item: ContentItem; onDone: () => void }) {
             onChange={(event) => update("contentType", event.target.value)}
             maxLength={120}
             placeholder="Ej. atracción"
+            list={contentTypes.length > 0 ? "sugerencias-tipo-detalle" : undefined}
           />
+          {contentTypes.length > 0 ? (
+            <datalist id="sugerencias-tipo-detalle">
+              {contentTypes.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+          ) : null}
         </label>
         <label className="block space-y-1.5">
           <span className="block text-sm font-medium text-ink">Formato</span>

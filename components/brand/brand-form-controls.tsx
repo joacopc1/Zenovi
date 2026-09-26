@@ -15,6 +15,7 @@ export function TextField({
   hint,
   placeholder,
   maxLength,
+  suggestions,
 }: {
   label: string;
   value: string;
@@ -22,7 +23,13 @@ export function TextField({
   hint?: string;
   placeholder?: string;
   maxLength?: number;
+  /** Valores que ya se usaron antes; el campo sigue siendo libre. */
+  suggestions?: readonly string[];
 }) {
+  // El id se deriva de la etiqueta para que dos campos con sugerencias en la misma
+  // pantalla no compartan lista, y sin useId, que cambiaría entre servidor y cliente.
+  const listId = suggestions?.length ? `sugerencias-${slug(label)}` : undefined;
+
   return (
     <label className="block space-y-1.5">
       <span className={LABEL_CLASS}>{label}</span>
@@ -33,9 +40,26 @@ export function TextField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        list={listId}
       />
+      {listId ? (
+        <datalist id={listId}>
+          {suggestions?.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
+}
+
+function slug(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 export function TextArea({
