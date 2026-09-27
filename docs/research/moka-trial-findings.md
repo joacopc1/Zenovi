@@ -101,6 +101,101 @@ Trial Reels es una función nativa de Instagram: una pieza se distribuye primero
 
 El Loom revisado no confirma una función para subir manualmente un Reel propio a Moka. Sí confirma carga manual de ventas y asociación con una pieza de contenido. Por ahora, la carga manual de video debe mantenerse como fallback propuesto para Zenovi y no como función copiada o verificada de Moka.
 
+## Inventario de la vista de un Reel (2026-09-27)
+
+Observado en el Loom "Mi sistema de contenido (Moka por dentro)". Es lo que Moka muestra
+al abrir una pieza, marcado contra lo que tiene Zenovi hoy.
+
+### Lo que Moka tiene y Zenovi ya tiene
+
+- Views, alcance, engagement (interacciones/views) y watch time promedio.
+- Retención como tiempo medio sobre duración. Moka la marca **"estimada"**, y hace bien:
+  no es una curva de retención real, es un promedio dividido por la duración.
+- Rendimiento de la pieza contra el resto — su "4.5x", nuestro multiplicador.
+- Interacciones vs. benchmark con la diferencia en por ciento. **Agregado el 2026-09-27**
+  a partir de estas capturas: antes Zenovi comparaba sólo dos métricas y sin el "57% más
+  alto", que es como el mercado lo lee.
+- Ratios clave (interacciones/views, saves/views).
+
+### Lo que Moka tiene y Zenovi no
+
+- [ ] **Curva de views por día de la pieza.** Moka dibuja el arco completo desde que se
+  publicó. Zenovi guarda snapshots diarios desde el 2026-09-24, así que para piezas
+  anteriores no existe ese histórico y no se puede reconstruir: Meta no lo entrega.
+- [ ] **Benchmark con ventana de 90 días** ("vs benchmark 90d"). Zenovi compara contra la
+  mediana de todo lo que hay. Una ventana móvil refleja mejor la cuenta de hoy, sobre todo
+  si creció.
+- [ ] **Views por día de semana**, en radar, con "día con más views". Necesita el histórico
+  diario por pieza que recién se está juntando.
+- [ ] **Abandono promedio** en segundos (duración menos tiempo medio visto). Es una resta
+  de datos que ya tenemos.
+- [ ] **Filtro Reel / Trial reel / Todos** en la biblioteca. Lo consiguen raspando (ver
+  abajo); la API no expone los Trial Reels.
+- [ ] **Filtro orgánico / pagado** y monto invertido por pieza. Requiere la API de Ads.
+- [ ] **Resumen del conjunto** ("88 reels": totales de views, likes, guardados, comentarios
+  y un anillo de engagement).
+- [ ] **Ordenar la biblioteca por métrica** con dirección (mayor→menor).
+
+### El análisis de IA de Moka, sección por sección
+
+Lo que muestra su "Análisis MokaAI", para tener el techo contra el que compararse:
+
+- [ ] **Transcripción con marcas de tiempo y etiquetas** por tramo: `HOOK 0:00`,
+  `DEVELOPMENT 0:06`, `CTA 1:48`. No es un bloque de texto: cada párrafo va rotulado con
+  su función y su minuto.
+- [ ] **Narrativa y estructura**: hook textual, un párrafo que describe cómo se desarrolla,
+  la **promesa central** en una frase, el **CTA detectado** y una etiqueta de tema.
+- [ ] **Análisis visual**: formato (talking head), tipo de plano, escena (interior),
+  orientación, cantidad de personas, si la cara está visible, el **texto en pantalla**, una
+  descripción del **primer frame** y del fondo.
+- [ ] **Tono de voz y delivery**: etiquetas (educativo, informal, rápido), descripción del
+  tipo de voz y **velocidad estimada en palabras por minuto**.
+- [ ] **Insights y potencial viral**: un veredicto (alto/medio/bajo) con su fundamento, y
+  fortalezas.
+- [ ] **Re-analizar** a demanda.
+- [ ] **Chat sobre la pieza** ("Pregúntale a Moka").
+
+### Cómo consiguen lo que la API no da
+
+En el bloque de retención, la duración del Reel aparece marcada como **"Apify / DB"**.
+Apify es una plataforma de scraping: esos datos no salen de la Graph API, los raspan. Eso
+explica los Trial Reels y la duración del video.
+
+Zenovi obtiene la duración leyendo el archivo de video en el navegador, que no cuesta nada
+ni depende de un tercero, así que **por ese dato no hace falta raspar**.
+
+### Trial Reels: por qué raspar no alcanza, y por qué igual importa
+
+La etiqueta "Apify / DB" está junto a la **duración**, no junto al filtro de Trial Reels, así
+que no prueba de dónde salen los segundos. Y hay un motivo estructural para dudarlo: **un
+Trial Reel no aparece en el perfil ni en la pestaña de Reels** —se le muestra sólo a quien
+no sigue a la cuenta—, así que raspar un perfil público no los devolvería nunca. La única
+vista donde el creador los ve es la suya, dentro de la app de Instagram.
+
+Eso convierte el scraping de Trial Reels en un problema distinto del resto:
+
+| Camino | Qué se arriesga |
+|---|---|
+| Raspar perfiles públicos | Los términos de la plataforma. El riesgo es de Zenovi: bloqueo de IPs, y de la app si Meta lo detecta. |
+| Raspar con la sesión del creador | Los términos **y la cuenta del usuario**: Instagram suspende cuentas con automatización sobre su sesión. |
+
+El segundo es el que haría falta, y es inaceptable para una herramienta que le pide a alguien
+conectar su Instagram: no se arriesga la app, se arriesga al cliente.
+
+**Pero el problema no se puede ignorar** (Joaco, 2026-09-27): *las marcas personales están
+usando muchísimo los Trial Reels hoy*. Si una cuenta publica la mitad de su contenido como
+prueba y Zenovi no los distingue, pasan dos cosas, las dos malas: el benchmark del formato
+se corre —un Trial Reel se muestra sólo a no seguidores, así que su alcance y sus
+interacciones no son comparables— y el creador ve veredictos sobre piezas que ni siquiera
+buscaban el mismo resultado.
+
+- [ ] **Probar el camino de Facebook Login**, que es una superficie más rica y sí soporta
+  introspección. La sonda está escrita (`scripts/probe-trial-reels-facebook.mjs`); falta el
+  token. Es el único camino limpio que queda sin agotar.
+- [ ] **Si ese camino falla**, la alternativa honesta es que el creador marque la pieza como
+  prueba a mano. Es trabajo manual, pero acá sí se justifica: sin esa marca el benchmark
+  miente, y una marca por pieza es más barata que un número equivocado.
+
 ## Próximas evidencias necesarias
 
 - Confirmar si requiere página de Facebook y cuenta Business o acepta Creator.

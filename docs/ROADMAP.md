@@ -63,7 +63,7 @@ Objetivo: confirmar que existe un problema urgente, un comprador claro y una pro
 
 - [ ] Construir mapa de categorías: analytics, content OS, AI strategist, trend discovery, social listening y attribution.
 - [ ] Auditar Moka con una cuenta profesional elegible.
-- [ ] Completar inventario funcional de Moka.
+- [-] Completar inventario funcional de Moka: la vista de un Reel está inventariada sección por sección en `research/moka-trial-findings.md` (2026-09-27), con lo que Zenovi ya tiene, lo que le falta y las siete secciones de su análisis de IA. Faltan las vistas de Competencia, Tu audiencia, Ventas y Mesa de trabajo.
 - [x] Confirmar en el Loom el flujo de competencia de Moka: `@`, rastreo periódico, Trial Reels, transcripción y análisis IA.
 - [ ] Determinar la fuente/proveedor de datos públicos que utiliza Moka para competencia.
 - [ ] Evaluar términos, riesgo legal, estabilidad y costo de recopilar contenido público de competidores.
@@ -283,7 +283,7 @@ Objetivo: base productiva antes de features.
 
 - [x] **Objeto de contenido único** (`content_items`) con `estado` (pipeline: idea → listo para grabar → editando → listo para publicar → publicado), `título`, `tipo de contenido` (corte, transaccional, etc.), `fecha objetivo`, `link de referencia`, `formato`, y `guion` como campo estructurado (hook/desarrollo/CTA). Validado contra el sistema de Moka: la idea es la card en estado "idea"; el guion se llena al avanzar. No hay dos listas separadas.
 - [x] Kanban: pipeline por `estado`, arrastrando la card a la siguiente etapa. Es la vista principal. Cada columna mantiene una zona de drop del alto de cuatro o cinco tarjetas y hace scroll por dentro a partir de ahí: una columna con veinte ideas estiraría la página y dejaría a las otras tres en el aire. "Publicada" muestra sólo lo de los últimos 14 días; lo anterior baja a un historial en lista debajo del tablero, porque una columna que guarda todo lo publicado desde siempre deja de servir a los seis meses. Requiere `content_items.published_at` (migración 20260926120000): `target_date` es el plan y `updated_at` se mueve con cualquier edición, así que ninguna de las dos dice cuándo salió la pieza.
-- [x] Calendario: la línea de tiempo real de la cuenta. Cada pieza lleva un punto del color de su estado, con una referencia al pie, y se ubica **por el día en que salió** y no por el que se había planificado: una pieza prevista para el miércoles y publicada el sábado ocurrió el sábado, y ponerla el miércoles sería mostrar el plan como si fuera lo que pasó. Además muestra **las publicaciones reales de Instagram** que nunca pasaron por el tablero, en punteado y con su formato; sin eso el calendario contestaba mal la pregunta más obvia que se le hace —"¿qué subí y cuándo?"—, porque lo que el creador publicó sin anotarlo en Zenovi no existía. Las que ya reclamó una pieza del tablero no se repiten. Debajo del calendario vive el semáforo de cadencia: los dos hablan del ritmo en el tiempo. El aviso de publicaciones sin registrar queda en el pipeline, que es donde se actúa sobre ellas. Lo publicado se apaga —texto en gris y sin fondo— porque ya salió y no compite con lo que falta hacer. Los colores son los mismos del pipeline: quien aprende que el verde es "publicada" en el tablero no lo vuelve a aprender acá.
+- [x] Calendario: la línea de tiempo real de la cuenta. Cada pieza lleva un punto del color de su estado, con una referencia al pie, y se ubica **por el día en que salió** y no por el que se había planificado: una pieza prevista para el miércoles y publicada el sábado ocurrió el sábado, y ponerla el miércoles sería mostrar el plan como si fuera lo que pasó. Además muestra **las publicaciones reales de Instagram** que nunca pasaron por el tablero, en punteado y con su formato; sin eso el calendario contestaba mal la pregunta más obvia que se le hace —"¿qué subí y cuándo?"—, porque lo que el creador publicó sin anotarlo en Zenovi no existía. Las que ya reclamó una pieza del tablero no se repiten. Se puede **arrastrar una pieza a otro día** para replanificarla —mover de día no cambia el estado, y una pieza publicada no se puede mover porque su lugar es el día en que salió de verdad—, y **tocar un día** carga una pieza nueva ya fechada ahí, en vez de abrir el formulario para después elegir la fecha a mano. Un día con más de tres piezas resume con "+N más" para que la grilla no se deforme. Debajo del calendario vive el semáforo de cadencia: los dos hablan del ritmo en el tiempo. El aviso de publicaciones sin registrar queda en el pipeline, que es donde se actúa sobre ellas. Lo publicado se apaga —texto en gris y sin fondo— porque ya salió y no compite con lo que falta hacer. Los colores son los mismos del pipeline: quien aprende que el verde es "publicada" en el tablero no lo vuelve a aprender acá.
 - [ ] Guardar desde el Director IA: "agregá esta idea a producción" crea la card en estado "idea", con el porqué de por qué es ganadora (origen: métricas propias, competidores, concepto propio).
 - [ ] **Llevar una pieza al Director** (2026-09-27, idea de Joaco): el camino inverso, y el que más se va a usar. Desde una pieza del tablero —una idea suelta o un guion ya escrito— un botón la abre en el Director con su contexto cargado, para desarrollarla ahí. Es distinto de marcar de dónde salió la pieza: esto es una acción, no una procedencia. **Bloqueado**: la ruta `/director` no existe todavía —la barra lateral la enlaza y no hay página— así que cualquier botón hacia allá lleva a la nada. El campo `content_items.source` ya distingue `manual` de `director` y nadie lo escribe con `director`, porque nada puede originar una pieza desde la IA todavía.
 - [x] Carga manual: alcanza con un título o con un link de referencia; una idea se guarda con lo que haya a mano.
@@ -342,6 +342,71 @@ tokens, multimedia y costo total" y "Diseñar tabla provisional de créditos").
 
 - [x] **Reconciliar lo publicado con el tablero** (2026-09-26): debajo del pipeline, una línea plegada avisa "publicaste N piezas que no están en el tablero", leído de Instagram. Son dos olvidos distintos con el mismo síntoma —la idea estaba anotada y nadie movió la tarjeta, o la pieza nunca se planificó—, así que hay dos salidas por publicación: **"Es una idea mía"**, que la enlaza con la pieza del tablero que mejor coincide por texto (sólo se ofrecen las no publicadas, sin vínculo y del mismo formato), o **"Registrar"**, que crea la pieza ya publicada y atada. El color vive sólo en el ícono: un bloque entero teñido se lee como una falla, y esto no lo es —son piezas que salieron bien y que al tablero le falta saber—. Al enlazar, la fecha de publicación pasa a ser **la del video** y no la del día que se movió la tarjeta, que puede ser días después. Una publicación sin caption se nombra "Reel del 31 de agosto" en vez de "Sin título", que repetido cuatro veces no se reconoce.
 
+### Cómo consigue Moka lo que la API no da (2026-09-27)
+
+De las capturas del Loom que pasó Joaco, una etiqueta lo resuelve: en el bloque de
+retención, la **Duración** del Reel aparece marcada como **"Apify / DB"**. Apify es una
+plataforma de scraping. O sea: Moka no saca esos datos de la Graph API, los **raspa**.
+
+Eso contesta la pregunta abierta de los Trial Reels —Moka los filtra en su biblioteca
+("Reel / Trial reel / Todos") y la API no los expone— y también de dónde saca la duración
+del video, que tampoco viene por la API.
+
+- [ ] **Decidir si Zenovi raspa o no.** Es una decisión de riesgo, no técnica: implica los
+  términos de la plataforma, estabilidad —un cambio de HTML rompe el dato— y costo por
+  pedido. Hoy Zenovi obtiene la duración leyendo el archivo de video en el navegador, que
+  no cuesta nada y no depende de nadie, pero sólo funciona con la pieza abierta.
+- Otras cosas que Moka muestra y necesitan datos que no tenemos: **orgánico vs pagado**
+  (requiere la API de Ads) y **views por día de semana por pieza** (requiere histórico
+  diario por pieza; Zenovi lo empezó a guardar el 2026-09-24).
+
+### Qué métricas da Meta por pieza (2026-09-27)
+
+Sondeado contra la API real, formato por formato (`npm run probe:metrics`). Importa porque
+decide qué puede contestar Zenovi sobre una pieza y qué no.
+
+- **Publicaciones del feed (imagen y carrusel)** aceptan tres métricas que no
+  sincronizábamos y que son las que dicen si la pieza **hizo crecer la marca**, no sólo si
+  se vio: `follows` (seguidores ganados desde esa pieza), `profile_visits` y
+  `profile_activity`. Ya se agregaron a la sincronización.
+- **Los Reels las rechazan**: *"The Media Insights API does not support the follows metric
+  for this media product type"*. Para un Reel no hay atribución de crecimiento por pieza, y
+  la regla del MVP es no inventarla por cercanía temporal ni por ranking. Es una asimetría
+  incómoda —el Reel es el motor de crecimiento de una marca personal— y hay que decirla en
+  pantalla en vez de disimularla.
+- **No existen** para ninguno de los dos: `link_clicks`, `impressions`, `navigation`,
+  `total_views`, `total_likes`, `total_comments`, `facebook_views`, `crossposted_views`,
+  `replies`. Estaban en la lista de valores válidos que devuelve el error de la API, pero
+  la pieza las rechaza igual.
+- Medido sobre @elcostarrica, que es una cuenta chica: las tres nuevas dieron 0 en todas
+  las piezas. La API las acepta; falta una cuenta con actividad real para ver si el número
+  significa algo.
+- [ ] **Decidir cómo se muestra la asimetría** en la vista detallada: hoy hay una card
+  "Ventas · Próximamente" que ocupa ese lugar. Para una publicación se puede decir
+  "te trajo N seguidores"; para un Reel hay que decir que Meta no lo entrega.
+
+### El objetivo de la pieza: probado y retirado (2026-09-27)
+
+Se implementó y se sacó el mismo día, con la migración
+`20260927120000_drop_content_items_objective.sql`. Queda anotado para no volver a
+proponerlo sin haber resuelto lo que lo tumbó.
+
+**Qué hacía**: la pieza declaraba para qué se hizo —vistas, interacciones, guardados o
+compartidos— y eso decidía contra qué métrica se la juzgaba. Funcionaba: sobre la misma
+publicación daba ×0,83 por visualizaciones, ×1,00 por interacciones y "sin base para
+comparar" por guardados, porque ninguna pieza de la cuenta tenía guardados.
+
+**Por qué se retira** (decisión de Joaco):
+
+1. **El objetivo real de un creador suele ser seguidores o ventas**, y los cuatro que se
+   podían ofrecer eran proxys. Seguidores por pieza sólo existe en el feed, no en Reels;
+   ventas necesita un CRM que no está y es carga manual de la persona. Elegir "que la
+   guarden" cuando lo que se quería era crecer no ayuda a nadie.
+2. **Alarga cargar una idea**, que es lo que más rápido tiene que ser.
+
+**Qué haría falta para retomarlo**: que exista el CRM (para ventas) o que se acepte la
+asimetría Reel/publicación de `follows` y se explique en pantalla.
+
 ### Trial Reels: se pueden crear, falta saber si se pueden reconocer (2026-09-26)
 
 Un Trial Reel se muestra sólo a quien no te sigue y después "gradúa" al perfil, a mano o
@@ -369,6 +434,29 @@ Sondeado contra la API real con el token de @elcostarrica (`npm run probe:trial`
   venció el 3 de septiembre. **Condición para desbloquear**: un token nuevo de Facebook
   sobre una cuenta Business vinculada a una Página. Hasta correrla, "no se pueden ver los
   Trial Reels" es una afirmación sobre nuestro camino, no sobre la plataforma.
+- **Urgencia (Joaco, 2026-09-27)**: las marcas personales están usando muchísimo los Trial
+  Reels ahora mismo. Si media cuenta son pruebas y Zenovi no las distingue, el benchmark del
+  formato queda corrido —un Trial Reel se muestra sólo a no seguidores, así que su alcance y
+  sus interacciones no son comparables— y el creador recibe veredictos sobre piezas que
+  buscaban otra cosa. Deja de ser una mejora y pasa a ser una fuente de error.
+- **El scraping no resuelve esto**: un Trial Reel no aparece en el perfil ni en la pestaña
+  de Reels, sólo se le muestra a quien no sigue la cuenta. La única vista donde existen es
+  la del propio creador dentro de la app, así que raspar exigiría automatizar sobre su
+  sesión, y eso pone en riesgo la cuenta del cliente —no la app—. Descartado salvo decisión
+  explícita.
+- **Dónde van los Trial Reels cuando se puedan reconocer** (decisión de Joaco, 2026-09-27):
+  **en ningún lado donde estén los demás.** Ni en el benchmark del formato, ni en la
+  biblioteca mezclados, ni en el panel de Analíticas de la barra lateral. Tienen su propia
+  vista de detalle y se evalúan con su propia vara. Los motivos son de cómo se usan, no de
+  prolijidad:
+  - **Le hablan sólo a no seguidores**, así que su alcance e interacciones no son
+    comparables con los de una pieza que ve toda la audiencia.
+  - **Duran tres a siete días y después se borran**, si no funcionaron o si pasan al feed.
+    Un dato que desaparece no puede sostener una tendencia ni un promedio.
+  - **Se sube el mismo video varias veces** con distinto formato, subtítulo o portada. Tres
+    filas del mismo contenido inflan cualquier conteo y no representan tres piezas.
+  - Conclusión: un Trial Reel es un experimento, y un experimento se lee contra los otros
+    experimentos, no contra lo publicado.
 - **Por qué importa esa respuesta antes que cualquier otra cosa**: si por algún camino se
   leen, Zenovi los reconoce solo y no hay nada que pedirle al creador. Pedirle que marque
   la pieza a mano es trabajo manual a cambio de nada visible, así que sólo tendría sentido
