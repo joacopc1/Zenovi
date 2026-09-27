@@ -33,10 +33,13 @@ import type { PublishedPiece } from "@/lib/production/reconcile";
 export function ProductionCalendar({
   items,
   published,
+  claimed,
   onOpen,
 }: {
   items: ContentItem[];
   published: PublishedPiece[];
+  /** Publicaciones que ya tiene alguna pieza del tablero, filtrada o no. */
+  claimed: ReadonlySet<string>;
   onOpen: (id: string) => void;
 }) {
   const today = new Date();
@@ -56,7 +59,6 @@ export function ProductionCalendar({
 
   // Las publicaciones que ya reclamó una pieza del tablero no se repiten: esa pieza ya
   // está en la grilla, con su nombre y su estado, que dice más que la publicación suelta.
-  const claimed = new Set(items.map((item) => item.linkedMediaId).filter(Boolean));
   const publishedByDate = new Map<string, PublishedPiece[]>();
 
   for (const piece of published) {

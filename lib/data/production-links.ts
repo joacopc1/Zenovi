@@ -185,5 +185,11 @@ export async function autoLinkPublishedPiece(itemId: string): Promise<void> {
 
   if (!match) return;
 
-  await supabase.from("content_items").update({ linked_media_id: match.id }).eq("id", item.id);
+  // La fecha real es la del video, no la del momento en que se movió la tarjeta. El
+  // camino manual ya lo hacía; si acá no, la pieza caía en el calendario el día del
+  // arrastre, que es justo lo que `calendarDateOf` promete no hacer.
+  await supabase
+    .from("content_items")
+    .update({ linked_media_id: match.id, published_at: match.postedAt })
+    .eq("id", item.id);
 }

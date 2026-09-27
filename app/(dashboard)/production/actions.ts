@@ -193,6 +193,25 @@ export async function updateContentItem(
 
   const item = result.value;
   const supabase = await createClient();
+
+  // Cambiar el formato rompe el vínculo con la publicación: el rendimiento se calcula
+  // contra la mediana del formato de la pieza, así que al pasar de Reel a Historia la
+  // publicación quedaba fuera de ese grupo —sin veredicto, sin candidatas y sin botón
+  // para soltarla— y encima seguía reservada para cualquier otra pieza.
+  const { data: current } = await supabase
+    .from("content_items")
+    .select("format, linked_media_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  // Sólo el vínculo: la pieza sigue publicada y con su fecha, porque eso lo afirmó el
+  // creador. Lo que deja de valer es a qué video apunta, y el panel vuelve a ofrecerle
+  // candidatas, ahora del formato nuevo.
+  const suelta =
+    current?.linked_media_id != null && current.format !== item.format
+      ? { linked_media_id: null }
+      : {};
+
   const { error } = await supabase
     .from("content_items")
     .update({
@@ -204,6 +223,7 @@ export async function updateContentItem(
       hook: item.hook,
       development: item.development,
       cta: item.cta,
+      ...suelta,
     })
     .eq("id", id);
 

@@ -56,7 +56,10 @@ export function recentlyPublished(
   now: Date,
   horizon: number = PLANNING_HORIZON_DAYS,
 ): { count: number; daysSinceLast: number | null } {
-  const since = addDays(now, -horizon).getTime();
+  // `horizon - 1`: hacia adelante se cuentan hoy y los seis que siguen, así que hacia
+  // atrás tienen que ser hoy y los seis anteriores. Con `-horizon` la ventana medía ocho
+  // días contra siete y "vas al día" aparecía con el creador atrasado.
+  const since = addDays(now, -(horizon - 1)).getTime();
   const rhythmSince = addDays(now, -RHYTHM_WEEKS * 7).getTime();
   let count = 0;
   let latest: number | null = null;
@@ -70,7 +73,9 @@ export function recentlyPublished(
 
   return {
     count,
-    daysSinceLast: latest === null ? null : Math.floor((now.getTime() - latest) / 86_400_000),
+    // En días de calendario y no en horas: lo de ayer a las nueve de la noche es de ayer,
+    // aunque hayan pasado trece horas.
+    daysSinceLast: latest === null ? null : calendarDaysBetween(latest, now),
   };
 }
 
@@ -136,6 +141,15 @@ export function readCadence(
     // cuando hoy publicó dos sería contarle la semana desde cero.
     missing: expected === null ? null : Math.max(0, expected - planned.length - published),
   };
+}
+
+/** Días de calendario entre dos instantes, mirando el día y no las horas. */
+function calendarDaysBetween(from: number, to: Date): number {
+  const a = new Date(from);
+  const start = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const end = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+
+  return Math.round((end - start) / 86_400_000);
 }
 
 /** Un guion empieza a existir cuando hay hook o desarrollo; el CTA solo no alcanza. */

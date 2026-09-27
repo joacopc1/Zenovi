@@ -182,3 +182,19 @@ test("una publicación futura no cuenta como ya salida", () => {
   assert.equal(recentlyPublished([futura], AHORA).count, 0);
   assert.equal(recentlyPublished([futura], AHORA).daysSinceLast, null);
 });
+
+test("la ventana hacia atrás mide los mismos días que la de adelante", () => {
+  // Con una ventana de 8 contra 7, lo de hace exactamente una semana contaba dos veces y
+  // "vas al día" aparecía con el creador atrasado.
+  assert.equal(recentlyPublished([haceDias(6)], AHORA).count, 1);
+  assert.equal(recentlyPublished([haceDias(7)], AHORA).count, 0);
+});
+
+test("daysSinceLast cuenta días de calendario, no horas", () => {
+  const anoche = new Date(AHORA.getFullYear(), AHORA.getMonth(), AHORA.getDate() - 1, 21, 0, 0);
+  // Trece horas atrás, pero fue ayer.
+  assert.equal(recentlyPublished([anoche.toISOString()], AHORA).daysSinceLast, 1);
+
+  const hoyTemprano = new Date(AHORA.getFullYear(), AHORA.getMonth(), AHORA.getDate(), 1, 0, 0);
+  assert.equal(recentlyPublished([hoyTemprano.toISOString()], AHORA).daysSinceLast, 0);
+});

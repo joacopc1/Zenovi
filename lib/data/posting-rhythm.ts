@@ -35,7 +35,10 @@ export async function getRecentPublications(workspaceId: string): Promise<Publis
     .from("instagram_media")
     .select("id, posted_at, caption, thumbnail_url, media_url, media_type, media_product_type")
     .eq("social_account_id", account)
-    .neq("media_product_type", "STORY")
+    // `neq` sola descarta también las filas con el tipo en NULL —en SQL, NULL <> 'STORY'
+    // no es verdadero—, y el sync guarda NULL cuando Instagram no lo manda. Contenido las
+    // trata como publicaciones, así que acá tienen que contar igual.
+    .or("media_product_type.is.null,media_product_type.neq.STORY")
     .gte("posted_at", since)
     .order("posted_at", { ascending: false });
 

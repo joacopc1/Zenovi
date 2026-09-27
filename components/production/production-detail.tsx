@@ -46,12 +46,16 @@ export function ProductionDetail({
   const index = CONTENT_PIPELINE.indexOf(item.status);
 
   useEffect(() => {
+    // Mientras el modo grabación está abierto, Escape le pertenece a él: los dos escuchan
+    // en la ventana, y sin esto una sola tecla cerraba el apuntador y el panel de atrás.
+    if (recording) return;
+
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, recording]);
 
   const move = (direction: "back" | "forward") => {
     startTransition(async () => {

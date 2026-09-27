@@ -262,3 +262,20 @@ test("con tipos propios los de arranque desaparecen", () => {
   // Ver los propios perdidos entre siete ajenos es peor que no ver sugerencias.
   assert.deepEqual(contentTypeSuggestions(["mi categoría"]), ["mi categoría"]);
 });
+
+test("sanitizeContentItem sólo acepta fechas YYYY-MM-DD que existan", () => {
+  const conFecha = (targetDate) => {
+    const result = sanitizeContentItem({ title: "Una pieza", targetDate });
+    return result.ok ? result.value.targetDate : "ERROR";
+  };
+
+  assert.equal(conFecha("2026-09-30"), "2026-09-30");
+  // "5/9/2026" pasaba y Postgres la guardaba como 9 de mayo: la pieza aparecía en un día
+  // que nadie eligió.
+  assert.equal(conFecha("5/9/2026"), null);
+  assert.equal(conFecha("Sep 5 2026"), null);
+  assert.equal(conFecha("2026-02-30"), null, "el 30 de febrero no existe");
+  assert.equal(conFecha("2026-13-01"), null, "no hay mes 13");
+  assert.equal(conFecha(""), null);
+  assert.equal(conFecha(null), null);
+});

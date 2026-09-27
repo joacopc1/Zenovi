@@ -328,10 +328,26 @@ function sanitizeText(value: unknown, maxLength: number): string {
   return value.trim().slice(0, maxLength);
 }
 
+/**
+ * Una fecha sólo si es "YYYY-MM-DD" y además existe.
+ *
+ * Aceptar cualquier cosa que `new Date` entienda es peor que rechazarla: "5/9/2026" pasa,
+ * se guarda tal cual y Postgres la lee como 9 de mayo, así que la pieza aparece en un día
+ * que nadie eligió. Y el 30 de febrero hay que descartarlo comparando contra la fecha que
+ * se construye, porque el mes desborda al 2 de marzo en silencio.
+ */
 function sanitizeDate(value: unknown): string | null {
-  if (typeof value !== "string" || value === "") return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : value.slice(0, 10);
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  const existe =
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day;
+
+  return existe ? value : null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

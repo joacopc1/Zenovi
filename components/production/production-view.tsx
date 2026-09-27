@@ -35,7 +35,7 @@ export function ProductionView({
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
-  const [type, setType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const openItem = items.find((item) => item.id === openId) ?? null;
 
   // El tablero se queda con lo que está en curso y con lo que salió hace poco; lo viejo
@@ -43,15 +43,26 @@ export function ProductionView({
   const { recent, older } = splitRecentlyPublished(
     items.filter((item) => item.status === "publicada"),
   );
+  const ownTypes = collectContentTypes(items).map((entry) => entry.value);
+  const contentTypes = contentTypeSuggestions(ownTypes);
+  // Derivado y no guardado: si el tipo filtrado deja de existir —se borró la última pieza
+  // que lo usaba, o se le cambió el nombre—, los chips desaparecen y el filtro tiene que
+  // soltarse solo. Guardándolo en el estado, el tablero quedaba vacío sin nada que tocar.
+  const type = ownTypes.some((own) => matchesContentType({ contentType: own }, selectedType ?? ""))
+    ? selectedType
+    : null;
+
   // El filtro cambia el tablero y el calendario, no el semáforo ni el historial: el ritmo
   // de publicación y lo que ya salió son de la cuenta entera, no de una categoría.
   const shown = type === null ? items : items.filter((item) => matchesContentType(item, type));
   const recentIds = new Set(recent.map((item) => item.id));
+  // Sobre todas las piezas, no sobre las que el filtro deja ver: una publicación ya
+  // registrada sigue estándolo aunque su pieza esté escondida.
+  const claimedMediaIds = new Set(
+    items.map((item) => item.linkedMediaId).filter((id): id is string => id !== null),
+  );
   const boardItems = shown.filter(
     (item) => item.status !== "publicada" || recentIds.has(item.id),
-  );
-  const contentTypes = contentTypeSuggestions(
-    collectContentTypes(items).map((entry) => entry.value),
   );
   const cadence = readCadence(
     items,
@@ -99,7 +110,7 @@ export function ProductionView({
       </div>
 
       {items.length > 0 ? (
-        <ContentTypeFilter items={items} active={type} onChange={setType} />
+        <ContentTypeFilter items={items} active={type} onChange={setSelectedType} />
       ) : null}
 
       <div className="mt-6">
@@ -114,7 +125,12 @@ export function ProductionView({
             onCreate={(guion) => setCreateGuion(guion)}
           />
         ) : (
-          <ProductionCalendar items={shown} published={published} onOpen={setOpenId} />
+          <ProductionCalendar
+            items={shown}
+            published={published}
+            claimed={claimedMediaIds}
+            onOpen={setOpenId}
+          />
         )}
       </div>
 

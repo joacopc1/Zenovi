@@ -205,8 +205,13 @@ export function ProductionTeleprompter({
 
 function readStoredSpeed(): number {
   try {
-    const stored = Number(window.localStorage.getItem(SPEED_KEY));
-    if (Number.isInteger(stored) && stored >= 0 && stored < SCROLL_SPEEDS.length) return stored;
+    // `Number(null)` es 0, que pasa todas las guardas: sin este corte, la primera vez
+    // arrancaba en la velocidad más lenta en vez de la del medio.
+    const raw = window.localStorage.getItem(SPEED_KEY);
+    if (raw !== null) {
+      const stored = Number(raw);
+      if (Number.isInteger(stored) && stored >= 0 && stored < SCROLL_SPEEDS.length) return stored;
+    }
   } catch {
     // Sin almacenamiento disponible se arranca en la velocidad media.
   }
