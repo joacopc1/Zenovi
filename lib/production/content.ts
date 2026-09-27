@@ -1,3 +1,6 @@
+import { foldText } from "../text/fold.ts";
+import { isContentObjective, type ContentObjective } from "./objective.ts";
+
 export const CONTENT_STATUSES = ["idea", "guion", "produccion", "publicada"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 
@@ -119,13 +122,9 @@ export function collectContentTypes(
     const value = item.contentType.trim();
     if (value.length === 0) continue;
 
-    const key = value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-    const found = byKey.get(key);
+    const found = byKey.get(foldText(value));
     if (found) found.count += 1;
-    else byKey.set(key, { value, count: 1 });
+    else byKey.set(foldText(value), { value, count: 1 });
   }
 
   return [...byKey.values()].sort(
@@ -135,14 +134,7 @@ export function collectContentTypes(
 
 /** ¿Esta pieza lleva este tipo? Misma comparación laxa que al agruparlos. */
 export function matchesContentType(item: { contentType: string }, type: string): boolean {
-  const normalize = (value: string) =>
-    value
-      .trim()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-
-  return normalize(item.contentType) === normalize(type);
+  return foldText(item.contentType.trim()) === foldText(type.trim());
 }
 
 /**
@@ -180,6 +172,7 @@ export function formatTargetDate(value: string, style: "short" | "long" = "long"
 export type ContentItemDraft = {
   title: string;
   contentType: string;
+  objective: ContentObjective | null;
   format: ContentFormat;
   status: ContentStatus;
   targetDate: string | null;
@@ -200,6 +193,7 @@ export function emptyContentItem(): ContentItemDraft {
   return {
     title: "",
     contentType: "",
+    objective: null,
     format: "reel",
     status: "idea",
     targetDate: null,
@@ -246,6 +240,7 @@ export function sanitizeContentItem(raw: unknown): ContentItemValidation {
   const value: ContentItemDraft = {
     title,
     contentType: sanitizeText(source.contentType, LIMITS.contentType),
+    objective: isContentObjective(source.objective) ? source.objective : null,
     format,
     status,
     targetDate: sanitizeDate(source.targetDate),

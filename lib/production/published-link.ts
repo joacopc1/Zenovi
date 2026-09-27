@@ -10,6 +10,7 @@
  * la parte que se puede equivocar en silencio: proponer una pieza de otro formato, una
  * que ya pertenece a otra idea, o dejar arriba la menos parecida.
  */
+import { foldWords } from "../text/fold.ts";
 import type { ContentKind } from "@/lib/content/library";
 import type { ContentFormat } from "@/lib/production/content";
 
@@ -93,7 +94,7 @@ export function textAffinity(
   const words = significantWords(pieceText);
   if (words.size === 0 || !caption) return { affinity: 0, matchedWords: 0 };
 
-  const published = normalize(caption);
+  const published = foldWords(caption);
   let matchedWords = 0;
   for (const word of words) {
     if (published.includes(word)) matchedWords += 1;
@@ -164,21 +165,11 @@ export function autoMatch<T extends Publishable>(candidates: readonly ScoredCand
 function significantWords(text: string): Set<string> {
   const words = new Set<string>();
 
-  for (const word of normalize(text).split(" ")) {
+  for (const word of foldWords(text).split(" ")) {
     if (word.length >= MIN_WORD_LENGTH && !FILLER_WORDS.has(word)) words.add(word);
   }
 
   return words;
-}
-
-/** Minúsculas, sin tildes y sin puntuación: "Guión #1, ¡ya!" y "guion 1 ya" son lo mismo. */
-function normalize(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
 }
 
 /**

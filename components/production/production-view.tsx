@@ -3,14 +3,8 @@
 import { useState } from "react";
 import { CalendarDays, Columns3, Plus } from "lucide-react";
 import type { ContentItem } from "@/lib/data/production";
-import {
-  collectContentTypes,
-  contentTypeSuggestions,
-  matchesContentType,
-  splitRecentlyPublished,
-} from "@/lib/production/content";
-import { readCadence } from "@/lib/production/cadence";
-import { unregisteredPublications, type PublishedPiece } from "@/lib/production/reconcile";
+import { buildProductionBoard } from "@/lib/production/board";
+import type { PublishedPiece } from "@/lib/production/reconcile";
 import { CadenceSignal } from "./cadence-signal";
 import { ContentTypeFilter } from "./content-type-filter";
 import { UnregisteredPublications } from "./unregistered-publications";
@@ -37,39 +31,7 @@ export function ProductionView({
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const openItem = items.find((item) => item.id === openId) ?? null;
-
-  // El tablero se queda con lo que está en curso y con lo que salió hace poco; lo viejo
-  // baja al historial. El calendario sigue recibiendo todo: ahí la fecha es el eje.
-  const { recent, older } = splitRecentlyPublished(
-    items.filter((item) => item.status === "publicada"),
-  );
-  const ownTypes = collectContentTypes(items).map((entry) => entry.value);
-  const contentTypes = contentTypeSuggestions(ownTypes);
-  // Derivado y no guardado: si el tipo filtrado deja de existir —se borró la última pieza
-  // que lo usaba, o se le cambió el nombre—, los chips desaparecen y el filtro tiene que
-  // soltarse solo. Guardándolo en el estado, el tablero quedaba vacío sin nada que tocar.
-  const type = ownTypes.some((own) => matchesContentType({ contentType: own }, selectedType ?? ""))
-    ? selectedType
-    : null;
-
-  // El filtro cambia el tablero y el calendario, no el semáforo ni el historial: el ritmo
-  // de publicación y lo que ya salió son de la cuenta entera, no de una categoría.
-  const shown = type === null ? items : items.filter((item) => matchesContentType(item, type));
-  const recentIds = new Set(recent.map((item) => item.id));
-  // Sobre todas las piezas, no sobre las que el filtro deja ver: una publicación ya
-  // registrada sigue estándolo aunque su pieza esté escondida.
-  const claimedMediaIds = new Set(
-    items.map((item) => item.linkedMediaId).filter((id): id is string => id !== null),
-  );
-  const boardItems = shown.filter(
-    (item) => item.status !== "publicada" || recentIds.has(item.id),
-  );
-  const cadence = readCadence(
-    items,
-    published.map((piece) => piece.postedAt),
-    new Date(),
-  );
-  const unregistered = unregisteredPublications(published, items);
+  const board = buildProductionBoard({ items, published, requestedType: selectedType });
 
   return (
     <div className="mt-6">
@@ -110,7 +72,7 @@ export function ProductionView({
       </div>
 
       {items.length > 0 ? (
-        <ContentTypeFilter items={items} active={type} onChange={setSelectedType} />
+        <ContentTypeFilter items={items} active={board.activeType} onChange={setSelectedType} />
       ) : null}
 
       <div className="mt-6">
@@ -118,7 +80,7 @@ export function ProductionView({
           <EmptyBoard onCreate={() => setCreateGuion(false)} />
         ) : view === "pipeline" ? (
           <ProductionPipeline
-            items={boardItems}
+            items={board.columns}
             links={links}
             openId={openId}
             onOpen={setOpenId}
@@ -126,20 +88,20 @@ export function ProductionView({
           />
         ) : (
           <ProductionCalendar
-            items={shown}
+            items={board.visible}
             published={published}
-            claimed={claimedMediaIds}
+            claimed={board.claimedMedia}
             onOpen={setOpenId}
           />
         )}
       </div>
 
       {items.length === 0 ? null : view === "calendar" ? (
-        <CadenceSignal reading={cadence} instagramConnected={instagramConnected} />
+        <CadenceSignal reading={board.cadence} instagramConnected={instagramConnected} />
       ) : (
         <>
-          <UnregisteredPublications publications={unregistered} items={items} />
-          <ProductionHistory items={older} links={links} onOpen={setOpenId} />
+          <UnregisteredPublications publications={board.unregistered} items={items} />
+          <ProductionHistory items={board.history} links={links} onOpen={setOpenId} />
         </>
       )}
 
@@ -148,7 +110,7 @@ export function ProductionView({
           item={openItem}
           candidates={links.candidates[openItem.id] ?? []}
           performance={links.performance[openItem.id] ?? null}
-          contentTypes={contentTypes}
+          contentTypes={board.typeSuggestions}
           onClose={() => setOpenId(null)}
         />
       ) : null}
@@ -156,7 +118,7 @@ export function ProductionView({
       {createGuion !== null ? (
         <NewContentItemDialog
           initialGuion={createGuion}
-          contentTypes={contentTypes}
+          contentTypes={board.typeSuggestions}
           onClose={() => setCreateGuion(null)}
         />
       ) : null}

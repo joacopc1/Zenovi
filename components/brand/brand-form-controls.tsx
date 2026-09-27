@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { slugify } from "@/lib/text/fold";
 
 const INPUT_CLASS =
   "w-full rounded-control border border-mist-strong bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted/60 transition-colors focus:border-graphite focus:outline-none";
@@ -28,7 +29,7 @@ export function TextField({
 }) {
   // El id se deriva de la etiqueta para que dos campos con sugerencias en la misma
   // pantalla no compartan lista, y sin useId, que cambiaría entre servidor y cliente.
-  const listId = suggestions?.length ? `sugerencias-${slug(label)}` : undefined;
+  const listId = suggestions?.length ? `sugerencias-${slugify(label)}` : undefined;
 
   return (
     <label className="block space-y-1.5">
@@ -51,15 +52,6 @@ export function TextField({
       ) : null}
     </label>
   );
-}
-
-function slug(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 export function TextArea({
