@@ -7,6 +7,7 @@ import { buildProductionBoard } from "@/lib/production/board";
 import type { PublishedPiece } from "@/lib/production/reconcile";
 import { CadenceSignal } from "./cadence-signal";
 import { ContentTypeFilter } from "./content-type-filter";
+import { ProductionSearch } from "./production-search";
 import { UnregisteredPublications } from "./unregistered-publications";
 import type { ProductionLinks } from "@/lib/data/production-links";
 import { ProductionPipeline } from "./production-pipeline";
@@ -29,9 +30,12 @@ export function ProductionView({
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
   const [openId, setOpenId] = useState<string | null>(null);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
+  const [createDate, setCreateDate] = useState<string | null>(null);
+  const [openEditing, setOpenEditing] = useState(false);
+  const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const openItem = items.find((item) => item.id === openId) ?? null;
-  const board = buildProductionBoard({ items, published, requestedType: selectedType });
+  const board = buildProductionBoard({ items, published, requestedType: selectedType, query });
 
   return (
     <div className="mt-6">
@@ -61,18 +65,37 @@ export function ProductionView({
           </button>
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setCreateGuion(false)}
-          className="mb-2 inline-flex h-9 items-center gap-1.5 rounded-control bg-ink px-4 text-sm font-semibold text-paper transition-opacity hover:opacity-90"
-        >
-          <Plus size={15} strokeWidth={1.75} aria-hidden="true" />
-          Nueva idea
-        </button>
+        <div className="mb-2 flex items-center gap-4">
+          {items.length > 0 ? (
+            <>
+              <ProductionSearch
+                query={query}
+                matches={board.matches}
+                links={links}
+                onQueryChange={setQuery}
+                onOpen={setOpenId}
+              />
+              <span aria-hidden="true" className="h-7 w-px bg-mist" />
+            </>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setCreateGuion(false)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-control bg-ink px-4 text-sm font-semibold text-paper transition-opacity hover:opacity-90"
+          >
+            <Plus size={15} strokeWidth={1.75} aria-hidden="true" />
+            Nueva idea
+          </button>
+        </div>
       </div>
 
       {items.length > 0 ? (
-        <ContentTypeFilter items={items} active={board.activeType} onChange={setSelectedType} />
+        <ContentTypeFilter
+          items={items}
+          active={board.activeType}
+          onChange={setSelectedType}
+          className="mt-4"
+        />
       ) : null}
 
       <div className="mt-6">
@@ -83,7 +106,14 @@ export function ProductionView({
             items={board.columns}
             links={links}
             openId={openId}
-            onOpen={setOpenId}
+            onOpen={(id) => {
+              setOpenEditing(false);
+              setOpenId(id);
+            }}
+            onEdit={(id) => {
+              setOpenEditing(true);
+              setOpenId(id);
+            }}
             onCreate={(guion) => setCreateGuion(guion)}
           />
         ) : (
@@ -92,6 +122,10 @@ export function ProductionView({
             published={published}
             claimed={board.claimedMedia}
             onOpen={setOpenId}
+            onCreateOn={(date) => {
+              setCreateDate(date);
+              setCreateGuion(false);
+            }}
           />
         )}
       </div>
@@ -111,15 +145,23 @@ export function ProductionView({
           candidates={links.candidates[openItem.id] ?? []}
           performance={links.performance[openItem.id] ?? null}
           contentTypes={board.typeSuggestions}
-          onClose={() => setOpenId(null)}
+          startEditing={openEditing}
+          onClose={() => {
+            setOpenEditing(false);
+            setOpenId(null);
+          }}
         />
       ) : null}
 
       {createGuion !== null ? (
         <NewContentItemDialog
           initialGuion={createGuion}
+          initialDate={createDate}
           contentTypes={board.typeSuggestions}
-          onClose={() => setCreateGuion(null)}
+          onClose={() => {
+            setCreateGuion(null);
+            setCreateDate(null);
+          }}
         />
       ) : null}
     </div>

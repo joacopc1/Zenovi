@@ -70,8 +70,8 @@ function Performance({
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
               <PerformanceBadge multiplier={performance.multiplier} />
               <p className="font-support text-[12px] leading-5 text-graphite">
-                {getPerformanceVerdict(performance.multiplier)} tu mediana de{" "}
-                {performance.metricLabel} en {performance.formatPlural}.
+                {getPerformanceVerdict(performance.multiplier)} la mediana de tus{" "}
+                {performance.formatPlural}.
               </p>
             </div>
           )}

@@ -20,15 +20,42 @@ test("buildMonthGrid arranca en lunes y cubre 42 celdas", () => {
   const grid = buildMonthGrid(2026, 8);
 
   assert.equal(grid.length, 42);
-  assert.equal(grid[0], null);
-  assert.equal(grid[1], 1);
-  assert.equal(grid[30], 30); // 30 de septiembre
+  assert.equal(grid[1].day, 1);
+  assert.equal(grid[1].iso, "2026-09-01");
+  assert.equal(grid[1].inMonth, true);
+  assert.equal(grid[30].day, 30);
 });
 
-test("buildMonthGrid rellena huecos al final", () => {
+test("los bordes son días reales del mes de al lado, no huecos", () => {
+  // Una semana partida al medio se lee mal, y lo que cae el 1 se planifica mirando la
+  // semana que lo rodea.
   const grid = buildMonthGrid(2026, 8);
-  assert.equal(grid[30], 30);
-  assert.equal(grid[31], null); // 30 sep es el último día de septiembre
+
+  assert.equal(grid[0].iso, "2026-08-31", "el lunes anterior al 1 de septiembre");
+  assert.equal(grid[0].inMonth, false);
+  assert.equal(grid[41].inMonth, false, "la última celda ya es de octubre");
+  assert.ok(grid.every((cell) => typeof cell.iso === "string"));
+});
+
+test("la grilla no repite ni saltea días", () => {
+  const grid = buildMonthGrid(2026, 1); // febrero, el mes corto
+  const fechas = grid.map((cell) => cell.iso);
+
+  assert.equal(new Set(fechas).size, 42, "sin repetidos");
+  for (let i = 1; i < fechas.length; i += 1) {
+    const anterior = new Date(`${fechas[i - 1]}T00:00:00Z`).getTime();
+    const actual = new Date(`${fechas[i]}T00:00:00Z`).getTime();
+    assert.equal(actual - anterior, 86_400_000, `salto entre ${fechas[i - 1]} y ${fechas[i]}`);
+  }
+});
+
+test("después del último día del mes sigue el primero del siguiente", () => {
+  const grid = buildMonthGrid(2026, 8);
+
+  assert.equal(grid[30].iso, "2026-09-30");
+  assert.equal(grid[30].inMonth, true);
+  assert.equal(grid[31].iso, "2026-10-01");
+  assert.equal(grid[31].inMonth, false);
 });
 
 test("monthTitle devuelve mes y año en español", () => {

@@ -6,15 +6,34 @@ export const CALENDAR_MONTHS = [
 ] as const;
 
 /** Grilla de 42 celdas (6 semanas), lunes primero. Devuelve días o null en los huecos. */
-export function buildMonthGrid(year: number, month: number): (number | null)[] {
-  const first = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const offset = (first.getDay() + 6) % 7; // lunes primero
-  const cells: (number | null)[] = [];
+/** Una celda de la grilla: siempre un día real, aunque sea del mes de al lado. */
+export type CalendarCell = {
+  iso: string;
+  day: number;
+  /** `false` cuando el día pertenece al mes anterior o al siguiente. */
+  inMonth: boolean;
+};
 
-  for (let i = 0; i < offset; i++) cells.push(null);
-  for (let day = 1; day <= daysInMonth; day++) cells.push(day);
-  while (cells.length < 42) cells.push(null);
+/**
+ * Grilla de 42 celdas (6 semanas), lunes primero.
+ *
+ * Las celdas de los bordes son los días reales del mes anterior y el siguiente, no huecos:
+ * una semana partida al medio se lee mal, y lo que cae el 1 o el 30 de un mes se planifica
+ * mirando también la semana que lo rodea.
+ */
+export function buildMonthGrid(year: number, month: number): CalendarCell[] {
+  const first = new Date(year, month, 1);
+  const offset = (first.getDay() + 6) % 7; // lunes primero
+  const cells: CalendarCell[] = [];
+
+  for (let index = 0; index < 42; index += 1) {
+    const date = new Date(year, month, 1 - offset + index);
+    cells.push({
+      iso: isoDateOf(date),
+      day: date.getDate(),
+      inMonth: date.getMonth() === month && date.getFullYear() === year,
+    });
+  }
 
   return cells;
 }

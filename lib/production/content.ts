@@ -1,5 +1,4 @@
-import { foldText } from "../text/fold.ts";
-import { isContentObjective, type ContentObjective } from "./objective.ts";
+import { foldText, foldWords } from "../text/fold.ts";
 
 export const CONTENT_STATUSES = ["idea", "guion", "produccion", "publicada"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
@@ -132,6 +131,51 @@ export function collectContentTypes(
   );
 }
 
+/**
+ * El guion como texto suelto, para copiarlo y pegarlo en otro lado.
+ *
+ * Con las partes rotuladas y en el orden en que se dicen. Se comparte para que alguien lo
+ * lea —un editor, un socio, uno mismo en el teléfono—, y un bloque corrido sin decir dónde
+ * empieza el hook y dónde el cierre obliga a adivinarlo.
+ */
+export function scriptAsText(item: {
+  title: string;
+  hook: string;
+  development: string;
+  cta: string;
+}): string {
+  const partes: string[] = [];
+
+  if (item.title.trim()) partes.push(item.title.trim());
+  if (item.hook.trim()) partes.push(`HOOK\n${item.hook.trim()}`);
+  if (item.development.trim()) partes.push(`DESARROLLO\n${item.development.trim()}`);
+  if (item.cta.trim()) partes.push(`CTA\n${item.cta.trim()}`);
+
+  return partes.join("\n\n");
+}
+
+/**
+ * ¿Esta pieza responde a lo que se está buscando?
+ *
+ * Busca en todo lo que el creador escribió —título, tipo, guion y link— porque uno se
+ * acuerda de la pieza por cualquiera de esas partes: a veces por el título, a veces por
+ * una frase del hook. Sin tildes ni mayúsculas, y por palabras sueltas: escribir "curso
+ * errores" encuentra "Los errores que cometí al vender mi primer curso".
+ */
+export function matchesSearch(
+  item: { title: string; contentType: string; hook: string; development: string; cta: string; referenceUrl: string },
+  query: string,
+): boolean {
+  const words = foldWords(query).split(" ").filter(Boolean);
+  if (words.length === 0) return true;
+
+  const haystack = foldWords(
+    `${item.title} ${item.contentType} ${item.hook} ${item.development} ${item.cta} ${item.referenceUrl}`,
+  );
+
+  return words.every((word) => haystack.includes(word));
+}
+
 /** ¿Esta pieza lleva este tipo? Misma comparación laxa que al agruparlos. */
 export function matchesContentType(item: { contentType: string }, type: string): boolean {
   return foldText(item.contentType.trim()) === foldText(type.trim());
@@ -172,7 +216,6 @@ export function formatTargetDate(value: string, style: "short" | "long" = "long"
 export type ContentItemDraft = {
   title: string;
   contentType: string;
-  objective: ContentObjective | null;
   format: ContentFormat;
   status: ContentStatus;
   targetDate: string | null;
@@ -193,7 +236,6 @@ export function emptyContentItem(): ContentItemDraft {
   return {
     title: "",
     contentType: "",
-    objective: null,
     format: "reel",
     status: "idea",
     targetDate: null,
@@ -240,7 +282,6 @@ export function sanitizeContentItem(raw: unknown): ContentItemValidation {
   const value: ContentItemDraft = {
     title,
     contentType: sanitizeText(source.contentType, LIMITS.contentType),
-    objective: isContentObjective(source.objective) ? source.objective : null,
     format,
     status,
     targetDate: sanitizeDate(source.targetDate),
@@ -331,6 +372,11 @@ function sanitizeText(value: unknown, maxLength: number): string {
  * que nadie eligió. Y el 30 de febrero hay que descartarlo comparando contra la fecha que
  * se construye, porque el mes desborda al 2 de marzo en silencio.
  */
+/** La misma validación de fecha, para quien la necesite desde afuera del formulario. */
+export function sanitizeTargetDate(value: unknown): string | null {
+  return sanitizeDate(value);
+}
+
 function sanitizeDate(value: unknown): string | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
 

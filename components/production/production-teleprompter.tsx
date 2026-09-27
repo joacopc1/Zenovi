@@ -176,16 +176,18 @@ export function ProductionTeleprompter({
 
       <div
         ref={scrollRef}
-        className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto px-6 py-10"
+        className="mx-auto w-full flex-1 overflow-y-auto px-6 py-12"
         aria-label="Guion en modo grabación"
       >
-        <div className="mx-auto max-w-2xl">
+        {/* Ancho corto a propósito: leer en voz alta una línea de cien caracteres obliga a
+            recorrer la pantalla con la cabeza, y frente a cámara eso se nota. */}
+        <div className="mx-auto max-w-[30ch]">
           {parts.map((part) => (
-            <section key={part.label} className="mb-10">
-              <span className="mb-3 inline-block rounded-full border border-mist px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+            <section key={part.label} className="mb-12">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                 {part.label}
               </span>
-              <p className="text-[clamp(1.75rem,1.5rem+2vw,2.75rem)] font-medium leading-[1.45] tracking-[-0.01em] text-ink">
+              <p className="whitespace-pre-line text-[clamp(1.35rem,1.1rem+1.1vw,2rem)] font-medium leading-[1.5] tracking-[-0.01em] text-ink">
                 {part.text}
               </p>
             </section>

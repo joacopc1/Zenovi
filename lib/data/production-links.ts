@@ -1,7 +1,6 @@
 import "server-only";
 
-import { buildCohort, CONTENT_KIND_PLURALS, type CohortMetric } from "@/lib/content/library";
-import { objectiveMetric, objectiveMetricLabel } from "@/lib/production/objective";
+import { buildCohort, CONTENT_KIND_PLURALS, type ContentKind } from "@/lib/content/library";
 import {
   autoMatch,
   pieceMatchText,
@@ -35,9 +34,7 @@ export type PublishedPerformance = {
   dateLabel: string;
   thumbnailUrl: string | null;
   formatPlural: string;
-  /** Contra qué se la midió: "visualizaciones", "guardados"… según su objetivo. */
-  metricLabel: string;
-  /** Veces la mediana de su formato en esa métrica; `null` si no hay base para comparar. */
+  /** Veces la mediana de visualizaciones de su formato; `null` si no hay base para comparar. */
   multiplier: number | null;
 };
 
@@ -87,16 +84,14 @@ export async function getProductionLinks(
     ).map((entry) => toCandidate(entry.media));
   }
 
-  // Un cohorte por formato y métrica: dos piezas con el mismo objetivo y formato comparten
-  // la mediana, y recalcularla por pieza sería el mismo trabajo repetido.
-  const cohorts = new Map<string, ReturnType<typeof buildCohort>>();
+  // El cohorte se arma una vez por formato: recorrer la biblioteca entera por cada pieza
+  // atada haría el mismo cálculo varias veces para llegar a la misma mediana.
+  const cohorts = new Map<ContentKind, ReturnType<typeof buildCohort>>();
   const performance: Record<string, PublishedPerformance> = {};
 
   for (const item of linked) {
-    const metric: CohortMetric = objectiveMetric(item.objective);
-    const key = `${item.format}:${metric}`;
-    const cohort = cohorts.get(key) ?? buildCohort(library.items, item.format, metric);
-    cohorts.set(key, cohort);
+    const cohort = cohorts.get(item.format) ?? buildCohort(library.items, item.format);
+    cohorts.set(item.format, cohort);
 
     const media = cohort.find((entry) => entry.id === item.linkedMediaId);
     // La publicación puede haber quedado fuera de las últimas cien, o el creador puede
@@ -108,7 +103,6 @@ export async function getProductionLinks(
       dateLabel: media.dateLabel,
       thumbnailUrl: media.thumbnailUrl,
       formatPlural: CONTENT_KIND_PLURALS[media.kind],
-      metricLabel: objectiveMetricLabel(item.objective),
       multiplier: media.multiplier,
     };
   }

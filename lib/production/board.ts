@@ -13,6 +13,7 @@ import {
   collectContentTypes,
   contentTypeSuggestions,
   matchesContentType,
+  matchesSearch,
   splitRecentlyPublished,
   type ContentStatus,
 } from "./content.ts";
@@ -32,6 +33,8 @@ type BoardItem = {
   linkedMediaId: string | null;
   hook: string;
   development: string;
+  cta: string;
+  referenceUrl: string;
 };
 
 export type ProductionBoard<T extends BoardItem> = {
@@ -50,6 +53,10 @@ export type ProductionBoard<T extends BoardItem> = {
   ownTypes: string[];
   /** Lo que se ofrece al escribir un tipo: los propios, o los de arranque. */
   typeSuggestions: readonly string[];
+  /** Lo que coincide con lo buscado, para saltar ahí sin buscarlo con la vista. Vacío si no se buscó. */
+  matches: T[];
+  /** Si hay algo escrito en la búsqueda, aunque no haya coincidencias. */
+  searching: boolean;
   /**
    * El filtro que efectivamente rige. Es `null` cuando el tipo pedido ya no existe —se
    * borró la última pieza que lo usaba—, porque si no el tablero queda vacío sin ningún
@@ -58,15 +65,21 @@ export type ProductionBoard<T extends BoardItem> = {
   activeType: string | null;
 };
 
+/** Cuántos resultados se ofrecen: una lista larga deja de ser un atajo. */
+const MAX_MATCHES = 6;
+
 export function buildProductionBoard<T extends BoardItem>({
   items,
   published,
   requestedType,
+  query = "",
   now = new Date(),
 }: {
   items: readonly T[];
   published: readonly PublishedPiece[];
   requestedType: string | null;
+  /** Lo que se escribió en la búsqueda; vacío es "todo". */
+  query?: string;
   now?: Date;
 }): ProductionBoard<T> {
   const ownTypes = collectContentTypes(items).map((entry) => entry.value);
@@ -75,8 +88,16 @@ export function buildProductionBoard<T extends BoardItem>({
       ? requestedType
       : null;
 
-  const visible =
-    activeType === null ? [...items] : items.filter((item) => matchesContentType(item, activeType));
+  // Buscar hace las dos cosas: achica el tablero a lo que coincide y además ofrece la
+  // lista para saltar directo a una pieza sin tener que encontrarla con la vista.
+  const visible = items.filter(
+    (item) =>
+      (activeType === null || matchesContentType(item, activeType)) && matchesSearch(item, query),
+  );
+  const matches =
+    query.trim().length === 0
+      ? []
+      : items.filter((item) => matchesSearch(item, query)).slice(0, MAX_MATCHES);
 
   const { recent, older } = splitRecentlyPublished(
     items.filter((item) => item.status === "publicada"),
@@ -101,6 +122,8 @@ export function buildProductionBoard<T extends BoardItem>({
     ),
     ownTypes,
     typeSuggestions: contentTypeSuggestions(ownTypes),
+    matches,
+    searching: query.trim().length > 0,
     activeType,
   };
 }

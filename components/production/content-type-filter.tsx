@@ -17,17 +17,23 @@ export function ContentTypeFilter({
   items,
   active,
   onChange,
+  className = "",
 }: {
   items: ContentItem[];
   active: string | null;
   onChange: (type: string | null) => void;
+  className?: string;
 }) {
   const types = collectContentTypes(items);
 
   if (types.length < 2) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar por tipo">
+    <div
+      className={`flex flex-wrap items-center gap-1.5 ${className}`}
+      role="group"
+      aria-label="Filtrar por tipo"
+    >
       <Chip selected={active === null} onClick={() => onChange(null)}>
         Todas
       </Chip>

@@ -14,9 +14,12 @@ import {
 export function DateField({
   value,
   onChange,
+  compact = false,
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Versión chica, para acompañar a otro control en vez de ocupar un campo entero. */
+  compact?: boolean;
 }) {
   const detailsRef = useDismissibleDetails();
   const [viewDate, setViewDate] = useState(() => (value ? parseTargetDate(value) : new Date()));
@@ -31,21 +34,25 @@ export function DateField({
     detailsRef.current?.removeAttribute("open");
   }
 
-  const label = value
-    ? formatTargetDate(value)
-    : "Elegí una fecha";
+  const label = value ? formatTargetDate(value) : compact ? "Sin fecha" : "Elegí una fecha";
 
   return (
     <details ref={detailsRef} className="relative">
       <summary
         aria-label={`Fecha objetivo: ${label}`}
-        className="flex min-h-[38px] w-full cursor-pointer list-none items-center justify-between rounded-control border border-mist-strong bg-paper px-3 text-sm text-ink [&::-webkit-details-marker]:hidden"
+        className={`flex w-full cursor-pointer list-none items-center gap-2 rounded-full border bg-paper [&::-webkit-details-marker]:hidden ${
+          compact
+            ? "font-support min-h-[26px] justify-start border-mist px-2.5 text-[11px] font-medium text-graphite transition-colors hover:border-mist-strong hover:text-ink"
+            : "min-h-[38px] justify-between rounded-control border-mist-strong px-3 text-sm text-ink"
+        }`}
       >
-        <span className={value ? "text-ink" : "text-muted"}>{label}</span>
-        <CalendarIcon className="size-3.5 text-muted" />
+        <CalendarIcon className={compact ? "size-3 shrink-0" : "order-2 size-3.5 text-muted"} />
+        <span className={value ? "" : "text-muted"}>{label}</span>
       </summary>
 
-      <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-card border border-mist bg-paper p-3 shadow-[0_12px_32px_rgba(0,0,0,0.10)]">
+      <div
+        className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-card border border-mist-strong bg-paper p-3"
+      >
         <div className="mb-2 flex items-center justify-between">
           <button
             type="button"
@@ -74,16 +81,18 @@ export function DateField({
               {day}
             </span>
           ))}
-          {days.map((day, index) =>
-            day === null ? (
-              <span key={`empty-${index}`} />
-            ) : (
+          {/* El selector muestra sólo el mes elegido: los días de al lado se verían
+              elegibles y no lo son, porque elegirlos cambiaría de mes sin avisar. */}
+          {days.map((cell) =>
+            cell.inMonth ? (
               <DayButton
-                key={day}
-                day={day}
-                selected={value === toISODate(year, month, day)}
-                onSelect={() => select(day)}
+                key={cell.iso}
+                day={cell.day}
+                selected={value === cell.iso}
+                onSelect={() => select(cell.day)}
               />
+            ) : (
+              <span key={cell.iso} />
             ),
           )}
         </div>

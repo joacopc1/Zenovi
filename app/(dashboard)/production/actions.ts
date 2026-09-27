@@ -6,6 +6,7 @@ import {
   nextStatus,
   previousStatus,
   sanitizeContentItem,
+  sanitizeTargetDate,
   type ContentItemFieldErrors,
   type ContentStatus,
 } from "@/lib/production/content";
@@ -52,7 +53,6 @@ export async function createContentItem(
     workspace_id: workspace.id,
     title: item.title,
     content_type: item.contentType,
-    objective: item.objective,
     format: item.format,
     status: item.status,
     target_date: item.targetDate,
@@ -218,7 +218,6 @@ export async function updateContentItem(
     .update({
       title: item.title,
       content_type: item.contentType,
-      objective: item.objective,
       format: item.format,
       target_date: item.targetDate,
       reference_url: item.referenceUrl,
@@ -403,6 +402,43 @@ export async function deleteContentItem(
 
   if (error) {
     return { status: "error", message: "No pudimos borrar la pieza." };
+  }
+
+  revalidatePath("/production");
+  return { status: "saved" };
+}
+
+/**
+ * Cambia la fecha objetivo de una pieza, que es lo que hace arrastrarla en el calendario.
+ *
+ * No toca nada más: mover una pieza de día no la publica, no la despublica y no le cambia
+ * el estado. Una pieza ya publicada no se puede mover, porque su lugar en el calendario es
+ * el día en que salió de verdad y eso no es una decisión que se pueda cambiar arrastrando.
+ */
+export async function rescheduleContentItem(
+  _previousState: ContentActionState,
+  raw: unknown,
+): Promise<ContentActionState> {
+  const source = asRecord(raw);
+  const id = typeof source.id === "string" ? source.id : "";
+  const targetDate = sanitizeTargetDate(source.targetDate);
+
+  if (!id) {
+    return { status: "error", message: "Falta identificar la pieza." };
+  }
+  if (targetDate === null) {
+    return { status: "error", message: "Esa fecha no es válida." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("content_items")
+    .update({ target_date: targetDate })
+    .eq("id", id)
+    .neq("status", "publicada");
+
+  if (error) {
+    return { status: "error", message: "No pudimos cambiar la fecha." };
   }
 
   revalidatePath("/production");

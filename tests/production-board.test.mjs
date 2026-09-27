@@ -16,8 +16,14 @@ const pieza = (overrides = {}) => ({
   linkedMediaId: null,
   hook: "",
   development: "",
+  cta: "",
+  referenceUrl: "",
   ...overrides,
 });
+const buscar = (items, query) =>
+  buildProductionBoard({ items, published: [], requestedType: null, query, now: AHORA }).matches.map(
+    (item) => item.id,
+  );
 const publicacion = (id, postedAt, kind = "reel") => ({
   id,
   postedAt,
@@ -110,4 +116,88 @@ test("la cadencia mira la cuenta entera, no lo filtrado", () => {
 
   assert.equal(board.cadence.rhythm, 3);
   assert.equal(board.cadence.planned, 2, "cuenta las dos piezas, no sólo la filtrada");
+});
+
+test("la búsqueda mira todo lo que el creador escribió", () => {
+  const items = [
+    pieza({ id: "titulo", title: "Errores al vender" }),
+    pieza({ id: "hook", hook: "Nadie te cuenta esto del lanzamiento" }),
+    pieza({ id: "tipo", contentType: "testimonio" }),
+    pieza({ id: "link", referenceUrl: "https://instagram.com/reel/abc" }),
+    pieza({ id: "nada", title: "Receta de panqueques" }),
+  ];
+
+  assert.deepEqual(build(items, [], null).matches, [], "sin buscar no hay resultados");
+  assert.deepEqual(buscar(items, "vender"), ["titulo"]);
+  assert.deepEqual(buscar(items, "lanzamiento"), ["hook"]);
+  assert.deepEqual(buscar(items, "testimonio"), ["tipo"]);
+  assert.deepEqual(buscar(items, "instagram"), ["link"]);
+});
+
+test("la búsqueda ignora tildes y mayúsculas", () => {
+  const items = [pieza({ id: "a", title: "Guión para vender" })];
+
+  assert.deepEqual(buscar(items, "GUION"), ["a"]);
+});
+
+test("varias palabras tienen que estar todas, en cualquier orden", () => {
+  // Uno se acuerda de a pedazos: "curso errores" tiene que encontrar la pieza.
+  const items = [
+    pieza({ id: "si", title: "Los errores que cometí al vender mi primer curso" }),
+    pieza({ id: "no", title: "Errores al grabar" }),
+  ];
+
+  assert.deepEqual(buscar(items, "curso errores"), ["si"]);
+});
+
+test("buscar achica el tablero y además ofrece a dónde saltar", () => {
+  const items = [
+    pieza({ id: "a", title: "Errores al vender" }),
+    pieza({ id: "b", title: "Receta de panqueques" }),
+  ];
+
+  const board = buildProductionBoard({
+    items,
+    published: [],
+    requestedType: null,
+    query: "errores",
+    now: AHORA,
+  });
+
+  assert.deepEqual(board.visible.map((item) => item.id), ["a"], "el tablero se achica");
+  assert.deepEqual(board.matches.map((item) => item.id), ["a"], "y ofrece el atajo");
+});
+
+test("buscar y filtrar por tipo se aplican juntos al tablero", () => {
+  const items = [
+    pieza({ id: "a", title: "Errores al vender", contentType: "venta" }),
+    pieza({ id: "b", title: "Errores al grabar", contentType: "autoridad" }),
+  ];
+
+  const board = buildProductionBoard({
+    items,
+    published: [],
+    requestedType: "venta",
+    query: "errores",
+    now: AHORA,
+  });
+
+  assert.deepEqual(board.visible.map((item) => item.id), ["a"]);
+});
+
+test("los resultados tienen tope: una lista larga deja de ser un atajo", () => {
+  const items = Array.from({ length: 12 }, (_, index) =>
+    pieza({ id: `p${index}`, title: `Errores numero ${index}` }),
+  );
+
+  assert.equal(buscar(items, "errores").length, 6);
+});
+
+test("sin nada escrito no se considera una búsqueda activa", () => {
+  assert.equal(build([pieza()], [], null).searching, false);
+  assert.equal(
+    buildProductionBoard({ items: [pieza()], published: [], requestedType: null, query: "   ", now: AHORA })
+      .searching,
+    false,
+  );
 });

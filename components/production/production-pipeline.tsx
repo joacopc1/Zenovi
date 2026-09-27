@@ -2,6 +2,7 @@
 
 import { startTransition, useOptimistic, useState, useSyncExternalStore } from "react";
 import { Calendar, Link2, Plus } from "lucide-react";
+import { CardMenu } from "./card-menu";
 import {
   DndContext,
   DragOverlay,
@@ -47,12 +48,14 @@ export function ProductionPipeline({
   links,
   openId,
   onOpen,
+  onEdit,
   onCreate,
 }: {
   items: ContentItem[];
   links: ProductionLinks;
   openId: string | null;
   onOpen: (id: string | null) => void;
+  onEdit: (id: string) => void;
   onCreate: (guion: boolean) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -107,6 +110,7 @@ export function ProductionPipeline({
       overStatus={overStatus}
       openId={openId}
       onOpen={onOpen}
+      onEdit={onEdit}
       onCreate={onCreate}
     />
   );
@@ -149,6 +153,7 @@ function Board({
   overStatus,
   openId,
   onOpen,
+  onEdit,
   onCreate,
 }: {
   items: ContentItem[];
@@ -157,6 +162,7 @@ function Board({
   overStatus: ContentStatus | null;
   openId: string | null;
   onOpen: (id: string | null) => void;
+  onEdit: (id: string) => void;
   onCreate: (guion: boolean) => void;
 }) {
   return (
@@ -171,6 +177,7 @@ function Board({
           isOver={overStatus === status}
           openId={openId}
           onOpen={onOpen}
+          onEdit={onEdit}
           onCreate={onCreate}
         />
       ))}
@@ -186,6 +193,7 @@ function Column({
   isOver,
   openId,
   onOpen,
+  onEdit,
   onCreate,
 }: {
   status: ContentStatus;
@@ -195,6 +203,7 @@ function Column({
   isOver: boolean;
   openId: string | null;
   onOpen: (id: string | null) => void;
+  onEdit: (id: string) => void;
   onCreate: (guion: boolean) => void;
 }) {
   // Sólo las columnas reciben la tarjeta. Si las tarjetas también fueran destino, dnd-kit
@@ -243,6 +252,7 @@ function Column({
             draggable={draggable}
             selected={openId === item.id}
             onOpen={() => onOpen(openId === item.id ? null : item.id)}
+            onEdit={() => onEdit(item.id)}
           />
         ))}
         {items.length === 0 ? (
@@ -271,6 +281,7 @@ function Card({
   draggable,
   selected,
   onOpen,
+  onEdit,
 }: {
   item: ContentItem;
   performance: PublishedPerformance | null;
@@ -278,6 +289,7 @@ function Card({
   draggable: boolean;
   selected: boolean;
   onOpen: () => void;
+  onEdit: () => void;
 }) {
   // La tarjeta lleva su columna encima: es lo que permite resolver el destino cuando se
   // suelta sobre otra tarjeta.
@@ -297,7 +309,7 @@ function Card({
         selected ? "border-mist-strong bg-canvas/40" : "border-mist hover:border-mist-strong"
       } ${isDragging ? "opacity-0" : ""} ${draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
     >
-      <CardBody item={item} performance={performance} />
+      <CardBody item={item} performance={performance} onEdit={onEdit} />
     </div>
   );
 }
@@ -313,20 +325,30 @@ function CardGhost({ item }: { item: ContentItem }) {
 function CardBody({
   item,
   performance,
+  onEdit,
 }: {
   item: ContentItem;
   performance: PublishedPerformance | null;
+  /** Ausente en la tarjeta fantasma que sigue al mouse: ahí el menú no se puede tocar. */
+  onEdit?: () => void;
 }) {
+  // La bajada es lo último que se escribió del guion —el CTA si existe, si no el
+  // desarrollo, si no el hook—: es lo que más rápido recuerda de qué iba la pieza.
   const snippet = item.cta || item.development || item.hook;
 
   return (
     <div className="font-support">
       {/* El subtítulo es la continuación del título, no un bloque aparte: por eso va
           pegado arriba y con aire abajo, antes de los badges. */}
-      <h4 className="text-[13px] font-semibold leading-5 text-ink">{contentItemName(item)}</h4>
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="min-w-0 text-[14px] font-semibold leading-5 text-ink">
+          {contentItemName(item)}
+        </h4>
+        {onEdit ? <CardMenu item={item} onEdit={onEdit} /> : null}
+      </div>
 
       {snippet ? (
-        <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-[1.5] text-graphite">{snippet}</p>
+        <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5] text-graphite">{snippet}</p>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">

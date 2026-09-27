@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateContentItem } from "@/app/(dashboard)/production/actions";
-import { CONTENT_OBJECTIVES, OBJECTIVE_COPY } from "@/lib/production/objective";
-import type { ContentObjective } from "@/lib/production/objective";
+import { Trash2 } from "lucide-react";
+import { deleteContentItem, updateContentItem } from "@/app/(dashboard)/production/actions";
 import type { ContentFormat } from "@/lib/production/content";
 import type { ContentItem } from "@/lib/data/production";
 import { DateField } from "./date-field";
@@ -18,16 +17,21 @@ import { FormatSelect } from "./format-select";
 export function ContentItemForm({
   item,
   contentTypes,
+  scope = "all",
+  onDelete,
   onDone,
 }: {
   item: ContentItem;
   contentTypes: readonly string[];
+  /** `script` abre sólo el guion: es lo que se edita desde la card del guion. */
+  scope?: "all" | "script";
+  /** Qué hacer cuando la pieza se borró; el panel que la mostraba tiene que cerrarse. */
+  onDelete: () => void;
   onDone: () => void;
 }) {
   const [draft, setDraft] = useState({
     title: item.title,
     contentType: item.contentType,
-    objective: item.objective,
     format: item.format,
     targetDate: item.targetDate ?? "",
     referenceUrl: item.referenceUrl,
@@ -58,66 +62,65 @@ export function ContentItemForm({
     });
   }
 
+  const onlyScript = scope === "script";
+
   return (
-    <div className="space-y-4">
-      <Field label="Título">
-        <input
-          className={INPUT}
-          value={draft.title}
-          onChange={(event) => update("title", event.target.value)}
-          maxLength={200}
-        />
-      </Field>
+    <div className="space-y-3.5">
+      {/* Editar sólo el guion existe porque es lo que más se retoca: entrar a cambiar una
+          frase del hook no tendría por qué poner delante el título, el tipo y la fecha. */}
+      {onlyScript ? null : (
+        <>
+          <Field label="Título">
+            <input
+              className={INPUT}
+              value={draft.title}
+              onChange={(event) => update("title", event.target.value)}
+              maxLength={200}
+            />
+          </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Tipo">
-          <input
-            className={INPUT}
-            value={draft.contentType}
-            onChange={(event) => update("contentType", event.target.value)}
-            maxLength={120}
-            placeholder="Ej. atracción"
-            list={contentTypes.length > 0 ? "sugerencias-tipo-detalle" : undefined}
-          />
-          {contentTypes.length > 0 ? (
-            <datalist id="sugerencias-tipo-detalle">
-              {contentTypes.map((suggestion) => (
-                <option key={suggestion} value={suggestion} />
-              ))}
-            </datalist>
-          ) : null}
-        </Field>
-        <Field label="Formato">
-          <FormatSelect
-            value={draft.format}
-            onChange={(format: ContentFormat) => update("format", format)}
-          />
-        </Field>
-      </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tipo">
+              <input
+                className={INPUT}
+                value={draft.contentType}
+                onChange={(event) => update("contentType", event.target.value)}
+                maxLength={120}
+                placeholder="Ej. atracción"
+                list={contentTypes.length > 0 ? "sugerencias-tipo-detalle" : undefined}
+              />
+              {contentTypes.length > 0 ? (
+                <datalist id="sugerencias-tipo-detalle">
+                  {contentTypes.map((suggestion) => (
+                    <option key={suggestion} value={suggestion} />
+                  ))}
+                </datalist>
+              ) : null}
+            </Field>
+            <Field label="Formato">
+              <FormatSelect
+                value={draft.format}
+                onChange={(format: ContentFormat) => update("format", format)}
+              />
+            </Field>
+          </div>
 
-      <ObjectiveField
-        value={draft.objective}
-        onChange={(objective) => update("objective", objective)}
-      />
-
-      <Field label="Fecha objetivo">
-        <DateField
-          value={draft.targetDate || null}
-          onChange={(value) => update("targetDate", value ?? "")}
-        />
-      </Field>
-
-      <Field label="Link de referencia">
-        <input
-          className={INPUT}
-          value={draft.referenceUrl}
-          onChange={(event) => update("referenceUrl", event.target.value)}
-          maxLength={500}
-          placeholder="https://www.instagram.com/reel/…"
-        />
-      </Field>
+          <Field label="Fecha objetivo">
+            <DateField
+              value={draft.targetDate || null}
+              onChange={(value) => update("targetDate", value ?? "")}
+            />
+          </Field>
+        </>
+      )}
 
       <div className="space-y-3 rounded-card border border-mist p-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+            Guion
+          </span>
+          <span aria-hidden="true" className="h-px flex-1 bg-mist" />
+        </div>
         <ScriptField
           label="Hook"
           value={draft.hook}
@@ -138,17 +141,35 @@ export function ContentItemForm({
         />
       </div>
 
+      {/* Después del guion: la referencia es de dónde salió la idea, no parte de lo que se
+          va a decir en cámara. */}
+      {onlyScript ? null : (
+        <Field label="Link de referencia">
+          <input
+            className={INPUT}
+            value={draft.referenceUrl}
+            onChange={(event) => update("referenceUrl", event.target.value)}
+            maxLength={500}
+            placeholder="https://www.instagram.com/reel/…"
+          />
+        </Field>
+      )}
+
       {error ? (
         <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}
 
-      <div className="flex justify-end gap-3 pt-2">
+      <div className="flex items-center gap-3 pt-2">
+        {/* Borrar vive acá y no en la vista de lectura: es una acción de formulario, y
+            acompañada de Cancelar y Guardar se entiende que es parte de decidir qué hacer
+            con la pieza, no algo que uno se encuentra mientras la lee. */}
+        {onlyScript ? null : <DeleteButton item={item} onDeleted={onDelete} />}
         <button
           type="button"
           onClick={onDone}
-          className="h-9 rounded-control px-4 text-sm font-medium text-graphite transition-colors hover:text-ink"
+          className="ml-auto h-8 rounded-control px-3 text-[12px] font-medium text-graphite transition-colors hover:text-ink"
         >
           Cancelar
         </button>
@@ -156,7 +177,7 @@ export function ContentItemForm({
           type="button"
           onClick={submit}
           disabled={pending}
-          className="h-9 rounded-control bg-ink px-4 text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+          className="h-8 rounded-control bg-ink px-3 text-[12px] font-semibold text-paper transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
         >
           {pending ? "Guardando…" : "Guardar"}
         </button>
@@ -165,58 +186,13 @@ export function ContentItemForm({
   );
 }
 
-/**
- * Para qué se hace la pieza.
- *
- * Se elige entre cuatro porque son los cuatro que Zenovi después puede medir. Se puede
- * dejar sin elegir: mientras no haya objetivo, la pieza se juzga por visualizaciones, que
- * es lo que pasaba antes de que este campo existiera.
- */
-function ObjectiveField({
-  value,
-  onChange,
-}: {
-  value: ContentObjective | null;
-  onChange: (value: ContentObjective | null) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <span className="block text-sm font-medium text-ink">¿Para qué la hacés?</span>
-      <p className="font-support text-xs leading-4 text-muted">
-        Decide contra qué número se mide cuando se publique.
-      </p>
-      <div className="flex flex-wrap gap-1.5 pt-0.5">
-        {CONTENT_OBJECTIVES.map((objective) => {
-          const selected = value === objective;
-          return (
-            <button
-              key={objective}
-              type="button"
-              onClick={() => onChange(selected ? null : objective)}
-              aria-pressed={selected}
-              title={OBJECTIVE_COPY[objective].hint}
-              className={`h-7 rounded-full border px-2.5 text-[11px] font-medium transition-colors ${
-                selected
-                  ? "border-ink bg-ink text-paper"
-                  : "border-mist text-graphite hover:border-mist-strong hover:text-ink"
-              }`}
-            >
-              {OBJECTIVE_COPY[objective].label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 const INPUT =
-  "w-full rounded-control border border-mist-strong bg-paper px-3 py-2 text-sm text-ink transition-colors focus:border-graphite focus:outline-none";
+  "w-full rounded-control border border-mist bg-paper px-2.5 py-1.5 text-[13px] text-ink transition-colors focus:border-mist-strong focus:outline-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-sm font-medium text-ink">{label}</span>
+      <span className="block text-[12px] font-medium text-ink">{label}</span>
       {children}
     </label>
   );
@@ -235,15 +211,83 @@ function ScriptField({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-[10px] font-medium uppercase tracking-wide text-muted">
+      <span className="block text-[10px] font-semibold uppercase tracking-wide text-graphite">
         {label}
       </span>
       <textarea
-        className="w-full resize-y rounded-control border border-mist-strong bg-paper px-3 py-2 text-[15px] leading-6 text-ink transition-colors focus:border-graphite focus:outline-none"
+        className="w-full resize-y rounded-control border border-mist bg-paper px-2.5 py-2 text-[14px] leading-6 text-ink transition-colors focus:border-mist-strong focus:outline-none"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={rows}
       />
     </label>
+  );
+}
+
+/**
+ * Borrar la pieza, con la confirmación en el mismo botón.
+ *
+ * El primer click descubre la advertencia y el segundo borra: para una acción de esta
+ * escala alcanza y no interrumpe con un diálogo. Se aclara qué se pierde —sólo lo que se
+ * escribió en Zenovi— porque la duda al borrar una pieza publicada es si también le pasa
+ * algo al video, y no le pasa nada.
+ */
+function DeleteButton({ item, onDeleted }: { item: ContentItem; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted transition-colors hover:text-danger"
+      >
+        <Trash2 size={13} strokeWidth={1.75} aria-hidden="true" />
+        Eliminar
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex-1">
+      <p className="font-support text-[11px] leading-4 text-graphite">
+        Se borra de Zenovi con lo que hayas escrito.
+        {item.linkedMediaId ? " El video sigue publicado en Instagram." : ""}
+      </p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await deleteContentItem({ status: "idle" }, { id: item.id });
+              if (result.status === "error") {
+                setError(result.message ?? "No pudimos borrar la pieza.");
+                setConfirming(false);
+              } else {
+                onDeleted();
+              }
+            })
+          }
+          className="h-7 rounded-control bg-danger px-2.5 text-[11px] font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          {pending ? "Borrando…" : "Borrar"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="h-7 rounded-control px-2 text-[11px] font-medium text-graphite transition-colors hover:text-ink"
+        >
+          Cancelar
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-1 text-[11px] text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

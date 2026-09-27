@@ -16,6 +16,7 @@ import {
   previousStatus,
   resolveDropStatus,
   sanitizeContentItem,
+  scriptAsText,
   splitRecentlyPublished,
   RECENTLY_PUBLISHED_DAYS,
   collectContentTypes,
@@ -280,13 +281,23 @@ test("sanitizeContentItem sólo acepta fechas YYYY-MM-DD que existan", () => {
   assert.equal(conFecha(null), null);
 });
 
-test("sanitizeContentItem acepta sólo objetivos conocidos", () => {
-  const conObjetivo = (objective) => {
-    const result = sanitizeContentItem({ title: "Una pieza", objective });
-    return result.ok ? result.value.objective : "ERROR";
-  };
 
-  assert.equal(conObjetivo("guardado"), "guardado");
-  assert.equal(conObjetivo("vender mas"), null, "un objetivo inventado no se guarda");
-  assert.equal(conObjetivo(undefined), null);
+test("scriptAsText arma el guion rotulado y en orden", () => {
+  const texto = scriptAsText({
+    title: "3 mitos sobre la agenda",
+    hook: "Nadie te dice esto",
+    development: "Primero...",
+    cta: "Escribime",
+  });
+
+  assert.equal(
+    texto,
+    "3 mitos sobre la agenda\n\nHOOK\nNadie te dice esto\n\nDESARROLLO\nPrimero...\n\nCTA\nEscribime",
+  );
+});
+
+test("scriptAsText omite las partes vacías sin dejar huecos", () => {
+  const texto = scriptAsText({ title: "", hook: "Solo el hook", development: "  ", cta: "" });
+
+  assert.equal(texto, "HOOK\nSolo el hook");
 });
