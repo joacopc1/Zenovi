@@ -30,6 +30,7 @@ import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source";
 import { getMediaViewEvolution } from "@/lib/data/media-view-evolution";
+import { getContentAnalysis } from "@/lib/data/content-analysis";
 
 const numberFormatter = new Intl.NumberFormat("es-UY");
 const decimalFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 });
@@ -50,12 +51,6 @@ export default async function ContentDetailPage({
   const account = await getAccountContext();
   const { id } = await params;
   const { ejemplo } = await searchParams;
-  // Mientras el pipeline no existe, `?ejemplo=1` permite mirar la pantalla con un
-  // análisis de muestra. Sólo en desarrollo: en producción no hay forma de verlo.
-  const analysisState: AnalysisState =
-    process.env.NODE_ENV !== "production" && ejemplo === "1"
-      ? { status: "ready", analysis: EXAMPLE_ANALYSIS }
-      : { status: "not_requested" };
   const workspaceId = account?.workspace?.id;
   if (!workspaceId) notFound();
 
@@ -80,7 +75,14 @@ export default async function ContentDetailPage({
           getFreshInstagramMediaSource(workspaceId, item.id),
           getMediaViewEvolution(item.id),
         ])
-      : [null, []];
+      : [null, { points: [], total: null, growing: false, lastGrowthOn: null, flatDays: 0 }];
+
+  // `?ejemplo=1` sigue existiendo para mirar la pantalla con un análisis de muestra
+  // mientras no haya ninguno real. Sólo en desarrollo: en producción no hay forma de verlo.
+  const analysisState: AnalysisState =
+    process.env.NODE_ENV !== "production" && ejemplo === "1"
+      ? { status: "ready", analysis: EXAMPLE_ANALYSIS }
+      : await getContentAnalysis(item.id);
   const playbackUrl = freshMediaSource?.mediaUrl ?? item.mediaUrl;
   const posterUrl = freshMediaSource?.thumbnailUrl ?? item.thumbnailUrl;
 
@@ -188,7 +190,7 @@ export default async function ContentDetailPage({
         </div>
 
         <div className="mt-6 space-y-6">
-          {item.kind === "reel" ? <ReelViewsEvolution points={viewEvolution} /> : null}
+          {item.kind === "reel" ? <ReelViewsEvolution evolution={viewEvolution} /> : null}
           <BenchmarkSection cohort={cohort} item={item} />
           <AnalysisSection state={analysisState} />
         </div>

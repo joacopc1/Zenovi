@@ -1,8 +1,8 @@
 import "server-only";
 
 import {
-  buildMediaViewEvolution,
-  type MediaViewPoint,
+  readMediaViewEvolution,
+  type MediaViewEvolution,
   type MediaViewSnapshot,
 } from "@/lib/content/media-view-evolution";
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +14,7 @@ type SnapshotRow = {
 
 export async function getMediaViewEvolution(
   mediaId: string,
-): Promise<MediaViewPoint[]> {
+): Promise<MediaViewEvolution> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("instagram_media_insight_snapshots")
@@ -33,5 +33,5 @@ export async function getMediaViewEvolution(
       : [];
   });
 
-  return buildMediaViewEvolution(snapshots);
+  return readMediaViewEvolution(snapshots);
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  benchmarkDifference,
   getContentBenchmark,
   getEngagementRate,
   getPerformanceSignal,
@@ -65,3 +66,30 @@ function item(id, views) {
     skipRate: 20,
   };
 }
+
+test("la diferencia contra lo habitual se lee en por ciento", () => {
+  // "57% más alto" se entiende sin traducir; "×1,57" hay que pensarlo.
+  assert.equal(benchmarkDifference({ current: 3.06, median: 1.95, multiplier: 3.06 / 1.95, sampleSize: 5 }), 57);
+  assert.equal(benchmarkDifference({ current: 1.12, median: 1.42, multiplier: 1.12 / 1.42, sampleSize: 5 }), -21);
+  assert.equal(benchmarkDifference({ current: 2, median: 2, multiplier: 1, sampleSize: 5 }), 0);
+});
+
+test("sin base para comparar no hay diferencia que informar", () => {
+  assert.equal(benchmarkDifference({ current: 3, median: 0, multiplier: null, sampleSize: 5 }), null);
+});
+
+test("las cuatro acciones se comparan como proporción de las vistas", () => {
+  // Un Reel con el triple de vistas junta más guardados sin que nadie lo haya guardado más.
+  const cohort = [
+    { id: "a", kind: "reel", views: 100, likes: 10, comments: 2, saves: 4, shares: 1, interactions: 17 },
+    { id: "b", kind: "reel", views: 1000, likes: 100, comments: 20, saves: 40, shares: 10, interactions: 170 },
+    { id: "c", kind: "reel", views: 200, likes: 40, comments: 4, saves: 8, shares: 2, interactions: 54 },
+  ];
+
+  const likesB = getContentBenchmark(cohort, "b", "likes");
+  const likesC = getContentBenchmark(cohort, "c", "likes");
+
+  assert.equal(likesB.current, 10, "10% de sus vistas, aunque sean 100 me gusta");
+  assert.equal(likesC.current, 20, "20% de sus vistas con sólo 40 me gusta");
+  assert.ok(likesC.multiplier > likesB.multiplier, "la que gustó más en proporción gana");
+});

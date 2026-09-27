@@ -40,6 +40,15 @@ const REEL_INSIGHT_METRICS = [
   "reels_skip_rate",
 ] as const;
 /**
+ * Lo que una pieza hizo por la cuenta, y no sólo por sí misma: seguidores ganados,
+ * visitas al perfil y acciones sobre el perfil desde esa pieza.
+ *
+ * Sólo para el feed. Sondeado contra la API el 2026-09-27: los Reels las rechazan con
+ * "The Media Insights API does not support the follows metric for this media product
+ * type", así que para un Reel no hay atribución de crecimiento y no se puede inventar.
+ */
+const FEED_GROWTH_METRICS = ["follows", "profile_visits", "profile_activity"] as const;
+/**
  * Métricas que Meta entrega como serie diaria real.
  *
  * Sólo `reach`: se comprobó que `views` y `total_interactions` no devuelven histórico
@@ -343,7 +352,7 @@ export async function getInstagramMediaInsights(
     "metric",
     [
       ...COMMON_MEDIA_INSIGHT_METRICS,
-      ...(mediaProductType === "REELS" ? REEL_INSIGHT_METRICS : []),
+      ...(mediaProductType === "REELS" ? REEL_INSIGHT_METRICS : FEED_GROWTH_METRICS),
     ].join(","),
   );
 

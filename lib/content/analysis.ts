@@ -61,3 +61,58 @@ export function formatMoment(atMs: number) {
 export function formatSpan(fromMs: number, toMs: number) {
   return `${formatMoment(fromMs)} – ${formatMoment(toMs)}`;
 }
+
+/** Los estados que puede tener el trabajo, como los guarda la base. */
+export const ANALYSIS_JOB_STATUSES = ["queued", "running", "ready", "failed"] as const;
+export type AnalysisJobStatus = (typeof ANALYSIS_JOB_STATUSES)[number];
+
+export function isAnalysisJobStatus(value: unknown): value is AnalysisJobStatus {
+  return (
+    typeof value === "string" && ANALYSIS_JOB_STATUSES.includes(value as AnalysisJobStatus)
+  );
+}
+
+/**
+ * Una fila de `content_analyses` leída como estado de pantalla.
+ *
+ * La base guarda el estado del trabajo y la pantalla dibuja el de la pieza, que no es lo
+ * mismo: sin fila no hay "no pedido" en la base, hay ausencia. Y una fila que dice "listo"
+ * pero no trajo resultado es una fila rota —la base lo impide con un check, pero la
+ * lectura no puede asumir que nadie la tocó por otro camino— así que se trata como falla
+ * en vez de romper la pantalla.
+ */
+export function readAnalysisState(row: {
+  status: string;
+  result: unknown;
+  failureReason: string | null;
+  canRetry: boolean;
+  startedAt: string | null;
+} | null): AnalysisState {
+  if (row === null) return { status: "not_requested" };
+
+  if (!isAnalysisJobStatus(row.status)) {
+    return { status: "failed", reason: "El análisis quedó en un estado desconocido.", canRetry: true };
+  }
+
+  if (row.status === "failed") {
+    return {
+      status: "failed",
+      reason: row.failureReason ?? "El análisis no pudo terminar.",
+      canRetry: row.canRetry,
+    };
+  }
+
+  if (row.status === "ready") {
+    const analysis = row.result as ReelAnalysis | null;
+    if (!analysis) {
+      return {
+        status: "failed",
+        reason: "El análisis terminó pero no guardó su resultado.",
+        canRetry: true,
+      };
+    }
+    return { status: "ready", analysis };
+  }
+
+  return { status: row.status, startedAt: row.startedAt ?? new Date().toISOString() };
+}

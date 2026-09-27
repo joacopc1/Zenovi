@@ -1,6 +1,19 @@
 import type { ContentLibraryItem } from "@/lib/content/library";
 
-export type ContentBenchmarkKey = "views" | "engagement" | "saves" | "shares";
+/**
+ * Contra qué se puede comparar una pieza dentro de su formato.
+ *
+ * Las cuatro acciones van como proporción de las visualizaciones y no como cantidad: un
+ * Reel con el triple de vistas junta más guardados sin que nadie lo haya guardado más. Lo
+ * que dice algo es cuántos de los que lo vieron lo guardaron.
+ */
+export type ContentBenchmarkKey =
+  | "views"
+  | "engagement"
+  | "likes"
+  | "comments"
+  | "saves"
+  | "shares";
 export type PerformanceSignal = "up" | "down" | "right";
 
 export type ContentBenchmark = {
@@ -79,8 +92,22 @@ export function getContentBenchmark(
 function readBenchmarkValue(item: ContentLibraryItem, key: ContentBenchmarkKey) {
   if (key === "views") return item.views;
   if (key === "engagement") return getEngagementRate(item.interactions, item.views);
+  if (key === "likes") return ratioAsPercentage(item.likes, item.views);
+  if (key === "comments") return ratioAsPercentage(item.comments, item.views);
   if (key === "saves") return ratioAsPercentage(item.saves, item.views);
   return ratioAsPercentage(item.shares, item.views);
+}
+
+/**
+ * Cuánto se apartó de lo habitual, en por ciento.
+ *
+ * "57% más alto" se entiende sin traducir; "×1,57" hay que pensarlo. Devuelve `null`
+ * cuando no hay con qué comparar, que es distinto de cero.
+ */
+export function benchmarkDifference(benchmark: ContentBenchmark): number | null {
+  if (benchmark.multiplier === null) return null;
+
+  return Math.round((benchmark.multiplier - 1) * 100);
 }
 
 function ratioAsPercentage(numerator: number | null, denominator: number | null) {
