@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   SCROLL_SPEEDS,
+  SPOKEN_WORDS_PER_MINUTE,
   countWords,
+  formatSpokenDuration,
   teleprompterWordsPerMinute,
 } from "../lib/production/teleprompter.ts";
 
@@ -48,4 +50,15 @@ test("las velocidades van de menor a mayor y cubren un rango usable", () => {
 
   assert.ok(lenta < 100, `la más lenta debería bajar de 100 pal/min, dio ${lenta}`);
   assert.ok(rapida > 200, `la más rápida debería pasar de 200 pal/min, dio ${rapida}`);
+});
+
+test("estima cuánto dura un guion hablado", () => {
+  // 145 palabras es un minuto de habla; la mitad, medio minuto.
+  assert.equal(formatSpokenDuration(SPOKEN_WORDS_PER_MINUTE), "1:00");
+  assert.equal(formatSpokenDuration(Math.round(SPOKEN_WORDS_PER_MINUTE / 2)), "0:30");
+  assert.equal(formatSpokenDuration(0), "0:00");
+});
+
+test("un guion largo se lee en minutos y segundos", () => {
+  assert.equal(formatSpokenDuration(SPOKEN_WORDS_PER_MINUTE * 2 + 24), "2:10");
 });

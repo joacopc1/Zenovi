@@ -37,3 +37,19 @@ export function countWords(text: string): number {
   const trimmed = text.trim();
   return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
 }
+
+/**
+ * A qué ritmo habla la gente frente a cámara, en palabras por minuto.
+ *
+ * Es el promedio de una persona explicando algo: ni leyendo un texto ni charlando. Sirve
+ * para anticipar cuánto dura un guion antes de grabarlo, no para cronometrar nada.
+ */
+export const SPOKEN_WORDS_PER_MINUTE = 145;
+
+/** Cuánto dura un guion dicho en voz alta, leído como "1:05" o "0:28". */
+export function formatSpokenDuration(words: number): string {
+  const seconds = Math.round((words / SPOKEN_WORDS_PER_MINUTE) * 60);
+  const minutes = Math.floor(seconds / 60);
+
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+}

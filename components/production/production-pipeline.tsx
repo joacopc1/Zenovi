@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useOptimistic, useState, useSyncExternalStore } from "react";
-import { Calendar, Link2, Plus, Bot } from "lucide-react";
+import { Calendar, Link2, Plus } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -206,27 +206,29 @@ function Column({
       ref={setNodeRef}
       data-status={status}
       className={`flex flex-col rounded-card border bg-paper p-3 transition-colors ${
-        isOver ? "border-mist-strong bg-canvas/60" : "border-mist"
+        // Sólo el borde. Teñir la columna entera mueve más superficie que la tarjeta que
+        // se está arrastrando, y la vista se va detrás de la mancha en vez de la pieza.
+        isOver ? "border-mist-strong" : "border-mist"
       }`}
     >
-      <div className="mb-3 flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: STATUS_COLORS[status] }}
-        />
-        <h3 className="text-[13px] font-semibold text-ink">{STATUS_LABELS[status]}</h3>
-        <span className="font-numeric grid size-4 shrink-0 place-items-center rounded-full bg-canvas text-[10px] text-ink">
-          {items.length}
-        </span>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="size-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: STATUS_COLORS[status] }}
+          />
+          <h3 className="truncate text-[13px] font-semibold text-ink">{STATUS_LABELS[status]}</h3>
+          <Badge>{items.length}</Badge>
+        </div>
         {status === "idea" || status === "guion" ? (
           <button
             type="button"
             onClick={() => onCreate(status === "guion")}
-            className="ml-auto grid size-6 shrink-0 place-items-center rounded-control text-graphite transition-colors hover:text-ink"
+            className="grid size-6 shrink-0 place-items-center rounded-full bg-canvas text-graphite transition-colors hover:bg-control hover:text-ink"
             aria-label={`Agregar pieza a ${STATUS_LABELS[status]}`}
           >
-            <Plus size={15} strokeWidth={1.75} />
+            <Plus size={14} strokeWidth={1.75} />
           </button>
         ) : null}
       </div>
@@ -250,6 +252,15 @@ function Column({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** La pastilla del prompt: borde suave, fondo claro, número en tinta. */
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-support shrink-0 rounded-full border border-mist bg-canvas px-1.5 py-px text-[10.5px] font-semibold text-ink">
+      {children}
+    </span>
   );
 }
 
@@ -282,8 +293,8 @@ function Card({
       {...attributes}
       {...listeners}
       onClick={onOpen}
-      className={`rounded-card border bg-paper p-3 transition-opacity ${
-        selected ? "border-mist-strong" : "border-mist"
+      className={`rounded-card border bg-paper p-3.5 transition-colors ${
+        selected ? "border-mist-strong bg-canvas/40" : "border-mist hover:border-mist-strong"
       } ${isDragging ? "opacity-0" : ""} ${draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
     >
       <CardBody item={item} performance={performance} />
@@ -293,7 +304,7 @@ function Card({
 
 function CardGhost({ item }: { item: ContentItem }) {
   return (
-    <div className="cursor-grabbing rounded-card border border-mist bg-canvas p-3">
+    <div className="cursor-grabbing rounded-card border border-mist-strong bg-canvas p-3.5 shadow-lg shadow-ink/5">
       <CardBody item={item} performance={null} />
     </div>
   );
@@ -309,47 +320,43 @@ function CardBody({
   const snippet = item.cta || item.development || item.hook;
 
   return (
-    <>
-      <p className="text-[13px] font-semibold leading-5 text-ink">{contentItemName(item)}</p>
+    <div className="font-support">
+      {/* El subtítulo es la continuación del título, no un bloque aparte: por eso va
+          pegado arriba y con aire abajo, antes de los badges. */}
+      <h4 className="text-[13px] font-semibold leading-5 text-ink">{contentItemName(item)}</h4>
 
       {snippet ? (
-        <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-5 text-muted">{snippet}</p>
+        <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-[1.5] text-graphite">{snippet}</p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge>{FORMAT_LABELS[item.format]}</Badge>
         {item.contentType ? <Badge>{item.contentType}</Badge> : null}
-        {performance ? <PerformanceBadge multiplier={performance.multiplier} /> : null}
+        {performance ? (
+          <PerformanceBadge
+            multiplier={performance.multiplier}
+            className="!px-1.5 !py-px !text-[10.5px]"
+          />
+        ) : null}
       </div>
 
-      <div className="mt-2.5 flex items-center gap-3 border-t border-mist pt-2.5 text-muted">
-        {item.referenceUrl ? (
-          <span className="flex min-w-0 items-center gap-1.5">
-            <Link2 size={13} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
-            <span className="truncate text-[12px]">{shortReference(item.referenceUrl)}</span>
-          </span>
-        ) : null}
-        <span className="flex shrink-0 items-center gap-1.5">
-          <Calendar size={13} strokeWidth={1.75} aria-hidden="true" />
-          <span className="font-numeric text-[12px]">
+      <div className="mt-2.5 flex min-w-0 items-center gap-3 border-t border-mist pt-2.5 text-graphite">
+        <span className="flex shrink-0 items-center gap-1">
+          <Calendar size={14} strokeWidth={1.75} aria-hidden="true" />
+          <span className="font-numeric text-[11px] font-medium">
             {item.targetDate ? formatTargetDate(item.targetDate, "short") : "—"}
           </span>
         </span>
-        {item.source === "director" ? (
-          <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-control border border-mist px-2 py-1 text-[11px] font-medium text-graphite">
-            <Bot size={13} strokeWidth={1.75} aria-hidden="true" />
-            Director IA
+        {item.referenceUrl ? (
+          <span className="flex min-w-0 items-center gap-1">
+            <Link2 size={14} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+            <span className="truncate text-[11px] font-medium">
+              {shortReference(item.referenceUrl)}
+            </span>
           </span>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] font-medium text-graphite">
-      {children}
-    </span>
-  );
-}
