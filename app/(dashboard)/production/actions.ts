@@ -52,6 +52,7 @@ export async function createContentItem(
     workspace_id: workspace.id,
     title: item.title,
     content_type: item.contentType,
+    objective: item.objective,
     format: item.format,
     status: item.status,
     target_date: item.targetDate,
@@ -217,6 +218,7 @@ export async function updateContentItem(
     .update({
       title: item.title,
       content_type: item.contentType,
+      objective: item.objective,
       format: item.format,
       target_date: item.targetDate,
       reference_url: item.referenceUrl,

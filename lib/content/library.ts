@@ -65,16 +65,20 @@ const MIN_COHORT_FOR_MULTIPLIER = 3;
  * se calcula sobre el cohorte completo, antes de cualquier búsqueda, porque buscar
  * filtra lo que se ve y no cambia lo que una pieza rindió.
  */
+/** Las métricas contra las que una pieza puede medirse dentro de su formato. */
+export type CohortMetric = "views" | "interactions" | "saves" | "shares";
+
 export function buildCohort(
   items: ContentLibraryItem[],
   kind: ContentKind,
+  metric: CohortMetric = "views",
 ): RankedContentItem[] {
   const cohort = items.filter((item) => item.kind === kind);
-  const reference = medianViews(cohort);
+  const reference = medianOf(cohort, metric);
 
   return cohort.map((item) => ({
     ...item,
-    multiplier: reference === null || item.views === null ? null : item.views / reference,
+    multiplier: reference === null || item[metric] === null ? null : item[metric] / reference,
   }));
 }
 
@@ -156,9 +160,9 @@ function compareMetric(
   return direction === "desc" ? right - left : left - right;
 }
 
-function medianViews(items: ContentLibraryItem[]) {
+function medianOf(items: ContentLibraryItem[], metric: CohortMetric) {
   const values = items
-    .map((item) => item.views)
+    .map((item) => item[metric])
     .filter((value): value is number => value !== null)
     .sort((left, right) => left - right);
 
@@ -208,7 +212,7 @@ export function formatBenchmarks(items: ContentLibraryItem[]): FormatBenchmark[]
       kind,
       label: FORMAT_LABELS[kind],
       count: cohort.length,
-      median: medianViews(cohort),
+      median: medianOf(cohort, "views"),
       best: best ?? null,
     }];
   });

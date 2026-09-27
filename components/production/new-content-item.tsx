@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { createContentItem } from "@/app/(dashboard)/production/actions";
 import { emptyContentItem, type ContentItemDraft } from "@/lib/production/content";
 import { TextArea, TextField } from "@/components/brand/brand-form-controls";
+import { CONTENT_OBJECTIVES, OBJECTIVE_COPY } from "@/lib/production/objective";
 import { DateField } from "./date-field";
 import { FormatSelect } from "./format-select";
 
@@ -89,6 +90,34 @@ export function NewContentItem({
           <span className="block text-sm font-medium text-ink">Formato</span>
           <FormatSelect value={draft.format} onChange={(value) => update("format", value)} />
         </label>
+      </div>
+
+      <div className="space-y-1.5">
+        <span className="block text-sm font-medium text-ink">¿Para qué la hacés?</span>
+        <p className="font-support text-xs leading-4 text-muted">
+          Decide contra qué número se mide cuando se publique. Se puede elegir después.
+        </p>
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {CONTENT_OBJECTIVES.map((objective) => {
+            const selected = draft.objective === objective;
+            return (
+              <button
+                key={objective}
+                type="button"
+                onClick={() => update("objective", selected ? null : objective)}
+                aria-pressed={selected}
+                title={OBJECTIVE_COPY[objective].hint}
+                className={`h-7 rounded-full border px-2.5 text-[11px] font-medium transition-colors ${
+                  selected
+                    ? "border-ink bg-ink text-paper"
+                    : "border-mist text-graphite hover:border-mist-strong hover:text-ink"
+                }`}
+              >
+                {OBJECTIVE_COPY[objective].label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

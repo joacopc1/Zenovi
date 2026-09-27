@@ -279,3 +279,14 @@ test("sanitizeContentItem sólo acepta fechas YYYY-MM-DD que existan", () => {
   assert.equal(conFecha(""), null);
   assert.equal(conFecha(null), null);
 });
+
+test("sanitizeContentItem acepta sólo objetivos conocidos", () => {
+  const conObjetivo = (objective) => {
+    const result = sanitizeContentItem({ title: "Una pieza", objective });
+    return result.ok ? result.value.objective : "ERROR";
+  };
+
+  assert.equal(conObjetivo("guardado"), "guardado");
+  assert.equal(conObjetivo("vender mas"), null, "un objetivo inventado no se guarda");
+  assert.equal(conObjetivo(undefined), null);
+});
