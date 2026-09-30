@@ -156,7 +156,7 @@ function SlideButton({
         event.stopPropagation();
         onClick();
       }}
-      className={`absolute top-1/2 z-40 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+      className={`absolute top-1/2 z-40 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white/55 text-ink transition-colors hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 ${
         side === "left" ? "left-3" : "right-3"
       }`}
     >
