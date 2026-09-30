@@ -129,9 +129,10 @@ export default function ProgressMetricCard({
 
   const resolvedTrend: CardTrend =
     trend ?? (Math.abs(stats.pct) < NEUTRAL_PCT ? "flat" : stats.net >= 0 ? "up" : "down");
-  // El gráfico va siempre en el azul de datos, como el resto del informe: quien dice si
-  // subió o bajó es la variación, no la línea. Así las cards conviven sin cambiar de color.
-  const resolvedAccent: MetricAccent = accent ?? "data";
+  // Acá el color tiene significado: verde cuando mejora, rojo cuando cae y grafito cuando
+  // no existe una comparación concluyente. El azul neutro parecía un estado adicional.
+  const resolvedAccent: MetricAccent =
+    accent ?? (resolvedTrend === "up" ? "emerald" : resolvedTrend === "down" ? "rose" : "neutral");
   const color = ACCENTS[resolvedAccent];
   const trendColor =
     resolvedTrend === "up"
@@ -244,19 +245,19 @@ export default function ProgressMetricCard({
 
       {/* Contenido principal */}
       <div className={`pointer-events-none relative z-10 flex flex-1 flex-col ${sz.pad}`}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h3 className={`${sz.title} font-semibold tracking-tight text-ink`}>{title}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className={`${sz.title} whitespace-nowrap font-semibold tracking-tight text-ink`}>{title}</h3>
             <ViewToggle value={view} onChange={setView} />
           </div>
-          <div className="font-support flex items-center gap-3 text-[13px]">
+          <div className="font-support flex shrink-0 flex-col items-end gap-1 text-[11px] leading-none">
+            {period ? <span className="whitespace-nowrap text-muted">{period}</span> : null}
             {displayPercent !== null ? (
-              <span className="flex items-center gap-1 font-medium" style={{ color: trendColor }}>
-                <TrendIcon size={15} strokeWidth={2} aria-hidden />
+              <span className="flex items-center gap-0.5 whitespace-nowrap font-medium" style={{ color: trendColor }}>
+                <TrendIcon size={12} strokeWidth={2} aria-hidden />
                 {displayPercent}
               </span>
             ) : null}
-            {period ? <span className="text-graphite">{period}</span> : null}
           </div>
         </div>
 
@@ -305,4 +306,3 @@ export default function ProgressMetricCard({
     </div>
   );
 }
-

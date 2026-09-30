@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { RankedContentItem } from "@/lib/content/library";
+import { captionPreview } from "@/lib/content/caption-display";
 import { ContentThumbnail } from "./content-thumbnail";
 import { EngagementSummary } from "./engagement-summary";
 import { ExternalIcon } from "./metric-icons";
@@ -11,7 +12,13 @@ export function ContentCard({ item, priority }: { item: RankedContentItem; prior
   return (
     <article className="group relative overflow-hidden rounded-card border border-mist bg-paper transition-colors hover:bg-ink/[0.035]">
       <Link href={detailHref} className="block" aria-label={`Abrir detalle de ${item.formatLabel} del ${item.dateLabel}`}>
-        <ContentThumbnail item={item} priority={priority} interactive />
+        <div className="relative">
+          <ContentThumbnail item={item} priority={priority} interactive />
+          <div className="font-support absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/65 to-transparent px-3 pb-3 pt-10 text-[11px] font-medium text-white">
+            <span>{item.formatLabel}</span>
+            <span>{item.relativeDateLabel}</span>
+          </div>
+        </div>
       </Link>
       <PerformanceBadge multiplier={item.multiplier} overlay className="absolute left-3 top-3" />
       {item.permalink ? (
@@ -31,9 +38,8 @@ export function ContentCard({ item, priority }: { item: RankedContentItem; prior
           href={detailHref}
           className="mt-3 line-clamp-2 block border-t border-mist pt-3 text-[13px] font-medium leading-[1.4] text-ink"
         >
-          {item.caption?.trim() || `${item.formatLabel} sin texto`}
+          {captionPreview(item.caption, `${item.formatLabel} sin texto`)}
         </Link>
-        <p className="mt-1 text-xs text-muted">{item.relativeDateLabel} · {item.dateLabel}</p>
       </div>
     </article>
   );

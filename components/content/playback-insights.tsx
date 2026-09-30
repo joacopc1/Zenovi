@@ -11,13 +11,17 @@ export function PlaybackInsights({
   totalWatchTimeMs,
   skipRate,
   mediaUrl,
+  durationMs,
 }: {
   averageWatchTimeMs: number | null;
   totalWatchTimeMs: number | null;
   skipRate: number | null;
   mediaUrl: string | null;
+  durationMs: number | null;
 }) {
-  const { cardRef, duration } = useMediaDuration<HTMLElement>(mediaUrl);
+  const { cardRef, duration } = useMediaDuration<HTMLElement>(mediaUrl, {
+    initialDurationMs: durationMs,
+  });
   const retention = getWatchRetentionPercentage(averageWatchTimeMs, duration);
   const normalizedSkipRate = normalizePercentage(skipRate);
 

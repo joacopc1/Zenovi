@@ -14,6 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 const GRAPH_ORIGIN = "https://graph.instagram.com";
 const GRAPH_VERSION = "v26.0";
 const RANGE_BYTES = 512 * 1024;
+const wantedMediaId = process.argv[2] ?? null;
 
 const admin = createClient(
   requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -21,12 +22,15 @@ const admin = createClient(
   { auth: { persistSession: false } },
 );
 
-const { data: reels } = await admin
+let reelQuery = admin
   .from("instagram_media")
   .select("id, provider_media_id, media_product_type, media_type, posted_at, media_url, synced_at, social_account_id")
   .in("media_product_type", ["REELS", "VIDEO"])
   .order("posted_at", { ascending: false })
   .limit(1);
+if (wantedMediaId) reelQuery = reelQuery.eq("id", wantedMediaId);
+
+const { data: reels } = await reelQuery;
 
 const reel = reels?.[0];
 if (!reel) exit("No hay ningún Reel guardado para probar.");

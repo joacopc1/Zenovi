@@ -97,7 +97,7 @@ export type InstagramMedia = {
 };
 
 export type InstagramMediaSource = {
-  mediaUrl: string;
+  mediaUrl: string | null;
   thumbnailUrl: string | null;
 };
 
@@ -328,13 +328,14 @@ export async function getInstagramMediaSource(
   if (!response.ok) return response;
 
   const mediaUrl = readNonEmptyString(response.data, "media_url");
-  if (!mediaUrl) return { ok: false, code: "media_source_unavailable" };
+  const thumbnailUrl = readNonEmptyString(response.data, "thumbnail_url");
+  if (!mediaUrl && !thumbnailUrl) return { ok: false, code: "media_source_unavailable" };
 
   return {
     ok: true,
     data: {
       mediaUrl,
-      thumbnailUrl: readNonEmptyString(response.data, "thumbnail_url"),
+      thumbnailUrl,
     },
   };
 }

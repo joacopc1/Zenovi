@@ -6,6 +6,7 @@ import {
   type ContentBenchmarkKey,
 } from "@/lib/content/metrics";
 import { ChartNoAxesColumnIncreasing } from "lucide-react";
+import { HelpHint } from "@/components/ui/help-hint";
 import { formatCompact } from "@/lib/format/numbers";
 
 const decimalFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 2 });
@@ -37,9 +38,9 @@ const definitions: Definition[] = [
  * compara la proporción —saves sobre views— contra la mediana del formato, y se informa la
  * distancia en por ciento, que es como se piensa: "57% más alto".
  *
- * Se usa "benchmark" y "views" a propósito, aunque haya palabras en español: es el
- * vocabulario con el que este mercado habla de su contenido, y traducirlo hace sonar a la
- * app como una herramienta de analítica genérica y no como alguien del rubro.
+ * En la interfaz se habla de lo habitual dentro del formato de la pieza: es el mismo
+ * benchmark estadístico, expresado como la comparación concreta que necesita quien
+ * gestiona su marca personal.
  */
 export function BenchmarkSection({
   cohort,
@@ -48,28 +49,42 @@ export function BenchmarkSection({
   cohort: RankedContentItem[];
   item: RankedContentItem;
 }) {
+  const copy = benchmarkCopy(item.kind);
   const rows = definitions.flatMap((definition) => {
     const benchmark = getContentBenchmark(cohort, item.id, definition.key);
     return benchmark ? [{ ...definition, benchmark }] : [];
   });
+  const scale = Math.max(
+    ...rows.flatMap(({ benchmark }) => [benchmark.current, benchmark.median]),
+    0.1,
+  );
 
   return (
     <section
-      className="rounded-card border border-mist bg-paper px-5 py-4"
+      className="h-full rounded-card border border-mist bg-paper px-5 py-4"
       aria-labelledby="benchmark-title"
     >
-      <header className="border-b border-mist pb-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mist pb-4">
         <h2
           id="benchmark-title"
           className="flex items-center gap-2 text-[15px] font-semibold text-ink"
         >
           <ChartNoAxesColumnIncreasing aria-hidden="true" className="size-4 text-ink" strokeWidth={1.7} />
-          Interacciones vs. tu benchmark
+          Interacciones vs. lo habitual
+          <HelpHint text={`Sirve para comparar las interacciones de ${copy.demonstrative} con el rendimiento habitual de ${copy.habitual}. Se activa cuando hay al menos tres piezas medidas.`} />
         </h2>
-        <p className="font-support mt-1 text-[13px] text-graphite">
-          Cada interacción como porcentaje de las views de esta pieza, contra tu benchmark
-          de {cohort.length > 0 ? `${cohort.length} piezas` : "piezas"} del mismo formato.
-        </p>
+        {rows.length > 0 ? (
+          <div className="font-support flex items-center gap-3 text-[10px] text-muted">
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="size-2 rounded-sm bg-ink" />
+              {copy.current}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="size-2 rounded-sm bg-control" />
+              Habitual
+            </span>
+          </div>
+        ) : null}
       </header>
 
       {rows.length === 0 ? (
@@ -77,87 +92,175 @@ export function BenchmarkSection({
           Hacen falta al menos tres piezas medidas de este formato para armar un benchmark.
         </p>
       ) : (
-        <dl className="divide-y divide-mist">
-          <p className="font-support flex items-center gap-1.5 pt-3 text-[11px] text-muted">
-            <span aria-hidden="true" className="inline-block h-3 w-px bg-ink" />
-            La marca es tu benchmark. La barra que la pasa rindió por encima.
-          </p>
+        <div
+          className="grid grid-cols-2 divide-x divide-mist pt-1 sm:grid-cols-4"
+          aria-label="Comparación de interacciones sobre visualizaciones"
+        >
           {rows.map((row) => (
-            <Row
+            <BarGroup
               key={row.key}
               label={row.label}
               count={row.count?.(item) ?? null}
               benchmark={row.benchmark}
+              scale={scale}
+              habitualLabel={copy.habitualCapitalized}
             />
           ))}
-        </dl>
+        </div>
       )}
     </section>
   );
 }
 
-function Row({
+function BarGroup({
   label,
   count,
   benchmark,
+  scale,
+  habitualLabel,
 }: {
   label: string;
   count: number | null;
   benchmark: ContentBenchmark;
+  scale: number;
+  habitualLabel: string;
 }) {
   const difference = benchmarkDifference(benchmark);
-  const above = difference !== null && difference > 0;
-
-  // La escala deja aire arriba del mayor de los dos para que la marca del benchmark nunca
-  // quede pegada al borde. Sin esa marca visible, la barra sola no dice contra qué se
-  // compara: es una raya larga que hay que traducir leyendo los números de abajo.
-  const scale = Math.max(benchmark.current, benchmark.median) * 1.15 || 1;
-  const fill = Math.max(2, (benchmark.current / scale) * 100);
-  const mark = (benchmark.median / scale) * 100;
+  const currentHeight = barHeight(benchmark.current, scale);
+  const medianHeight = barHeight(benchmark.median, scale);
 
   return (
-    <div className="py-3 first:pt-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <dt className="text-[13px] font-medium text-ink">{label}</dt>
-        <dd className="font-numeric text-[15px] font-semibold tabular-nums text-ink">
-          {count === null ? "—" : formatCompact(count)}
-        </dd>
-      </div>
+    <div className="min-w-0 px-3 py-4 sm:px-5">
+      <p className="truncate text-[12px] font-medium text-ink">{label}</p>
+      <p className="font-numeric mt-1 text-[23px] font-semibold leading-none tracking-[-0.025em] tabular-nums text-ink">
+        {decimalFormatter.format(benchmark.current)}%
+      </p>
+      <p
+        className={`font-numeric mt-1 min-h-4 text-[10px] font-semibold tabular-nums ${
+          difference === null || difference === 0
+            ? "text-muted"
+            : difference > 0
+              ? "text-success"
+              : "text-danger"
+        }`}
+      >
+        {difference === null
+          ? "Sin referencia"
+          : difference === 0
+            ? "Igual que lo habitual"
+            : `${Math.abs(difference)}% ${difference > 0 ? "arriba" : "abajo"}`}
+      </p>
 
-      <div className="relative mt-2 h-2 rounded-full bg-control">
-        <div
-          className={`h-full rounded-full transition-[width] duration-500 ${
-            above ? "bg-success" : "bg-data"
-          }`}
-          style={{ width: `${fill}%` }}
+      <div className="mt-3 flex h-12 items-end gap-1.5 border-b border-mist">
+        <VerticalBar
+          label={label}
+          series="Esta pieza"
+          value={benchmark.current}
+          height={currentHeight}
+          count={count}
+          difference={difference}
+          className="bg-ink"
         />
-        {/* La marca es el benchmark. Que la barra la pase o no la alcance es todo lo que
-            hay que leer; el número está abajo para quien quiera el detalle. */}
-        <span
-          className="absolute top-[-3px] h-[14px] w-px bg-ink"
-          style={{ left: `${mark}%` }}
-          aria-hidden="true"
+        <VerticalBar
+          label={label}
+          series="Tu mediana"
+          value={benchmark.median}
+          height={medianHeight}
+          className="bg-control"
+          habitualLabel={habitualLabel}
         />
       </div>
+    </div>
+  );
+}
 
-      <div className="font-support mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[11px]">
-        <span className="text-muted">
-          <span className="font-numeric">{decimalFormatter.format(benchmark.current)}%</span> sobre
-          views · benchmark{" "}
-          <span className="font-numeric">{decimalFormatter.format(benchmark.median)}%</span>
+function VerticalBar({
+  label,
+  series,
+  value,
+  height,
+  count,
+  difference,
+  className,
+  habitualLabel,
+}: {
+  label: string;
+  series: "Esta pieza" | "Tu mediana";
+  value: number;
+  height: number;
+  count?: number | null;
+  difference?: number | null;
+  className: string;
+  habitualLabel?: string;
+}) {
+  return (
+    <div
+      className="group/bar relative flex h-full w-7 items-end outline-none sm:w-9"
+      role="img"
+      tabIndex={0}
+      aria-label={`${label}, ${series}: ${decimalFormatter.format(value)}% de las visualizaciones`}
+    >
+      <span
+        aria-hidden="true"
+        className={`block w-full rounded-t-[4px] transition-[height] duration-500 ${className}`}
+        style={{ height: `${height}%` }}
+      />
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden min-w-28 -translate-x-1/2 rounded-control border border-mist bg-paper px-2.5 py-2 text-left group-hover/bar:block group-focus-visible/bar:block">
+        <span className="font-numeric block text-[13px] font-semibold tabular-nums text-ink">
+          {decimalFormatter.format(value)}% <span className="font-support text-[10px] font-normal text-muted">de las views</span>
         </span>
-        {difference === null ? null : (
+        {series === "Esta pieza" && count !== undefined ? (
+          <span className="font-support mt-0.5 block text-[10px] text-graphite">
+            {count === null ? "Sin datos" : `${formatCompact(count)} interacciones`}
+          </span>
+        ) : null}
+        {series === "Esta pieza" && difference !== undefined && difference !== null ? (
           <span
-            className={`font-numeric font-semibold ${
+            className={`font-numeric mt-1 block text-[10px] font-semibold tabular-nums ${
               difference > 0 ? "text-success" : difference < 0 ? "text-danger" : "text-graphite"
             }`}
           >
             {difference === 0
-              ? "en tu benchmark"
-              : `${Math.abs(difference)}% más ${difference > 0 ? "alto" : "bajo"}`}
+              ? "Igual que lo habitual"
+              : `${Math.abs(difference)}% ${difference > 0 ? "por encima" : "por debajo"} de lo habitual`}
           </span>
-        )}
-      </div>
+        ) : null}
+        {series === "Tu mediana" ? (
+          <span className="font-support mt-1 block text-[10px] text-graphite">
+            {habitualLabel}
+          </span>
+        ) : null}
+      </span>
     </div>
   );
+}
+
+function benchmarkCopy(kind: RankedContentItem["kind"]) {
+  if (kind === "publication") {
+    return {
+      current: "Publicación",
+      demonstrative: "esta publicación",
+      habitual: "tus publicaciones",
+      habitualCapitalized: "Habitual en tus publicaciones",
+    };
+  }
+  if (kind === "story") {
+    return {
+      current: "Historia",
+      demonstrative: "esta historia",
+      habitual: "tus historias",
+      habitualCapitalized: "Habitual en tus historias",
+    };
+  }
+  return {
+    current: "Reel",
+    demonstrative: "este Reel",
+    habitual: "tus Reels",
+    habitualCapitalized: "Habitual en tus Reels",
+  };
+}
+
+function barHeight(value: number, scale: number) {
+  if (value <= 0) return 2;
+  return Math.max(8, (value / scale) * 100);
 }

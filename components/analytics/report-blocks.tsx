@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { ArrowDownRight, ArrowUpRight, CircleHelp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { HelpHint } from "@/components/ui/help-hint";
 import { formatDecimal, formatNumber, formatPercent } from "@/lib/format/numbers";
 
 export function ReportCard({
@@ -39,32 +40,6 @@ export function CardTitle({
       </h3>
       {trailing}
     </div>
-  );
-}
-
-/**
- * El signo de pregunta que explica una card. Sin JavaScript: aparece al pasar el mouse
- * y también al llegar con el teclado, así que funciona igual sin mouse.
- */
-export function HelpHint({ text }: { text: string }) {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        aria-label={`Qué mide: ${text}`}
-        className="flex text-muted transition-colors hover:text-graphite focus-visible:text-graphite focus-visible:outline-none"
-      >
-        <CircleHelp size={14} strokeWidth={1.75} aria-hidden />
-      </button>
-      {/* `hidden` y no `invisible`: un cuadro oculto con `visibility` sigue ocupando caja
-          y estira el área scrolleable de la página, aunque no se vea. */}
-      <span
-        role="tooltip"
-        className="font-support pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden w-60 -translate-x-1/2 rounded-control border border-mist bg-paper p-3 text-xs font-normal leading-5 text-graphite shadow-[0_8px_24px_rgba(0,0,0,0.1)] group-hover:block group-focus-within:block"
-      >
-        {text}
-      </span>
-    </span>
   );
 }
 

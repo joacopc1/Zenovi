@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { durationSecondsFromMs } from "@/lib/content/media-duration";
+
+type MediaDurationOptions = {
+  initialDurationMs?: number | null;
+  onDuration?: (seconds: number) => void | Promise<void>;
+};
 
 /**
  * Lee la duración real del archivo de video, que Instagram no entrega como métrica.
@@ -8,13 +14,27 @@ import { useEffect, useRef, useState } from "react";
  * Sólo pide los metadatos y recién cuando el elemento se acerca al viewport, para no
  * disparar una descarga por cada pieza de la biblioteca al abrir la página.
  */
-export function useMediaDuration<T extends HTMLElement>(mediaUrl: string | null) {
+export function useMediaDuration<T extends HTMLElement>(
+  mediaUrl: string | null,
+  { initialDurationMs = null, onDuration }: MediaDurationOptions = {},
+) {
   const cardRef = useRef<T>(null);
-  const [duration, setDuration] = useState<number | null>(null);
+  const onDurationRef = useRef(onDuration);
+  const [measurement, setMeasurement] = useState<{
+    mediaUrl: string;
+    seconds: number;
+  } | null>(null);
+  const storedDuration = durationSecondsFromMs(initialDurationMs);
+  const duration =
+    storedDuration ?? (measurement?.mediaUrl === mediaUrl ? measurement.seconds : null);
+
+  useEffect(() => {
+    onDurationRef.current = onDuration;
+  }, [onDuration]);
 
   useEffect(() => {
     const card = cardRef.current;
-    if (!card || !mediaUrl) return;
+    if (!card || !mediaUrl || storedDuration !== null) return;
     let media: HTMLVideoElement | null = null;
 
     const loadDuration = () => {
@@ -27,7 +47,11 @@ export function useMediaDuration<T extends HTMLElement>(mediaUrl: string | null)
 
     const updateDuration = () => {
       if (media && Number.isFinite(media.duration) && media.duration > 0) {
-        setDuration(media.duration);
+        const seconds = media.duration;
+        setMeasurement({ mediaUrl, seconds });
+        void Promise.resolve(onDurationRef.current?.(seconds)).catch(() => {
+          // La duración sigue siendo útil durante esta sesión aunque la persistencia falle.
+        });
       }
     };
 
@@ -54,7 +78,7 @@ export function useMediaDuration<T extends HTMLElement>(mediaUrl: string | null)
         media.load();
       }
     };
-  }, [mediaUrl]);
+  }, [mediaUrl, storedDuration]);
 
   return { cardRef, duration };
 }

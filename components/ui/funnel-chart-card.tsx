@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { AnimatedNumber, type NumberFormat } from "@/components/analytics/animated-number";
 import { getTrendColorClass, type TrendComparison } from "@/components/home/trend";
-import { CardTitle, HelpHint } from "@/components/analytics/report-blocks";
+import { CardTitle } from "@/components/analytics/report-blocks";
+import { HelpHint } from "@/components/ui/help-hint";
 import { formatDecimal } from "@/lib/format/numbers";
 
 /**

@@ -1,6 +1,6 @@
 # Zenovi - Roadmap operativo
 
-Actualizado: 2026-09-16
+Actualizado: 2026-09-29
 Estado general: Discovery  
 Objetivo inmediato: decidir viabilidad y congelar el scope del MVP
 
@@ -156,7 +156,15 @@ Objetivo: seleccionar pipelines por evidencia, no por preferencia de proveedor.
 
 - [ ] Construir dataset consentido/ficticio de evaluación.
 - [ ] Definir rúbrica para análisis, ideas, hooks y guiones.
-- [ ] Elegir candidatos de razonamiento, rápido, multimodal, transcripción y embeddings.
+- [-] Elegir candidatos de razonamiento, rápido, multimodal, transcripción y embeddings.
+  Transcripción ya tiene primario: Groq `whisper-large-v3-turbo`. El modelo de análisis
+  tiene como candidato multimodal activo a Gemini 3.8 Flash: procesó un Reel real
+  directamente y devolvió escenas, OCR, hooks y CTA con timestamps. Falta compararlo
+  contra una segunda alternativa antes de elegirlo. GPT-OSS en Groq sigue siendo
+  candidato para texto + métricas, pero no resuelve por sí solo los frames; Ollama queda
+  como alternativa para ejecutar modelos abiertos y amortiguar tokens cuando exista
+  infraestructura propia. No confundir la elección del transcriptor con la del modelo
+  que escribe el análisis.
 - [ ] Probar al menos dos alternativas por función crítica.
 - [ ] Medir calidad en español.
 - [ ] Medir latencia p50/p95.
@@ -186,7 +194,8 @@ Objetivo: eliminar ambigüedad antes de construir.
 - [-] Wireframe de dashboard: primer corte funcional con métricas, tendencias y contenido destacado; se perfeccionará al final después de aprender de las demás secciones. Responsable: Joaco/Codex.
 - [-] Analíticas por pestañas: Visibilidad, Engagement, Contenido, Comunidad y Audiencia, cada una en su archivo y todas alimentadas por un único modelo de cálculo (`lib/analytics/report-model.ts`). La pestaña y el período viajan en la URL. Se retiró Resumen: cada cifra quedó en la sección que la explica. Visibilidad abre con una card de embudo —visualizaciones y, debajo, alcance, visitas al perfil y toques en el enlace con su variación— y sigue con la evolución diaria de cada paso. Falta decidir si el radar de Comunidad sobrevive con datos reales. Responsable: Joaco/Claude.
 - [-] Wireframe de Analíticas: estructura en seis secciones, cada una con la pregunta que responde — Resumen, Calidad del engagement, Visibilidad, Comunidad, Audiencia y Qué funcionó —, tomando de Moka la información que junta y no su forma de graficar. Me gusta, comentarios, guardados, compartidos, visitas al perfil y toques en el enlace se reconstruyen día por día; conversión perfil → seguidor, seguidores nuevos y demografía quedan marcados como sin conectar (Meta exige 100 seguidores). Integradas la Progress Metric Card (21st.dev, reconstruida porque el registro exige login) en Visualizaciones e Interacciones y el radar de Intent UI en días con más interacción, ambos con los tokens de Zenovi. Falta validar cada cifra contra Instagram Insights nativo con una cuenta de actividad real y conectar una cuenta de más de 100 seguidores; el diseño fino de cards queda para después del MVP. Responsable: Joaco/Claude.
-- [-] Wireframe de Reels/detalle: biblioteca filtrable y detalle base con media autorizada y métricas oficiales implementados; faltan transcripción, benchmark y análisis persistente.
+- [-] Wireframe de Reels/detalle: biblioteca, benchmark por formato, duración verificada desde el archivo reproducible, transcripción persistente, análisis multimodal y mapa temporal implementados. Gemini sigue como proveedor provisional y falta validar visualmente el flujo completo con cuota disponible, medir calidad/costo y elegir fallback antes de considerarlo cerrado.
+- [-] Wireframe de Publicaciones/detalle: reutiliza métricas oficiales ya sincronizadas, distingue imagen y carrusel, adapta el benchmark al lenguaje de publicaciones y muestra seguidores, visitas y actividad del perfil atribuidos por Instagram sin inferir ventas. Falta validar la jerarquía visual y decidir si la primera versión necesita inspección de slides del carrusel.
 - [ ] Wireframe de Stories/secuencia.
 - [ ] Wireframe de Director e historial.
 - [ ] Wireframe de ADN.
@@ -212,7 +221,7 @@ Objetivo: base productiva antes de features.
 - [ ] Configurar lint, format, typecheck, unit y E2E.
 - [ ] Crear Supabase dev/staging/prod.
 - [-] Configurar migraciones y tipos: migración inicial de Auth/workspace aplicada manualmente y verificada con 12/12 controles; falta registrar el historial remoto y generar tipos.
-- [ ] Configurar Vercel previews/staging/prod.
+- [!] Configurar Vercel previews/staging/prod. La cuenta accesible por CLI no tiene todavía un proyecto Zenovi; no desplegar este lote hasta crear/vincular el proyecto y cargar sus variables por ambiente.
 - [ ] Configurar dominio y DNS cuando corresponda.
 - [ ] Configurar secretos por ambiente.
 - [ ] Definir ADRs de stack, jobs, IA y storage.
@@ -254,17 +263,50 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 3 - Reels y análisis
 
-- [-] Listado y detalle de medios: la sincronización pagina por cursor y trae al menos las últimas 100 piezas, más las de los últimos 90 días si hay más, con tope de 300; las estadísticas por pieza se actualizan para lo reciente y se completan una vez para lo viejo. La biblioteca muestra las últimas 100 en páginas de 24. Faltan transcripción, benchmark y análisis a pedido.
+- [x] Duración persistente: cuando Meta entrega el archivo, el navegador lee sus metadatos
+  una sola vez y guarda una duración validada. Biblioteca, detalle y retención reutilizan
+  ese valor sin depender nuevamente de la URL temporal; el contrato completo queda en
+  `docs/research/reel-data-contract.md`.
+
+- [x] Listado y detalle de medios: la sincronización pagina por cursor y trae al menos las últimas 100 piezas, más las de los últimos 90 días si hay más, con tope de 300; las estadísticas por pieza se actualizan para lo reciente y se completan una vez para lo viejo. La biblioteca muestra las últimas 100 en páginas de 24 y el detalle permite pedir y volver a abrir su análisis persistido.
 - [-] Métricas oficiales: ingestión y visualización inicial implementadas; por contenido se solicitan views, reach, likes, comments, shares, saved y total interactions, más tiempo medio, tiempo total y skip rate para Reels. Cuenta solicita cada total por separado y muestra views, reach, total interactions, profile views, accounts engaged y link taps sin convertir ausentes en cero. Falta verificar nuevamente la sincronización completa contra Instagram Insights nativo.
 - [-] Evolución diaria por pieza: `instagram_media_insight_snapshots` guarda una foto diaria de cada acumulado lifetime por Reel, con una fila idempotente por pieza, métrica y fecha. El sync ya la alimenta y el detalle deriva visualizaciones nuevas entre días consecutivos para mostrar el pico y la caída sin repartir cifras cuando falta un día. La historia empieza el 19 de septiembre de 2026 y no puede reconstruir días anteriores; falta acumular al menos dos snapshots consecutivos y comprobar la gráfica con actividad real.
 - [ ] Presentar la evolución de seguidores: la foto diaria ya se guarda en `instagram_account_insights` con `metric=follower_count` y `period=day` desde 2026-09-12, pero todavía no se muestra en ninguna pantalla. Formato aún por comprobar —card KPI o gráfica—; la cifra exacta se reserva para esa vista dedicada y el resto de la interfaz usa notación compacta.
 - [x] Comprobar que se puede obtener el video de un Reel desde el servidor: `npm run probe:media`. Meta devuelve una `media_url` nueva en cada pedido, con un host de CDN distinto del guardado, y las dos se descargan sin credenciales, con `Range` y respuesta `206`. Un Reel de prueba pesó 6,1 MB. Conclusión para el pipeline: pedir la URL fresca en el momento del análisis en vez de confiar en la guardada, y traer el archivo por partes. Falta medir cuánto dura viva una URL.
-- [ ] Transcripción.
-- [ ] Frames/escenas.
-- [ ] Análisis estructurado.
-- [ ] Benchmark propio.
-- [ ] Artefactos persistentes.
-- [ ] UI de evidencia y recomendaciones.
+- [-] Reel restaurado después de archivarse: comprobado el 2026-09-28 con una pieza real.
+  Meta reconoce la pieza y responde `200`, conserva portada y métricas, pero omite
+  `media_url` incluso en una consulta fresca. Zenovi muestra la portada y no ofrece un
+  análisis condenado a fallar; falta comprobar si Meta vuelve a entregar el archivo con
+  el tiempo y definir una carga manual como respaldo si el caso persiste.
+- [x] Transcripción: proveedor inicial elegido con una prueba propia en español rioplatense:
+  Groq `whisper-large-v3-turbo`. Devolvió 253 palabras en 2,5 s, conservó mejor `CTA` y
+  `Loom` que Deepgram Nova-3, entrega timestamps por segmento y ya está integrado al
+  trabajo a demanda que guarda el artefacto; evidencia y límites en
+  `research/transcription-benchmark.md`.
+- [-] Frames/escenas: Gemini 3.8 Flash separó escenas de una muestra real y citó texto
+  visible con timestamps usando el video directo, que es el camino activo del MVP. Falta
+  comparar costo/calidad contra frames seleccionados y repetir sobre más piezas.
+- [x] Análisis orientado a decisiones: el trabajo a demanda cruza video, transcripción
+  canónica y métricas reales, pero no le devuelve al creador un resumen de lo que ya dijo.
+  La versión `reel-v5-reel-map` entrega diagnóstico de rendimiento, fortalezas,
+  fricciones e hipótesis de atención, seguido por un plan obligatorio de `Conservá`,
+  `Cambiá` y `Probá`. Cada acción enseña un principio transferible a futuros videos e
+  indica tramo de origen, motivo, ejecución y métrica a observar. La ejecución revisa voz,
+  ritmo, postura, imagen, edición y sonido sólo cuando cambian una decisión; reversionar la
+  pieza es una salida secundaria y opcional. Los timestamps quedan como evidencia
+  reproducible. Los contratos anteriores continúan leyéndose para no romper resultados
+  guardados y ofrecen actualización a la versión nueva.
+- [x] Benchmark propio de transcripción: Deepgram Nova-3 contra Groq
+  `whisper-large-v3-turbo` sobre un Reel real de 1:30. Groq queda como elección inicial;
+  el comparador detecta y rechaza muestras casi sin diálogo.
+- [-] Benchmark propio multimodal: Gemini 3.8 Flash procesó el mismo Reel en 36,7 s y
+  devolvió 1.307 tokens de salida estructurada sobre 10.708 totales. Reconoció texto,
+  herramientas y seis escenas con evidencia temporal. Falta una segunda alternativa,
+  más muestras y medición repetida; detalle en `research/multimodal-benchmark.md`.
+- [x] Artefactos persistentes: `content_analyses` guarda estado, versión y resultado; los
+  videos se descargan en memoria y no se conservan. Falta aplicar el ajuste final de
+  grants antes del despliegue.
+- [x] UI de evidencia y recomendaciones con estados no pedido, procesando, listo y fallo.
 
 ### Sprint 4 - ADN y Director
 
@@ -354,8 +396,10 @@ del video, que tampoco viene por la API.
 
 - [ ] **Decidir si Zenovi raspa o no.** Es una decisión de riesgo, no técnica: implica los
   términos de la plataforma, estabilidad —un cambio de HTML rompe el dato— y costo por
-  pedido. Hoy Zenovi obtiene la duración leyendo el archivo de video en el navegador, que
-  no cuesta nada y no depende de nadie, pero sólo funciona con la pieza abierta.
+  pedido. Hoy Zenovi obtiene la duración leyendo los metadatos del archivo en el navegador,
+  la valida y la persiste en `instagram_media.duration_ms`; las visitas siguientes ya no
+  dependen de la URL temporal. Una pieza sin `media_url`, como el Reel restaurado después
+  de archivarse, sigue sin duración y no se completa con una estimación.
 - Otras cosas que Moka muestra y necesitan datos que no tenemos: **orgánico vs pagado**
   (requiere la API de Ads) y **views por día de semana por pieza** (requiere histórico
   diario por pieza; Zenovi lo empezó a guardar el 2026-09-24).
@@ -614,6 +658,8 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-09-22 | Ideas y Guiones son un solo objeto de contenido con `estado` y guión como campo | Aceptada | Tras ver el sistema de Moka (Loom "Mi sistema de contenido por dentro"): un pipeline con estados (idea → listo para grabar → editando → listo para publicar → publicado) donde el guión (hook/desarrollo/CTA) se llena al avanzar. Evita dos listas y el quilombo de "qué es idea y qué es guion". Los links de entregables (video crudo/editado) quedan fuera del MVP: es trabajo en equipo futuro |
 | 2026-09-22 | La segmentación del contenido es libre, del creador; el "tipo de contenido" (corte, transaccional…) es su lenguaje, no el del equipo | Aceptada | El creador ordena por carpetas/etiquetas propias. Los pilares de marketing (atracción, educación, autoridad, nutrición, venta) son sugerencia opcional del Director, no una taxonomía impuesta. Evita forzar jerga que el usuario no reconoce |
 | 2026-09-22 | La app habla como experto en marketing y marcas personales | Aceptada | Usar la jerga del rubro (hook, CTA, pilar, nutrición, conversión, transaccional) para afinidad con el cliente. Vocabulario derivado del lenguaje del avatar, no impuesto |
+| 2026-09-27 | Groq Whisper se elige sólo para transcripción; el modelo de análisis sigue abierto | Aceptada | Audio → texto y texto/frames/métricas → análisis son trabajos distintos. GPT-OSS es candidato textual; Ollama queda anotado para amortiguar tokens con modelos abiertos cuando Zenovi tenga infraestructura propia, sin volver el MVP dependiente de una computadora local |
+| 2026-09-27 | Gemini 3.8 Flash queda como candidato activo para comprensión audiovisual | Provisional | En un Reel real leyó subtítulos y tablas, reconoció herramientas, separó escenas y entregó hooks y CTA con evidencia temporal usando el contrato de producción. No se convierte en proveedor definitivo hasta compararlo contra otra alternativa y repetir el benchmark sobre más piezas |
 
 ## Registro de bloqueos
 

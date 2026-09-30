@@ -11,6 +11,7 @@ type InstagramMediaRow = {
   media_product_type: string | null;
   media_url: string | null;
   thumbnail_url: string | null;
+  duration_ms: number | null;
   permalink: string | null;
   posted_at: string;
   like_count: number | null;
@@ -51,7 +52,7 @@ export async function getInstagramContentLibrary(
   const { data: media, error: mediaError } = await supabase
     .from("instagram_media")
     .select(
-      "id, caption, media_type, media_product_type, media_url, thumbnail_url, permalink, posted_at, like_count, comments_count",
+      "id, caption, media_type, media_product_type, media_url, thumbnail_url, duration_ms, permalink, posted_at, like_count, comments_count",
     )
     .eq("social_account_id", account.id)
     .order("posted_at", { ascending: false })
@@ -101,6 +102,7 @@ function mapContentItem(
     caption: item.caption,
     thumbnailUrl: getThumbnailUrl(item),
     mediaUrl: item.media_url,
+    durationMs: item.duration_ms,
     permalink: item.permalink,
     postedAt: item.posted_at,
     dateLabel: formatMediaDate(item.posted_at),
@@ -112,6 +114,9 @@ function mapContentItem(
     interactions: metrics?.get("total_interactions") ?? null,
     saves: metrics?.get("saved") ?? null,
     shares: metrics?.get("shares") ?? null,
+    follows: metrics?.get("follows") ?? null,
+    profileVisits: metrics?.get("profile_visits") ?? null,
+    profileActivity: metrics?.get("profile_activity") ?? null,
     averageWatchTimeMs: metrics?.get("ig_reels_avg_watch_time") ?? null,
     totalWatchTimeMs: metrics?.get("ig_reels_video_view_total_time") ?? null,
     skipRate: metrics?.get("reels_skip_rate") ?? null,

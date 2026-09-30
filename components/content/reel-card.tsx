@@ -2,14 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { persistReelDuration } from "@/app/(dashboard)/content/[id]/actions";
 import type { RankedContentItem } from "@/lib/content/library";
+import { captionPreview } from "@/lib/content/caption-display";
 import { EngagementSummary } from "./engagement-summary";
+import { ExternalIcon } from "./metric-icons";
 import { PerformanceBadge } from "./performance-badge";
 import { formatClipDuration, useMediaDuration } from "./use-media-duration";
 
 export function ReelCard({ item, priority }: { item: RankedContentItem; priority?: boolean }) {
-  const { cardRef, duration } = useMediaDuration(item.mediaUrl);
+  const { cardRef, duration } = useMediaDuration(item.mediaUrl, {
+    initialDurationMs: item.durationMs,
+    onDuration: (seconds) => persistReelDuration(item.id, seconds),
+  });
   const detailHref = `/content/${item.id}`;
 
   return (
@@ -36,26 +41,26 @@ export function ReelCard({ item, priority }: { item: RankedContentItem; priority
       </Link>
 
       <PerformanceBadge multiplier={item.multiplier} overlay className="absolute left-3 top-3" />
+      {item.permalink ? (
+        <a
+          href={item.permalink}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75"
+          aria-label="Abrir Reel en Instagram"
+        >
+          <ExternalIcon className="size-4" />
+        </a>
+      ) : null}
 
       <div className="px-3 py-3">
         <EngagementSummary item={item} />
         <Link
           href={detailHref}
-          className="mt-3 line-clamp-2 block border-t border-mist pt-3 text-[13px] font-medium leading-[1.4] text-ink"
+          className="mt-3 line-clamp-2 border-t border-mist pt-3 text-[13px] font-medium leading-[1.4] text-ink"
         >
-          {item.caption?.trim() || "Reel sin texto"}
+          {captionPreview(item.caption, "Reel sin texto")}
         </Link>
-        {item.permalink ? (
-          <a
-            href={item.permalink}
-            target="_blank"
-            rel="noreferrer"
-            className="font-support mt-2.5 inline-flex min-h-7 items-center gap-1.5 rounded-control border border-mist bg-paper px-2.5 text-[11px] font-medium text-ink transition-colors hover:border-mist-strong hover:bg-canvas"
-          >
-            Ver en Instagram
-            <ArrowUpRight aria-hidden="true" className="size-3" strokeWidth={1.7} />
-          </a>
-        ) : null}
       </div>
     </article>
   );

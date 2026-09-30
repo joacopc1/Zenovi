@@ -1,13 +1,9 @@
 import { TrendingUp } from "lucide-react";
 import { DailyChart } from "@/components/analytics/daily-chart";
-import { formatCompact } from "@/lib/format/numbers";
-import type { MediaViewEvolution } from "@/lib/content/media-view-evolution";
-
-const dateFormatter = new Intl.DateTimeFormat("es-UY", {
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-});
+import {
+  hasChartableViewEvolution,
+  type MediaViewEvolution,
+} from "@/lib/content/media-view-evolution";
 
 /**
  * Cómo viene sumando visualizaciones la pieza.
@@ -19,15 +15,20 @@ const dateFormatter = new Intl.DateTimeFormat("es-UY", {
  * información que quedaba tapada.
  */
 export function ReelViewsEvolution({ evolution }: { evolution: MediaViewEvolution }) {
-  const chartPoints = evolution.points.map((point) => ({
-    date: point.date,
-    label: point.label,
-    values: { views: point.views },
-  }));
+  // Los snapshots acumulados se conservan para detectar que una pieza se frenó, pero
+  // la curva sólo dibuja días en los que efectivamente sumó views. Una cola de ceros
+  // ocupa espacio y se lee como caída aunque el Reel simplemente haya terminado su ciclo.
+  const chartPoints = evolution.points.flatMap((point) =>
+    point.views !== null && point.views > 0
+      ? [{ date: point.date, label: point.label, values: { views: point.views } }]
+      : [],
+  );
+
+  if (!hasChartableViewEvolution(evolution)) return null;
 
   return (
     <section
-      className="rounded-card border border-mist bg-paper px-5 py-4"
+      className="h-full rounded-card border border-mist bg-paper px-5 py-4"
       aria-labelledby="reel-views-evolution-title"
     >
       <header className="border-b border-mist pb-4">
@@ -38,56 +39,16 @@ export function ReelViewsEvolution({ evolution }: { evolution: MediaViewEvolutio
           <TrendingUp aria-hidden="true" className="size-4 text-ink" strokeWidth={1.7} />
           Evolución de visualizaciones
         </h2>
-        <p className="font-support mt-1 text-[13px] text-graphite">
-          Visualizaciones nuevas por día desde que Zenovi empezó a medir esta pieza.
-        </p>
       </header>
 
       <div className="pt-4">
-        {evolution.growing ? (
-          <DailyChart
-            label="Visualizaciones nuevas por día"
-            mode="line"
-            series={[{ key: "views", label: "Visualizaciones", color: "var(--color-series-1)" }]}
-            points={chartPoints}
-          />
-        ) : (
-          <Quieta evolution={evolution} />
-        )}
+        <DailyChart
+          label="Visualizaciones nuevas por día"
+          mode="line"
+          series={[{ key: "views", label: "Visualizaciones", color: "var(--color-series-1)" }]}
+          points={chartPoints}
+        />
       </div>
     </section>
-  );
-}
-
-/** Lo que hay para decir cuando no hay curva que dibujar. */
-function Quieta({ evolution }: { evolution: MediaViewEvolution }) {
-  const { total, flatDays, lastGrowthOn, points } = evolution;
-
-  return (
-    <div className="font-support flex min-h-36 flex-col items-center justify-center gap-1 rounded-control bg-canvas px-6 text-center">
-      {points.length === 0 ? (
-        <p className="text-[13px] leading-5 text-graphite">
-          La medición empieza con la próxima sincronización.
-        </p>
-      ) : flatDays === 0 ? (
-        <p className="text-[13px] leading-5 text-graphite">
-          Ya guardamos el primer punto. Después de la próxima medición diaria podremos
-          mostrar la evolución.
-        </p>
-      ) : (
-        <>
-          <p className="text-[15px] font-semibold text-ink">
-            Esta pieza ya no suma visualizaciones
-          </p>
-          <p className="text-[13px] leading-5 text-graphite">
-            {flatDays === 1 ? "Hace un día" : `Hace ${flatDays} días`} que no se mueve
-            {total === null ? "" : `, y quedó en ${formatCompact(total)}`}.
-            {lastGrowthOn
-              ? ` La última vez que creció fue el ${dateFormatter.format(new Date(`${lastGrowthOn}T00:00:00Z`))}.`
-              : ""}
-          </p>
-        </>
-      )}
-    </div>
   );
 }

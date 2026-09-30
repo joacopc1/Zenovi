@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { splitDisplayCaption } from "@/lib/content/caption-display";
 
-const COLLAPSED_LENGTH = 110;
+const COLLAPSED_LENGTH = 105;
 
 export function ContentCaption({
   caption,
@@ -14,44 +15,50 @@ export function ContentCaption({
   formatLabel: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { title, description } = splitCaption(caption, formatLabel);
+  const { title, description } = splitDisplayCaption(caption, formatLabel);
   const canExpand =
     description.length > COLLAPSED_LENGTH || description.split("\n").length > 2;
+  const visibleDescription =
+    !expanded && canExpand ? truncateAtWord(description, COLLAPSED_LENGTH) : description;
+  const inlineTail = canExpand ? splitInlineTail(visibleDescription) : null;
 
   return (
     <header>
       <h1 className="text-xl font-semibold tracking-[-0.02em]">{title}</h1>
-      <p
-        className={`font-support mt-1.5 whitespace-pre-line text-[14px] leading-5 text-graphite ${expanded ? "" : "line-clamp-2"}`}
-      >
-        {description}
+      <p className="font-support mt-1.5 whitespace-pre-line text-[14px] leading-5 text-graphite">
+        {inlineTail ? (
+          <>
+            {inlineTail.lead ? `${inlineTail.lead} ` : null}
+            <span className="whitespace-nowrap">
+              {inlineTail.tail}{!expanded ? "…" : ""}{" "}
+              <button
+                type="button"
+                onClick={() => setExpanded((current) => !current)}
+                aria-expanded={expanded}
+                className="font-support text-[13px] font-medium text-muted transition-colors hover:text-graphite"
+              >
+                {expanded ? "Ver menos" : "Ver más"}
+              </button>
+            </span>
+          </>
+        ) : (
+          visibleDescription
+        )}
       </p>
-      {canExpand ? (
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          aria-expanded={expanded}
-          className="font-support mt-1 text-[13px] font-medium text-ink underline decoration-mist-strong underline-offset-4 hover:decoration-ink"
-        >
-          {expanded ? "Ver menos" : "Ver más"}
-        </button>
-      ) : null}
       <p className="font-support mt-1.5 text-xs text-muted">Publicado el {publishedLabel}</p>
     </header>
   );
 }
 
-function splitCaption(caption: string | null, formatLabel: string) {
-  const text = caption?.trim();
+function truncateAtWord(text: string, maximum: number) {
+  if (text.length <= maximum) return text;
+  const candidate = text.slice(0, maximum + 1).replace(/\s+\S*$/u, "").trimEnd();
+  return candidate || text.slice(0, maximum).trimEnd();
+}
 
-  if (!text) {
-    return { title: formatLabel, description: "Sin descripción." };
-  }
-
-  const paragraphs = text.split(/\n+/).map((part) => part.trim()).filter(Boolean);
-  const firstLineReadsAsTitle = paragraphs.length > 1 && paragraphs[0].length <= 120;
-
-  return firstLineReadsAsTitle
-    ? { title: paragraphs[0], description: paragraphs.slice(1).join("\n") }
-    : { title: formatLabel, description: text };
+function splitInlineTail(text: string) {
+  const match = text.match(/^([\s\S]*)\s+(\S+)$/u);
+  return match
+    ? { lead: match[1].trimEnd(), tail: match[2] }
+    : { lead: "", tail: text };
 }

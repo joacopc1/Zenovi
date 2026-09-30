@@ -99,9 +99,7 @@ export function ProductionView({
       ) : null}
 
       <div className="mt-6">
-        {items.length === 0 ? (
-          <EmptyBoard onCreate={() => setCreateGuion(false)} />
-        ) : view === "pipeline" ? (
+        {view === "pipeline" ? (
           <ProductionPipeline
             items={board.columns}
             links={links}
@@ -130,7 +128,7 @@ export function ProductionView({
         )}
       </div>
 
-      {items.length === 0 ? null : view === "calendar" ? (
+      {view === "calendar" ? (
         <CadenceSignal reading={board.cadence} instagramConnected={instagramConnected} />
       ) : (
         <>
@@ -165,34 +163,5 @@ export function ProductionView({
         />
       ) : null}
     </div>
-  );
-}
-
-/**
- * Lo primero que ve alguien que nunca cargó una pieza.
- *
- * Cuatro columnas vacías no explican nada: dicen que falta algo pero no qué hace la
- * sección ni por dónde se empieza. Acá se cuenta el recorrido entero en una frase, porque
- * lo que hace valiosa a Producción es el final —la pieza publicada se ata a su video y se
- * puede ver cómo rindió—, no el tablero en sí.
- */
-function EmptyBoard({ onCreate }: { onCreate: () => void }) {
-  return (
-    <section className="rounded-card border border-mist px-6 py-14 text-center">
-      <h2 className="text-base font-semibold">Todavía no hay piezas en producción</h2>
-      <p className="font-support mx-auto mt-2 max-w-lg text-sm leading-6 text-graphite">
-        Una idea entra con un título o con el link de lo que te inspiró, y avanza hasta
-        publicarse: guion, grabación y salida. Cuando la publicás, Zenovi la reconoce entre
-        tus piezas de Instagram y te dice cómo rindió contra el resto de tu contenido.
-      </p>
-      <button
-        type="button"
-        onClick={onCreate}
-        className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-control bg-ink px-4 text-sm font-semibold text-paper transition-opacity hover:opacity-90"
-      >
-        <Plus size={15} strokeWidth={1.75} aria-hidden="true" />
-        Cargar la primera idea
-      </button>
-    </section>
   );
 }

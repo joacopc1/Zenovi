@@ -32,6 +32,7 @@ export type ContentLibraryItem = {
   caption: string | null;
   thumbnailUrl: string | null;
   mediaUrl: string | null;
+  durationMs: number | null;
   permalink: string | null;
   postedAt: string;
   dateLabel: string;
@@ -43,6 +44,9 @@ export type ContentLibraryItem = {
   interactions: number | null;
   saves: number | null;
   shares: number | null;
+  follows: number | null;
+  profileVisits: number | null;
+  profileActivity: number | null;
   averageWatchTimeMs: number | null;
   totalWatchTimeMs: number | null;
   skipRate: number | null;

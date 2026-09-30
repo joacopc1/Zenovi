@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildMediaViewEvolution,
+  hasChartableViewEvolution,
   readMediaViewEvolution,
 } from "../lib/content/media-view-evolution.ts";
 
@@ -82,4 +83,19 @@ test("sin mediciones no se inventa un acumulado", () => {
   assert.equal(evolution.growing, false);
   assert.equal(evolution.flatDays, 0);
   assert.deepEqual(evolution.points, []);
+});
+
+test("la evolución sólo ocupa espacio cuando hay una curva real", () => {
+  const unSoloCrecimiento = readMediaViewEvolution([
+    { observedOn: "2026-09-24", value: 100 },
+    { observedOn: "2026-09-25", value: 140 },
+  ]);
+  const curva = readMediaViewEvolution([
+    { observedOn: "2026-09-24", value: 100 },
+    { observedOn: "2026-09-25", value: 140 },
+    { observedOn: "2026-09-26", value: 160 },
+  ]);
+
+  assert.equal(hasChartableViewEvolution(unSoloCrecimiento), false);
+  assert.equal(hasChartableViewEvolution(curva), true);
 });

@@ -18,19 +18,28 @@ import { EngagementBreakdown } from "@/components/content/engagement-breakdown";
 import { PerformanceBadge } from "@/components/content/performance-badge";
 import { PerformanceStanding } from "@/components/content/performance-standing";
 import { PlaybackInsights } from "@/components/content/playback-insights";
+import { PublicationGrowth } from "@/components/content/publication-growth";
 import { ReelPlayer } from "@/components/content/reel-player";
+import { ReelMapSection } from "@/components/content/reel-map-section";
 import { ReelViewsEvolution } from "@/components/content/reel-views-evolution";
+import { ScriptSection } from "@/components/content/script-section";
 import { ContentCaption } from "@/components/content/content-caption";
 import { AppHeader } from "@/components/shell/app-header";
 import type { AnalysisState } from "@/lib/content/analysis";
 import { EXAMPLE_ANALYSIS } from "@/lib/content/analysis-example";
 import { buildCohort, viewsRank, CONTENT_KIND_PLURALS } from "@/lib/content/library";
+import { hasChartableViewEvolution } from "@/lib/content/media-view-evolution";
 import { getEngagementRate } from "@/lib/content/metrics";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source";
 import { getMediaViewEvolution } from "@/lib/data/media-view-evolution";
 import { getContentAnalysis } from "@/lib/data/content-analysis";
+import { getContentScript } from "@/lib/data/content-script";
+
+// Transcription and multimodal analysis run as Server Actions from this route.
+// Keep the route budget aligned with the longest provider call in production.
+export const maxDuration = 300;
 
 const numberFormatter = new Intl.NumberFormat("es-UY");
 const decimalFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 1 });
@@ -69,22 +78,28 @@ export default async function ContentDetailPage({
   if (!item) notFound();
 
   const rank = viewsRank(cohort, id);
-  const [freshMediaSource, viewEvolution] =
+  const exampleAnalysis =
+    process.env.NODE_ENV !== "production" && ejemplo === "1"
+      ? ({ status: "ready", analysis: EXAMPLE_ANALYSIS } satisfies AnalysisState)
+      : null;
+  const [freshMediaSource, viewEvolution, analysisState, scriptState] =
     item.kind === "reel"
       ? await Promise.all([
           getFreshInstagramMediaSource(workspaceId, item.id),
           getMediaViewEvolution(item.id),
+          exampleAnalysis ?? getContentAnalysis(item.id),
+          getContentScript(item.id),
         ])
-      : [null, { points: [], total: null, growing: false, lastGrowthOn: null, flatDays: 0 }];
-
-  // `?ejemplo=1` sigue existiendo para mirar la pantalla con un análisis de muestra
-  // mientras no haya ninguno real. Sólo en desarrollo: en producción no hay forma de verlo.
-  const analysisState: AnalysisState =
-    process.env.NODE_ENV !== "production" && ejemplo === "1"
-      ? { status: "ready", analysis: EXAMPLE_ANALYSIS }
-      : await getContentAnalysis(item.id);
+      : [
+          null,
+          { points: [], total: null, growing: false, lastGrowthOn: null, flatDays: 0 },
+          null,
+          null,
+        ];
   const playbackUrl = freshMediaSource?.mediaUrl ?? item.mediaUrl;
   const posterUrl = freshMediaSource?.thumbnailUrl ?? item.thumbnailUrl;
+  const showViewEvolution =
+    item.kind === "reel" && hasChartableViewEvolution(viewEvolution);
 
   const metrics = [
     { label: "Visualizaciones", value: item.views, icon: Eye, note: null, format: "number" as const },
@@ -96,13 +111,21 @@ export default async function ContentDetailPage({
       note: item.interactions === null ? null : `${formatMetric(item.interactions)} interacciones`,
       format: "percentage" as const,
     },
-    {
-      label: "Ventas",
-      value: null,
-      icon: BadgeDollarSign,
-      note: "Próximamente",
-      format: "comingSoon" as const,
-    },
+    item.kind === "publication"
+      ? {
+          label: "Seguidores ganados",
+          value: item.follows,
+          icon: UsersRound,
+          note: item.follows === null ? null : "Atribuidos a esta publicación",
+          format: "number" as const,
+        }
+      : {
+          label: "Ventas",
+          value: null,
+          icon: BadgeDollarSign,
+          note: "Próximamente",
+          format: "comingSoon" as const,
+        },
   ];
 
   return (
@@ -134,7 +157,11 @@ export default async function ContentDetailPage({
               {item.kind === "reel" ? (
                 <div className="font-support absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
                   <Clock3 aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
-                  <ClipDuration mediaUrl={playbackUrl} />
+                  <ClipDuration
+                    mediaId={item.id}
+                    mediaUrl={playbackUrl}
+                    durationMs={item.durationMs}
+                  />
                 </div>
               ) : null}
             </div>
@@ -181,7 +208,13 @@ export default async function ContentDetailPage({
                   totalWatchTimeMs={item.totalWatchTimeMs}
                   skipRate={item.skipRate}
                   mediaUrl={playbackUrl}
+                  durationMs={item.durationMs}
                 />
+              </div>
+            ) : item.kind === "publication" ? (
+              <div className="grid gap-3 xl:grid-cols-2">
+                <EngagementBreakdown item={item} />
+                <PublicationGrowth item={item} />
               </div>
             ) : (
               <EngagementBreakdown item={item} />
@@ -190,9 +223,33 @@ export default async function ContentDetailPage({
         </div>
 
         <div className="mt-6 space-y-6">
-          {item.kind === "reel" ? <ReelViewsEvolution evolution={viewEvolution} /> : null}
-          <BenchmarkSection cohort={cohort} item={item} />
-          <AnalysisSection state={analysisState} />
+          <div className={`grid items-stretch gap-4 ${showViewEvolution ? "xl:grid-cols-2" : ""}`}>
+            <BenchmarkSection cohort={cohort} item={item} />
+            {showViewEvolution ? <ReelViewsEvolution evolution={viewEvolution} /> : null}
+          </div>
+          {scriptState || analysisState ? (
+            <div className="space-y-2">
+              {scriptState ? (
+                <ScriptSection
+                  state={scriptState}
+                  mediaId={item.id}
+                  mediaAvailable={
+                    Boolean(freshMediaSource?.mediaUrl) || analysisState?.status === "ready"
+                  }
+                />
+              ) : null}
+              {analysisState ? (
+                <>
+                  <AnalysisSection
+                    state={analysisState}
+                    mediaId={item.id}
+                    mediaAvailable={Boolean(freshMediaSource?.mediaUrl)}
+                  />
+                  <ReelMapSection state={analysisState} />
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </main>
     </>

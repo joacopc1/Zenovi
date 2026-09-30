@@ -94,3 +94,8 @@ export function readMediaViewEvolution(
     flatDays,
   };
 }
+
+/** Una línea necesita al menos dos crecimientos diarios atribuibles para contar evolución. */
+export function hasChartableViewEvolution(evolution: MediaViewEvolution) {
+  return evolution.points.filter((point) => point.views !== null && point.views > 0).length >= 2;
+}

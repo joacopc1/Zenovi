@@ -13,7 +13,9 @@
     "probe:demographics": "node --env-file=.env.local --no-warnings scripts/probe-demographics.mjs",
     "probe:media": "node --env-file=.env.local --no-warnings scripts/probe-media-download.mjs",
     "probe:trial": "node --env-file=.env.local --no-warnings scripts/probe-trial-reels.mjs",
-    "probe:metrics": "node --env-file=.env.local --no-warnings scripts/probe-media-metrics.mjs"
+    "probe:metrics": "node --env-file=.env.local --no-warnings scripts/probe-media-metrics.mjs",
+    "bench:transcription": "node --env-file=.env.local --no-warnings scripts/bench-transcription.mjs",
+    "bench:multimodal": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/bench-multimodal.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

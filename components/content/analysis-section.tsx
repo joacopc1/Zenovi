@@ -1,210 +1,402 @@
-import { Clock3, Lightbulb, Quote, RefreshCw, Sparkles } from "lucide-react";
 import {
-  ANALYSIS_CREDIT_COST,
-  formatMoment,
+  AudioLines,
+  CircleAlert,
+  Clock3,
+  Gauge,
+  Lightbulb,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+import { AnalysisMomentLinks } from "@/components/content/analysis-evidence";
+import { AnalysisRequestButton } from "@/components/content/analysis-request-button";
+import { CollapsibleSection } from "@/components/content/collapsible-section";
+import { HelpHint } from "@/components/ui/help-hint";
+import {
   formatSpan,
-  type AnalysisFinding,
+  estimateSpeakingPaceWpm,
+  isActionableAnalysis,
+  isAnalysisOutdated,
+  type ActionKind,
+  type ActionPlan as ActionPlanData,
+  type ActionableRecommendation,
+  type ActionableReelAnalysis,
+  type AnalysisConfidence,
   type AnalysisState,
+  type DecisionFinding,
+  type ExecutionFinding,
+  type LegacyReelAnalysis,
   type ReelAnalysis,
 } from "@/lib/content/analysis";
 
-/**
- * El análisis de la pieza, en la vista de detalle.
- *
- * Es lo único de Zenovi que consume créditos, así que el estado inicial no esconde el
- * costo: dice qué se obtiene y cuánto cuesta antes de que la persona decida. Y como el
- * análisis lo escribe un modelo, cada afirmación se muestra junto a la cita o el momento
- * del video que la respalda, para que se pueda discutir en vez de creerla.
- */
-export function AnalysisSection({ state }: { state: AnalysisState }) {
+export function AnalysisSection({
+  state,
+  mediaId,
+  mediaAvailable,
+}: {
+  state: AnalysisState;
+  mediaId: string;
+  mediaAvailable: boolean;
+}) {
   return (
-    <section className="rounded-card border border-mist bg-paper">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mist px-5 py-4">
-        <h2 className="flex items-center gap-2 text-base font-semibold">
-          <Sparkles size={16} strokeWidth={1.75} aria-hidden className="text-data" />
-          Análisis
-        </h2>
-        {state.status === "ready" ? (
-          <p className="font-support text-xs text-muted">
-            Analizado el {new Date(state.analysis.completedAt).toLocaleDateString("es-UY", { day: "numeric", month: "long" })}
-          </p>
+    <CollapsibleSection
+      sectionId={`analysis-${mediaId}`}
+      title="Análisis"
+      icon={<Sparkles aria-hidden className="size-4 text-ink" strokeWidth={1.75} />}
+      help={<HelpHint text="Explica qué pudo ayudar o frenar el rendimiento y lo convierte en aprendizajes aplicables a futuros contenidos. Las causas no comprobables se marcan como hipótesis." />}
+      actions={state.status === "ready" ? (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <p className="font-support text-xs text-muted">
+              Analizado el {formatAnalysisDate(state.analysis.completedAt)}
+            </p>
+            {isAnalysisOutdated(state.analysis) && mediaAvailable ? (
+              <AnalysisRequestButton mediaId={mediaId} refresh />
+            ) : null}
+          </div>
         ) : null}
-      </header>
-
-      <div className="px-5 py-5">
-        {state.status === "not_requested" ? <NotRequested /> : null}
+      footer={(
+        <p className="font-support text-[12px] leading-5 text-muted">
+          El análisis cruza la transcripción, lo que ocurre en el video y las métricas disponibles.
+        </p>
+      )}
+    >
+        {state.status === "not_requested" ? (
+          <NotRequested mediaId={mediaId} mediaAvailable={mediaAvailable} />
+        ) : null}
         {state.status === "queued" || state.status === "running" ? <InProgress /> : null}
-        {state.status === "failed" ? <Failed reason={state.reason} canRetry={state.canRetry} /> : null}
+        {state.status === "failed" ? (
+          <Failed mediaId={mediaId} reason={state.reason} canRetry={state.canRetry && mediaAvailable} />
+        ) : null}
         {state.status === "ready" ? <Ready analysis={state.analysis} /> : null}
-      </div>
-    </section>
+    </CollapsibleSection>
   );
 }
 
-function NotRequested() {
+function NotRequested({
+  mediaId,
+  mediaAvailable,
+}: {
+  mediaId: string;
+  mediaAvailable: boolean;
+}) {
   return (
-    <>
-      <p className="font-support text-sm leading-6 text-graphite">
-        Zenovi puede mirar esta pieza entera —lo que decís, cómo abre, cómo está armada y
-        qué pide al final— y cruzarlo con cómo rindió, para decirte qué conviene repetir y
-        qué probar distinto.
+    <div>
+      <p className="font-sans max-w-3xl text-sm font-normal leading-6 text-graphite">
+        Zenovi mira el video y cruza sus señales con las métricas disponibles para explicar
+        qué pudo ayudar, qué pudo frenar y qué aprendizaje conviene aplicar en próximos contenidos.
       </p>
-
-      <ul className="font-support mt-4 grid gap-2 text-[13px] leading-6 text-graphite sm:grid-cols-2">
-        <li>· El gancho: qué se dice y qué se ve en los primeros segundos.</li>
-        <li>· La promesa y si el contenido la cumple.</li>
-        <li>· La estructura y el ritmo, tramo por tramo.</li>
-        <li>· El cierre y qué acción propone.</li>
-        <li>· La transcripción completa con sus tiempos.</li>
-        <li>· Qué conservar, qué cambiar y qué probar.</li>
-      </ul>
-
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-mist pt-4">
-        <button
-          type="button"
-          disabled
-          className="inline-flex min-h-9 cursor-not-allowed items-center gap-2 rounded-control bg-ink/30 px-4 text-sm font-semibold text-paper"
-        >
-          <Sparkles size={15} strokeWidth={2} aria-hidden />
-          Analizar esta pieza
-        </button>
+        {mediaAvailable ? (
+          <AnalysisRequestButton mediaId={mediaId} />
+        ) : (
+          <p className="font-support text-[13px] font-medium text-graphite">
+            Esperando que Instagram vuelva a entregar el archivo del video.
+          </p>
+        )}
         <p className="font-support text-xs text-muted">
-          Cuesta {ANALYSIS_CREDIT_COST} crédito y tarda un par de minutos. Se analiza sólo cuando lo pedís:
-          el resultado queda guardado y volver a abrirlo no consume nada.
+          Si hace falta, primero genera la transcripción. Durante esta prueba no descuenta créditos.
         </p>
       </div>
-    </>
+    </div>
   );
 }
 
 function InProgress() {
   return (
     <div className="flex items-start gap-3">
-      <Clock3 size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-graphite" />
-      <p className="font-support text-sm leading-6 text-graphite">
-        Estamos analizando esta pieza. Podés seguir usando Zenovi mientras tanto: cuando
-        termine, el resultado aparece acá.
+      <Clock3 aria-hidden className="mt-0.5 size-4 shrink-0 text-graphite" strokeWidth={1.75} />
+      <p className="font-sans text-sm font-normal leading-6 text-graphite">
+        Estamos analizando la pieza. El resultado aparece acá cuando termine.
       </p>
     </div>
   );
 }
 
-function Failed({ reason, canRetry }: { reason: string; canRetry: boolean }) {
+function Failed({ mediaId, reason, canRetry }: { mediaId: string; reason: string; canRetry: boolean }) {
   return (
     <div className="flex items-start gap-3">
-      <RefreshCw size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-danger" />
+      <RefreshCw aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" strokeWidth={1.75} />
       <div>
-        <p className="font-support text-sm leading-6 text-graphite">{reason}</p>
-        {canRetry ? (
-          <p className="font-support mt-1 text-xs text-muted">No se descontó ningún crédito. Podés volver a intentarlo.</p>
-        ) : null}
+        <p className="font-sans text-sm font-normal leading-6 text-graphite">{reason}</p>
+        {canRetry ? <div className="mt-3"><AnalysisRequestButton mediaId={mediaId} retry /></div> : null}
       </div>
     </div>
   );
 }
 
 function Ready({ analysis }: { analysis: ReelAnalysis }) {
+  return isActionableAnalysis(analysis)
+    ? <ActionableReady analysis={analysis} />
+    : <LegacyReady analysis={analysis} />;
+}
+
+function ActionableReady({ analysis }: { analysis: ActionableReelAnalysis }) {
   return (
-    <div className="space-y-6">
-      <p className="text-[15px] leading-7">{analysis.summary}</p>
+    <div>
+      <section className="max-w-4xl" aria-labelledby="quick-read-title">
+        <p className="font-support text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
+          Lectura rápida
+        </p>
+        <h3 id="quick-read-title" className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-ink">
+          {analysis.performance.verdict}
+        </h3>
+        <p className="font-sans mt-2 text-[14px] font-normal leading-6 text-ink/80">
+          {analysis.performance.explanation}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Confidence value={analysis.performance.confidence} />
+          <AnalysisMomentLinks moments={analysis.performance.evidence} />
+        </div>
+      </section>
 
-      <Finding title="El gancho" finding={analysis.hook} />
-      <Finding title="La promesa" finding={analysis.promise} />
-
-      <Block title="Estructura y ritmo">
-        <ol className="space-y-2.5">
-          {analysis.structure.map((part) => (
-            <li key={`${part.fromMs}-${part.label}`} className="flex gap-3">
-              <span className="font-numeric w-[74px] shrink-0 pt-0.5 text-xs text-muted">
-                {formatSpan(part.fromMs, part.toMs)}
-              </span>
-              <span className="font-support text-[13px] leading-6 text-graphite">
-                <strong className="font-semibold text-ink">{part.label}.</strong> {part.note}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </Block>
-
-      <Finding title="Cómo lo contás" finding={analysis.delivery} />
-      <Finding title="El cierre" finding={analysis.callToAction} />
-
-      <Block title="Qué hacer con esto">
-        <ul className="space-y-2.5">
-          {analysis.recommendations.map((recommendation) => (
-            <li key={recommendation.text} className="flex gap-2.5">
-              <Lightbulb
-                size={15}
-                strokeWidth={1.75}
-                aria-hidden
-                className={`mt-1 shrink-0 ${
-                  recommendation.kind === "keep"
-                    ? "text-success"
-                    : recommendation.kind === "change"
-                      ? "text-danger"
-                      : "text-data"
-                }`}
-              />
-              <span className="font-support text-[13px] leading-6 text-graphite">
-                <strong className="font-semibold text-ink">
-                  {recommendation.kind === "keep" ? "Conservá" : recommendation.kind === "change" ? "Cambiá" : "Probá"}:
-                </strong>{" "}
-                {recommendation.text}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Block>
-
-      <details className="border-t border-mist pt-4">
-        <summary className="cursor-pointer text-[13px] font-medium text-ink">
-          Transcripción completa
-        </summary>
-        <ol className="mt-3 space-y-2">
-          {analysis.transcript.map((line) => (
-            <li key={line.atMs} className="flex gap-3">
-              <span className="font-numeric w-10 shrink-0 pt-0.5 text-xs text-muted">{formatMoment(line.atMs)}</span>
-              <span className="font-support text-[13px] leading-6 text-graphite">{line.quote}</span>
-            </li>
-          ))}
-        </ol>
-      </details>
-
-      <p className="font-support border-t border-mist pt-4 text-xs leading-5 text-muted">
-        Lo escribió un modelo de inteligencia artificial a partir del video y de tus métricas.
-        Puede equivocarse: cada afirmación va con lo que la respalda para que puedas
-        comprobarla. Versión {analysis.pipelineVersion}.
-      </p>
+      <ActionPlan plan={analysis.actionPlan} />
+      <ExecutionReview analysis={analysis} />
+      <Findings findings={analysis.findings} />
+      <Attention hypotheses={analysis.attentionHypotheses} />
+      {analysis.reversionIdeas.length > 0 ? <ReversionIdeas ideas={analysis.reversionIdeas} /> : null}
     </div>
   );
 }
 
-function Finding({ title, finding }: { title: string; finding: AnalysisFinding }) {
+const ACTION_KINDS: ActionKind[] = ["keep", "change", "test"];
+
+function ActionPlan({ plan }: { plan: ActionPlanData }) {
   return (
-    <Block title={title}>
-      <p className="font-support text-[13px] leading-6 text-graphite">{finding.claim}</p>
-      {finding.evidence.length > 0 ? (
-        <ul className="mt-3 space-y-2">
-          {finding.evidence.map((moment) => (
-            <li key={moment.atMs} className="flex gap-2.5 rounded-control bg-canvas px-3 py-2">
-              <Quote size={13} strokeWidth={1.75} aria-hidden className="mt-1 shrink-0 text-muted" />
-              <span className="font-support text-[13px] leading-6 text-graphite">
-                <span className="font-numeric text-xs text-muted">{formatMoment(moment.atMs)}</span>{" "}
-                “{moment.quote}”
-              </span>
-            </li>
-          ))}
-        </ul>
+    <section className="mt-6 border-t border-mist pt-5" aria-labelledby="action-plan-title">
+      <div className="flex items-center gap-2">
+        <Lightbulb aria-hidden className="size-4" strokeWidth={1.7} />
+        <h3 id="action-plan-title" className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+          Qué llevarte a tus próximos videos
+        </h3>
+      </div>
+      <div className="mt-4 divide-y divide-mist border-y border-mist">
+        {ACTION_KINDS.flatMap((kind) =>
+          plan[kind].map((action, index) => (
+            <ActionRow key={`${kind}-${action.title}-${index}`} kind={kind} action={action} />
+          )),
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ActionRow({ kind, action }: { kind: ActionKind; action: ActionableRecommendation }) {
+  return (
+    <article className="grid gap-4 py-5 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6">
+      <div>
+        <ActionBadge kind={kind} />
+        <h4 className="mt-2 text-[14px] font-semibold leading-5 text-ink">{action.title}</h4>
+        <span className="font-numeric mt-2 block text-[11px] font-medium text-ink/65">
+          {formatSpan(action.fromMs, action.toMs)}
+        </span>
+        <AnalysisMomentLinks moments={action.evidence} />
+      </div>
+      <dl className="grid gap-4 sm:grid-cols-3">
+        <ActionDetail label="Por qué" value={action.why} />
+        <ActionDetail label="Cómo aplicarlo en otros videos" value={action.how} />
+        <ActionDetail label="Qué medir" value={action.metricToWatch} />
+      </dl>
+    </article>
+  );
+}
+
+const executionLabels: Record<ExecutionFinding["dimension"], string> = {
+  voice: "Voz y ritmo",
+  body: "Postura y presencia",
+  visual: "Imagen y entorno",
+  editing: "Edición",
+  sound: "Sonido",
+};
+
+function ExecutionReview({ analysis }: { analysis: ActionableReelAnalysis }) {
+  const pace = estimateSpeakingPaceWpm(analysis.transcript);
+  if (analysis.executionReview.length === 0 && pace === null) return null;
+
+  return (
+    <section className="border-t border-mist py-5" aria-labelledby="execution-title">
+      <div className="flex items-center gap-2">
+        <AudioLines aria-hidden className="size-4 text-ink" strokeWidth={1.7} />
+        <h3 id="execution-title" className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+          Presentación y producción
+        </h3>
+        <HelpHint text="Revisa voz, ritmo, postura, imagen, edición y sonido. Sólo destaca aspectos que puedan cambiar una decisión para futuros videos." />
+      </div>
+      {pace !== null ? (
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-y border-mist py-3">
+          <span className="font-support text-[13px] font-medium text-ink">Ritmo de habla</span>
+          <span className="font-support text-[13px] text-graphite">
+            <strong className="font-numeric font-semibold text-ink">{pace}</strong>{" "}
+            palabras por minuto · estimado
+          </span>
+        </div>
       ) : null}
-    </Block>
+      <div className="divide-y divide-mist">
+        {analysis.executionReview.map((item, index) => (
+          <article key={`${item.dimension}-${item.title}-${index}`} className="grid gap-3 py-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-6">
+            <div>
+              <p className="font-support text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
+                {executionLabels[item.dimension]}
+              </p>
+              <h4 className="mt-1.5 text-[13px] font-semibold text-ink">{item.title}</h4>
+              <AnalysisMomentLinks moments={item.evidence} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ActionDetail label="Qué observamos" value={item.observation} />
+              <ActionDetail label="Qué efecto puede tener" value={item.impact} />
+              <ActionDetail label="Cómo mejorarlo" value={item.recommendation} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function ActionDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-t border-mist pt-4">
-      <h3 className="text-[13px] font-semibold tracking-[-0.01em]">{title}</h3>
-      <div className="mt-2.5">{children}</div>
+    <div>
+      <dt className="font-support text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">{label}</dt>
+      <dd className="font-sans mt-1.5 text-[13px] font-normal leading-6 text-ink/80">{value}</dd>
     </div>
   );
+}
+
+function Findings({ findings }: { findings: DecisionFinding[] }) {
+  return (
+    <section className="border-t border-mist py-5" aria-labelledby="findings-title">
+      <div className="flex items-center gap-2">
+        <TrendingUp aria-hidden className="size-4" strokeWidth={1.7} />
+        <h3 id="findings-title" className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+          Qué ayudó y qué frenó
+        </h3>
+      </div>
+      <div className="mt-4 grid gap-x-8 gap-y-5 md:grid-cols-2">
+        {findings.map((finding, index) => (
+          <FindingRow key={`${finding.title}-${index}`} finding={finding} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FindingRow({ finding }: { finding: DecisionFinding }) {
+  const label = finding.kind === "strength" ? "Fortaleza" : finding.kind === "friction" ? "Fricción" : "Oportunidad";
+  const color = finding.kind === "strength" ? "text-success" : finding.kind === "friction" ? "text-danger" : "text-warning";
+  return (
+    <article>
+      <p className={`font-support text-[11px] font-semibold uppercase tracking-[0.05em] ${color}`}>{label}</p>
+      <h4 className="mt-1.5 text-[14px] font-semibold text-ink">{finding.title}</h4>
+      <p className="font-sans mt-1.5 text-[13px] font-normal leading-6 text-ink/80">{finding.insight}</p>
+      <p className="font-sans mt-2 text-[12px] font-medium leading-5 text-graphite">
+        Por qué importa: {finding.impact}
+      </p>
+      <AnalysisMomentLinks moments={finding.evidence} />
+    </article>
+  );
+}
+
+function Attention({ hypotheses }: { hypotheses: ActionableReelAnalysis["attentionHypotheses"] }) {
+  return (
+    <section className="border-t border-mist py-5" aria-labelledby="attention-title">
+      <div className="flex items-center gap-2">
+        <Gauge aria-hidden className="size-4" strokeWidth={1.7} />
+        <h3 id="attention-title" className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+          Dónde puede perder atención
+        </h3>
+        <HelpHint text="Instagram no entrega una curva por segundo. Zenovi combina omisión, tiempo medio y señales del video para proponer zonas probables de fricción." />
+      </div>
+      <div className="mt-4 divide-y divide-mist">
+        {hypotheses.map((item, index) => (
+          <article key={`${item.title}-${index}`} className="grid gap-3 py-4 first:pt-0 md:grid-cols-[190px_minmax(0,1fr)] md:gap-5">
+            <div>
+              <h4 className="text-[13px] font-semibold text-ink">{item.title}</h4>
+              <Confidence value={item.confidence} />
+            </div>
+            <div>
+              <p className="font-sans text-[13px] font-normal leading-6 text-ink/80">{item.hypothesis}</p>
+              <AnalysisMomentLinks moments={item.evidence} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReversionIdeas({ ideas }: { ideas: ActionableReelAnalysis["reversionIdeas"] }) {
+  return (
+    <section className="border-t border-mist py-5" aria-labelledby="reversion-title">
+      <div className="flex items-center gap-2">
+        <RotateCcw aria-hidden className="size-4 text-ink" strokeWidth={1.7} />
+        <h3 id="reversion-title" className="text-[15px] font-semibold text-ink">
+          Si decidís reversionar esta pieza
+        </h3>
+      </div>
+      <div className="mt-4 divide-y divide-mist">
+        {ideas.map((idea, index) => (
+          <article key={`${idea.title}-${index}`} className="grid gap-3 py-4 first:pt-0 md:grid-cols-[210px_minmax(0,1fr)] md:gap-6">
+            <div>
+              <h4 className="text-[13px] font-semibold text-ink">{idea.title}</h4>
+              <AnalysisMomentLinks moments={idea.evidence} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ActionDetail label="Cambio puntual" value={idea.change} />
+              <ActionDetail label="Por qué puede valer la pena" value={idea.why} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LegacyReady({ analysis }: { analysis: LegacyReelAnalysis }) {
+  return (
+    <div>
+      <div className="flex items-start gap-3 rounded-control bg-canvas px-4 py-3">
+        <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-graphite" strokeWidth={1.7} />
+        <p className="font-sans text-[13px] font-normal leading-6 text-graphite">
+          Este resultado pertenece al análisis anterior. Actualizalo para obtener diagnóstico,
+          acciones por momento y una métrica concreta para validar cada cambio.
+        </p>
+      </div>
+      <section className="mt-5" aria-labelledby="legacy-actions-title">
+        <h3 id="legacy-actions-title" className="text-[15px] font-semibold text-ink">Aprendizajes del análisis anterior</h3>
+        <ul className="mt-3 divide-y divide-mist border-y border-mist">
+          {analysis.recommendations.map((item) => (
+            <li key={item.text} className="grid gap-2 py-3 sm:grid-cols-[96px_minmax(0,1fr)]">
+              <ActionBadge kind={item.kind} />
+              <span className="font-sans text-[13px] font-normal leading-6 text-ink/80">{item.text}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function ActionBadge({ kind }: { kind: ActionKind }) {
+  const classes = kind === "keep"
+    ? "border-success/35 bg-success/10 text-success"
+    : kind === "change"
+      ? "border-danger/35 bg-danger/10 text-danger"
+      : "border-warning/40 bg-warning/10 text-warning";
+  return (
+    <span className={`font-support inline-flex w-fit rounded-[6px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] ${classes}`}>
+      {kind === "keep" ? "Conservá" : kind === "change" ? "Cambiá" : "Probá"}
+    </span>
+  );
+}
+
+function Confidence({ value }: { value: AnalysisConfidence }) {
+  return (
+    <span className="font-support mt-2 inline-flex text-[11px] font-medium text-muted">
+      Confianza {value === "high" ? "alta" : value === "medium" ? "media" : "baja"}
+    </span>
+  );
+}
+
+function formatAnalysisDate(value: string) {
+  return new Date(value).toLocaleDateString("es-UY", { day: "numeric", month: "long" });
 }

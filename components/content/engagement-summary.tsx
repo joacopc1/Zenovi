@@ -22,8 +22,8 @@ export function EngagementSummary({ item }: { item: ContentLibraryItem }) {
   return (
     <dl className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-1.5 text-ink">
-        <ViewsIcon className="size-[17px] shrink-0" />
-        <dd className="truncate text-[19px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+        <ViewsIcon className="size-[18px] shrink-0" />
+        <dd className="truncate text-[20px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
           {formatMetric(item.views)}
         </dd>
         <dt className="sr-only">Vistas</dt>
@@ -31,9 +31,9 @@ export function EngagementSummary({ item }: { item: ContentLibraryItem }) {
 
       <div className="flex shrink-0 items-center gap-2 text-graphite">
         {secondaryMetrics.map(({ key, label, icon: Icon }) => (
-          <div key={key} title={label} className="flex items-center gap-0.5">
-            <Icon className="size-3 shrink-0" />
-            <dd className="text-[11px] leading-none tabular-nums">{formatMetric(item[key])}</dd>
+          <div key={key} title={label} className="flex items-center gap-1">
+            <Icon className="size-[13px] shrink-0" />
+            <dd className="text-[12px] leading-none tabular-nums">{formatMetric(item[key])}</dd>
             <dt className="sr-only">{label}</dt>
           </div>
         ))}
