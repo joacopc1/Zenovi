@@ -172,7 +172,7 @@ function getFormatLabel(item: InstagramMediaRow) {
   if (kind === "story") return "Historia";
   if (item.media_type === "CAROUSEL_ALBUM") return "Carrusel";
   if (item.media_type === "VIDEO") return "Video";
-  return "Publicación";
+  return "Post";
 }
 
 function getThumbnailUrl(item: InstagramMediaRow) {

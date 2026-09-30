@@ -30,7 +30,7 @@ type ContentSearchParams = {
 
 const kindTitles: Record<ContentKind, string> = {
   reel: "Reels",
-  publication: "Publicaciones",
+  publication: "Posts",
   story: "Historias",
 };
 
@@ -142,7 +142,7 @@ function EmptyLibrary({ filtered, selectedType }: { filtered: boolean; selectedT
           ? "Zenovi sólo mostrará Historias capturadas después de habilitar su sincronización; no promete recuperar el archivo histórico privado."
           : filtered
             ? "Probá otro texto, formato u orden para volver a ver piezas."
-            : "Actualizá la cuenta para traer las publicaciones disponibles desde Instagram."}
+            : "Actualizá la cuenta para traer los posts disponibles desde Instagram."}
       </p>
     </section>
   );

@@ -21,7 +21,12 @@ export function ContentCard({ item, priority }: { item: RankedContentItem; prior
           <span className="sr-only">Abrir detalle</span>
         </Link>
         <div className="font-support pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between bg-gradient-to-t from-black/65 to-transparent px-3 pb-3 pt-10 text-[11px] font-medium text-white">
-          <span>{item.formatLabel}</span>
+          <span>
+            {item.formatLabel}
+            {item.comparisonFormat === "carousel" && item.slides.length > 0
+              ? ` · ${item.slides.length} slides`
+              : ""}
+          </span>
           <span>{item.relativeDateLabel}</span>
         </div>
       </div>

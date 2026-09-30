@@ -6,7 +6,7 @@ export default function ContentDetailError({ retry }: { retry: () => void }) {
   return (
     <RouteError
       title="No pudimos cargar esta pieza"
-      description="Las métricas de esta publicación no llegaron. La biblioteca y la conexión siguen intactas."
+      description="Las métricas de este post no llegaron. La biblioteca y la conexión siguen intactas."
       retry={retry}
     />
   );

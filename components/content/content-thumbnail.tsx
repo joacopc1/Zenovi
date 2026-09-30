@@ -21,11 +21,12 @@ export function ContentThumbnail({
   const dimensionsRequested = useRef(false);
   const [, startTransition] = useTransition();
   const active = slides[activeIndex] ?? null;
+  const usePublicationGridFrame = interactive === true && item.kind === "publication";
   const storedRatio =
     item.mediaWidth !== null && item.mediaHeight !== null
       ? item.mediaWidth / item.mediaHeight
       : null;
-  const aspectRatio = measuredRatio ?? storedRatio;
+  const aspectRatio = usePublicationGridFrame ? null : measuredRatio ?? storedRatio;
 
   function rememberDimensions(width: number, height: number) {
     if (width <= 0 || height <= 0) return;
@@ -41,7 +42,9 @@ export function ContentThumbnail({
   return (
     <div
       className={`relative overflow-hidden bg-canvas ${
-        aspectRatio === null
+        usePublicationGridFrame
+          ? "aspect-[3/4]"
+          : aspectRatio === null
           ? item.kind === "publication"
             ? "aspect-square"
             : "aspect-[9/16]"
@@ -60,8 +63,8 @@ export function ContentThumbnail({
             onLoadedMetadata={(event) =>
               rememberDimensions(event.currentTarget.videoWidth, event.currentTarget.videoHeight)
             }
-            className="h-full w-full bg-black object-contain"
-            aria-label={slides.length > 1 ? `Video ${activeIndex + 1} del carrusel` : "Video de la publicación"}
+            className={`h-full w-full bg-black ${usePublicationGridFrame ? "object-cover" : "object-contain"}`}
+            aria-label={slides.length > 1 ? `Video ${activeIndex + 1} del carrusel` : "Video del post"}
           />
         ) : (
           <Image
@@ -73,7 +76,7 @@ export function ContentThumbnail({
             onLoad={(event) =>
               rememberDimensions(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)
             }
-            className={`object-contain ${
+            className={`${usePublicationGridFrame ? "object-cover" : "object-contain"} ${
               interactive ? "transition-transform duration-300 group-hover:scale-[1.015]" : ""
             }`}
           />

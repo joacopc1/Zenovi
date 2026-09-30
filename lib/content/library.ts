@@ -20,12 +20,12 @@ export function isContentKind(value: unknown): value is ContentKind {
 export const CONTENT_KIND_PLURALS: Record<ContentKind, string> = {
   reel: "Reels",
   story: "Historias",
-  publication: "publicaciones",
+  publication: "Posts",
 };
 export const CONTENT_COMPARISON_FORMAT_PLURALS: Record<ContentComparisonFormat, string> = {
   reel: "Reels",
   story: "Historias",
-  image: "publicaciones",
+  image: "posts",
   video: "videos",
   carousel: "carruseles",
 };

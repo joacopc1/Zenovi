@@ -37,7 +37,7 @@ export function PublicationGrowth({ item }: { item: ContentLibraryItem }) {
       >
         <UserPlus aria-hidden="true" className="size-4 text-ink" strokeWidth={1.7} />
         Crecimiento desde este post
-        <HelpHint text="Muestra las acciones que Instagram atribuye directamente a esta publicación. No estima ventas ni reparte el crecimiento de la cuenta por cercanía de fechas." />
+        <HelpHint text="Muestra las acciones que Instagram atribuye directamente a este post. No estima ventas ni reparte el crecimiento de la cuenta por cercanía de fechas." />
       </h2>
 
       {hasAnyMetric ? (
@@ -56,7 +56,7 @@ export function PublicationGrowth({ item }: { item: ContentLibraryItem }) {
         </dl>
       ) : (
         <p className="font-support mt-4 text-[13px] leading-5 text-muted">
-          Instagram todavía no devolvió datos de crecimiento para esta publicación.
+          Instagram todavía no devolvió datos de crecimiento para este post.
         </p>
       )}
     </section>

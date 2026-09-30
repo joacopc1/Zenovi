@@ -152,7 +152,7 @@ function item(id, kind, caption = null, views = 0) {
     id,
     kind,
     comparisonFormat: kind === "reel" ? "reel" : kind === "story" ? "story" : "image",
-    formatLabel: kind === "reel" ? "Reel" : "Publicación",
+    formatLabel: kind === "reel" ? "Reel" : "Post",
     caption,
     thumbnailUrl: null,
     mediaUrl: null,
@@ -182,9 +182,9 @@ function item(id, kind, caption = null, views = 0) {
 
 test("un carrusel se compara con carruseles y no con imágenes simples", () => {
   const ranked = buildCohort([
-    { ...item("imagen-a", "publication", null, 100), comparisonFormat: "image", formatLabel: "Publicación" },
-    { ...item("imagen-b", "publication", null, 200), comparisonFormat: "image", formatLabel: "Publicación" },
-    { ...item("imagen-c", "publication", null, 300), comparisonFormat: "image", formatLabel: "Publicación" },
+    { ...item("imagen-a", "publication", null, 100), comparisonFormat: "image", formatLabel: "Post" },
+    { ...item("imagen-b", "publication", null, 200), comparisonFormat: "image", formatLabel: "Post" },
+    { ...item("imagen-c", "publication", null, 300), comparisonFormat: "image", formatLabel: "Post" },
     { ...item("carrusel-a", "publication", null, 1000), comparisonFormat: "carousel", formatLabel: "Carrusel" },
     { ...item("carrusel-b", "publication", null, 2000), comparisonFormat: "carousel", formatLabel: "Carrusel" },
     { ...item("carrusel-c", "publication", null, 3000), comparisonFormat: "carousel", formatLabel: "Carrusel" },

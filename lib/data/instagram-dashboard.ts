@@ -347,7 +347,7 @@ function getContentLabel(media: InstagramMediaRow) {
   if (media.media_product_type === "REELS") return "Reel";
   if (media.media_type === "CAROUSEL_ALBUM") return "Carrusel";
   if (media.media_type === "VIDEO") return "Video";
-  return "Publicación";
+  return "Post";
 }
 
 function formatMediaDate(value: string) {

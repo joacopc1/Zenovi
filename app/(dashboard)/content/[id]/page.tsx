@@ -121,7 +121,7 @@ export default async function ContentDetailPage({
           label: "Seguidores ganados",
           value: item.follows,
           icon: UsersRound,
-          note: item.follows === null ? null : "Atribuidos a esta publicación",
+          note: item.follows === null ? null : "Atribuidos a este post",
           format: "number" as const,
         }
       : {

@@ -258,10 +258,10 @@ function benchmarkCopy(item: RankedContentItem) {
   }
   if (item.kind === "publication") {
     return {
-      current: "Publicación",
-      demonstrative: "esta publicación",
-      habitual: "tus publicaciones",
-      habitualCapitalized: "Habitual en tus publicaciones",
+      current: "Post",
+      demonstrative: "este post",
+      habitual: "tus posts",
+      habitualCapitalized: "Habitual en tus posts",
     };
   }
   if (item.kind === "story") {
