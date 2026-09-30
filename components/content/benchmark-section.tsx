@@ -1,4 +1,7 @@
-import type { RankedContentItem } from "@/lib/content/library";
+import {
+  comparableContentItems,
+  type RankedContentItem,
+} from "@/lib/content/library";
 import {
   benchmarkDifference,
   getContentBenchmark,
@@ -49,9 +52,10 @@ export function BenchmarkSection({
   cohort: RankedContentItem[];
   item: RankedContentItem;
 }) {
-  const copy = benchmarkCopy(item.kind);
+  const copy = benchmarkCopy(item);
+  const comparableCohort = comparableContentItems(cohort, item);
   const rows = definitions.flatMap((definition) => {
-    const benchmark = getContentBenchmark(cohort, item.id, definition.key);
+    const benchmark = getContentBenchmark(comparableCohort, item.id, definition.key);
     return benchmark ? [{ ...definition, benchmark }] : [];
   });
   const scale = Math.max(
@@ -235,8 +239,24 @@ function VerticalBar({
   );
 }
 
-function benchmarkCopy(kind: RankedContentItem["kind"]) {
-  if (kind === "publication") {
+function benchmarkCopy(item: RankedContentItem) {
+  if (item.comparisonFormat === "carousel") {
+    return {
+      current: "Carrusel",
+      demonstrative: "este carrusel",
+      habitual: "tus carruseles",
+      habitualCapitalized: "Habitual en tus carruseles",
+    };
+  }
+  if (item.comparisonFormat === "video") {
+    return {
+      current: "Video",
+      demonstrative: "este video",
+      habitual: "tus videos",
+      habitualCapitalized: "Habitual en tus videos",
+    };
+  }
+  if (item.kind === "publication") {
     return {
       current: "Publicación",
       demonstrative: "esta publicación",
@@ -244,7 +264,7 @@ function benchmarkCopy(kind: RankedContentItem["kind"]) {
       habitualCapitalized: "Habitual en tus publicaciones",
     };
   }
-  if (kind === "story") {
+  if (item.kind === "story") {
     return {
       current: "Historia",
       demonstrative: "esta historia",

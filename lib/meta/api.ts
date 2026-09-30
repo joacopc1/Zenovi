@@ -16,6 +16,10 @@ import {
 import type { PeriodWindow } from "@/lib/data/period-breakdowns";
 import { readMetaErrorCode } from "@/lib/meta/meta-error";
 import {
+  parseCarouselMediaChildren,
+  type CarouselMediaChild,
+} from "@/lib/meta/carousel-media";
+import {
   DEMOGRAPHICS_METRIC,
   DEMOGRAPHIC_DIMENSIONS,
   type DemographicDimension,
@@ -94,7 +98,10 @@ export type InstagramMedia = {
   timestamp: string;
   likeCount: number | null;
   commentsCount: number | null;
+  children: InstagramMediaChild[];
 };
+
+export type InstagramMediaChild = CarouselMediaChild;
 
 export type InstagramMediaSource = {
   mediaUrl: string | null;
@@ -272,7 +279,7 @@ export async function getInstagramMedia(
     const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me/media`, INSTAGRAM_GRAPH_ORIGIN);
     url.searchParams.set(
       "fields",
-      "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
+      "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count,children{id,media_type,media_url,thumbnail_url}",
     );
     url.searchParams.set("limit", String(MEDIA_PAGE_SIZE));
     if (after) url.searchParams.set("after", after);
@@ -589,6 +596,7 @@ function parseInstagramMedia(value: unknown): InstagramMedia | null {
     timestamp,
     likeCount: readNonNegativeNumber(value, "like_count"),
     commentsCount: readNonNegativeNumber(value, "comments_count"),
+    children: parseCarouselMediaChildren(value.children),
   };
 }
 

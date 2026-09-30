@@ -151,10 +151,14 @@ function item(id, kind, caption = null, views = 0) {
   return {
     id,
     kind,
+    comparisonFormat: kind === "reel" ? "reel" : kind === "story" ? "story" : "image",
     formatLabel: kind === "reel" ? "Reel" : "Publicación",
     caption,
     thumbnailUrl: null,
     mediaUrl: null,
+    mediaWidth: null,
+    mediaHeight: null,
+    slides: [],
     permalink: null,
     postedAt: `2026-09-${id === "a" ? "11" : "10"}T12:00:00Z`,
     dateLabel: "11 sept 2026",
@@ -175,6 +179,22 @@ function item(id, kind, caption = null, views = 0) {
     skipRate: null,
   };
 }
+
+test("un carrusel se compara con carruseles y no con imágenes simples", () => {
+  const ranked = buildCohort([
+    { ...item("imagen-a", "publication", null, 100), comparisonFormat: "image", formatLabel: "Publicación" },
+    { ...item("imagen-b", "publication", null, 200), comparisonFormat: "image", formatLabel: "Publicación" },
+    { ...item("imagen-c", "publication", null, 300), comparisonFormat: "image", formatLabel: "Publicación" },
+    { ...item("carrusel-a", "publication", null, 1000), comparisonFormat: "carousel", formatLabel: "Carrusel" },
+    { ...item("carrusel-b", "publication", null, 2000), comparisonFormat: "carousel", formatLabel: "Carrusel" },
+    { ...item("carrusel-c", "publication", null, 3000), comparisonFormat: "carousel", formatLabel: "Carrusel" },
+  ], "publication");
+  const byId = new Map(ranked.map((entry) => [entry.id, entry.multiplier]));
+
+  assert.equal(byId.get("imagen-c"), 1.5);
+  assert.equal(byId.get("carrusel-c"), 1.5);
+  assert.deepEqual(viewsRank(ranked, "carrusel-c"), { position: 1, total: 3 });
+});
 
 test("compara formatos por su mediana y no por su promedio", () => {
   const benchmarks = formatBenchmarks([

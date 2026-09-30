@@ -138,6 +138,38 @@ export async function syncInstagramConnection({
   const mediaIdByProviderId = new Map(
     storedMedia.map((media) => [media.provider_media_id, media.id]),
   );
+
+  const carouselRows = mediaResult.data.flatMap((media) => {
+    const parentId = mediaIdByProviderId.get(media.id);
+    if (!parentId || media.mediaType !== "CAROUSEL_ALBUM" || media.children.length === 0) {
+      return [];
+    }
+
+    return media.children.map((child, position) => ({
+      instagram_media_id: parentId,
+      provider_media_id: child.id,
+      position,
+      media_type: child.mediaType,
+      media_url: child.mediaUrl,
+      thumbnail_url: child.thumbnailUrl,
+      synced_at: syncedAt,
+    }));
+  });
+
+  if (carouselRows.length > 0) {
+    const { error: childrenError } = await admin
+      .from("instagram_media_children")
+      .upsert(carouselRows, { onConflict: "instagram_media_id,position" });
+
+    if (childrenError) {
+      // Las métricas y la biblioteca siguen siendo válidas aunque falle este extra.
+      // No se deja caer una sincronización completa por el visor del carrusel.
+      console.warn(
+        JSON.stringify({ event: "instagram_sync", warning: "carousel_media_failed" }),
+      );
+    }
+  }
+
   const mediaInsightRows: {
     instagram_media_id: string;
     metric: string;

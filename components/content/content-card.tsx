@@ -11,15 +11,20 @@ export function ContentCard({ item, priority }: { item: RankedContentItem; prior
 
   return (
     <article className="group relative overflow-hidden rounded-card border border-mist bg-paper transition-colors hover:bg-ink/[0.035]">
-      <Link href={detailHref} className="block" aria-label={`Abrir detalle de ${item.formatLabel} del ${item.dateLabel}`}>
-        <div className="relative">
-          <ContentThumbnail item={item} priority={priority} interactive />
-          <div className="font-support absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/65 to-transparent px-3 pb-3 pt-10 text-[11px] font-medium text-white">
-            <span>{item.formatLabel}</span>
-            <span>{item.relativeDateLabel}</span>
-          </div>
+      <div className="relative">
+        <ContentThumbnail item={item} priority={priority} interactive />
+        <Link
+          href={detailHref}
+          className="absolute inset-0 z-10"
+          aria-label={`Abrir detalle de ${item.formatLabel} del ${item.dateLabel}`}
+        >
+          <span className="sr-only">Abrir detalle</span>
+        </Link>
+        <div className="font-support pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between bg-gradient-to-t from-black/65 to-transparent px-3 pb-3 pt-10 text-[11px] font-medium text-white">
+          <span>{item.formatLabel}</span>
+          <span>{item.relativeDateLabel}</span>
         </div>
-      </Link>
+      </div>
       <PerformanceBadge multiplier={item.multiplier} overlay className="absolute left-3 top-3" />
       {item.permalink ? (
         <a

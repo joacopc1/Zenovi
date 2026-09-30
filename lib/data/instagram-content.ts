@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { ContentKind, ContentLibraryItem } from "@/lib/content/library";
+import type {
+  ContentComparisonFormat,
+  ContentKind,
+  ContentLibraryItem,
+} from "@/lib/content/library";
 import { createClient } from "@/lib/supabase/server";
 import { readEmbeddedRow } from "./embedded-row";
 
@@ -12,10 +16,18 @@ type InstagramMediaRow = {
   media_url: string | null;
   thumbnail_url: string | null;
   duration_ms: number | null;
+  media_width: number | null;
+  media_height: number | null;
   permalink: string | null;
   posted_at: string;
   like_count: number | null;
   comments_count: number | null;
+  instagram_media_children: {
+    position: number;
+    media_type: "IMAGE" | "VIDEO";
+    media_url: string | null;
+    thumbnail_url: string | null;
+  }[] | null;
 };
 
 type InstagramInsightRow = {
@@ -52,7 +64,7 @@ export async function getInstagramContentLibrary(
   const { data: media, error: mediaError } = await supabase
     .from("instagram_media")
     .select(
-      "id, caption, media_type, media_product_type, media_url, thumbnail_url, duration_ms, permalink, posted_at, like_count, comments_count",
+      "id, caption, media_type, media_product_type, media_url, thumbnail_url, duration_ms, media_width, media_height, permalink, posted_at, like_count, comments_count, instagram_media_children(position, media_type, media_url, thumbnail_url)",
     )
     .eq("social_account_id", account.id)
     .order("posted_at", { ascending: false })
@@ -98,10 +110,22 @@ function mapContentItem(
   return {
     id: item.id,
     kind: getContentKind(item),
+    comparisonFormat: getComparisonFormat(item),
     formatLabel: getFormatLabel(item),
     caption: item.caption,
     thumbnailUrl: getThumbnailUrl(item),
     mediaUrl: item.media_url,
+    mediaWidth: readDimension(item.media_width),
+    mediaHeight: readDimension(item.media_height),
+    slides: (item.instagram_media_children ?? [])
+      .filter((slide) => slide.media_type === "IMAGE" || slide.media_type === "VIDEO")
+      .sort((left, right) => left.position - right.position)
+      .map((slide) => ({
+        position: slide.position,
+        mediaType: slide.media_type,
+        mediaUrl: slide.media_url,
+        thumbnailUrl: slide.thumbnail_url,
+      })),
     durationMs: item.duration_ms,
     permalink: item.permalink,
     postedAt: item.posted_at,
@@ -121,6 +145,18 @@ function mapContentItem(
     totalWatchTimeMs: metrics?.get("ig_reels_video_view_total_time") ?? null,
     skipRate: metrics?.get("reels_skip_rate") ?? null,
   };
+}
+
+function readDimension(value: number | null) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function getComparisonFormat(item: InstagramMediaRow): ContentComparisonFormat {
+  const kind = getContentKind(item);
+  if (kind === "reel" || kind === "story") return kind;
+  if (item.media_type === "CAROUSEL_ALBUM") return "carousel";
+  if (item.media_type === "VIDEO") return "video";
+  return "image";
 }
 
 function getContentKind(item: InstagramMediaRow): ContentKind {

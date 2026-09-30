@@ -27,7 +27,12 @@ import { ContentCaption } from "@/components/content/content-caption";
 import { AppHeader } from "@/components/shell/app-header";
 import type { AnalysisState } from "@/lib/content/analysis";
 import { EXAMPLE_ANALYSIS } from "@/lib/content/analysis-example";
-import { buildCohort, viewsRank, CONTENT_KIND_PLURALS } from "@/lib/content/library";
+import {
+  buildCohort,
+  viewsRank,
+  CONTENT_COMPARISON_FORMAT_PLURALS,
+  CONTENT_KIND_PLURALS,
+} from "@/lib/content/library";
 import { hasChartableViewEvolution } from "@/lib/content/media-view-evolution";
 import { getEngagementRate } from "@/lib/content/metrics";
 import { getAccountContext } from "@/lib/data/account-context";
@@ -188,7 +193,11 @@ export default async function ContentDetailPage({
                 formatLabel={item.formatLabel}
               />
               {item.multiplier !== null ? (
-                <PerformanceStanding item={item} rank={rank} formatPlural={CONTENT_KIND_PLURALS[item.kind]} />
+                <PerformanceStanding
+                  item={item}
+                  rank={rank}
+                  formatPlural={CONTENT_COMPARISON_FORMAT_PLURALS[item.comparisonFormat]}
+                />
               ) : null}
             </div>
 

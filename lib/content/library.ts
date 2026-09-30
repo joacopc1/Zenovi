@@ -2,6 +2,15 @@
 export const CONTENT_KINDS = ["reel", "story", "publication"] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
+export const CONTENT_COMPARISON_FORMATS = [
+  "reel",
+  "story",
+  "image",
+  "video",
+  "carousel",
+] as const;
+export type ContentComparisonFormat = (typeof CONTENT_COMPARISON_FORMATS)[number];
+
 /** ¿Es uno de los formatos que Zenovi reconoce? */
 export function isContentKind(value: unknown): value is ContentKind {
   return typeof value === "string" && CONTENT_KINDS.includes(value as ContentKind);
@@ -12,6 +21,13 @@ export const CONTENT_KIND_PLURALS: Record<ContentKind, string> = {
   reel: "Reels",
   story: "Historias",
   publication: "publicaciones",
+};
+export const CONTENT_COMPARISON_FORMAT_PLURALS: Record<ContentComparisonFormat, string> = {
+  reel: "Reels",
+  story: "Historias",
+  image: "publicaciones",
+  video: "videos",
+  carousel: "carruseles",
 };
 export type ContentSort =
   | "recent"
@@ -28,10 +44,15 @@ export type ContentSortDirection = "desc" | "asc";
 export type ContentLibraryItem = {
   id: string;
   kind: ContentKind;
+  /** Formato comparable: evita medir un carrusel contra una imagen simple. */
+  comparisonFormat: ContentComparisonFormat;
   formatLabel: string;
   caption: string | null;
   thumbnailUrl: string | null;
   mediaUrl: string | null;
+  mediaWidth: number | null;
+  mediaHeight: number | null;
+  slides: ContentMediaSlide[];
   durationMs: number | null;
   permalink: string | null;
   postedAt: string;
@@ -50,6 +71,13 @@ export type ContentLibraryItem = {
   averageWatchTimeMs: number | null;
   totalWatchTimeMs: number | null;
   skipRate: number | null;
+};
+
+export type ContentMediaSlide = {
+  position: number;
+  mediaType: "IMAGE" | "VIDEO";
+  mediaUrl: string | null;
+  thumbnailUrl: string | null;
 };
 
 /**
@@ -74,12 +102,32 @@ export function buildCohort(
   kind: ContentKind,
 ): RankedContentItem[] {
   const cohort = items.filter((item) => item.kind === kind);
-  const reference = medianViews(cohort);
+  const references = new Map<ContentComparisonFormat, number | null>();
+
+  for (const item of cohort) {
+    if (!references.has(item.comparisonFormat)) {
+      references.set(
+        item.comparisonFormat,
+        medianViews(cohort.filter((candidate) => isComparableContent(candidate, item))),
+      );
+    }
+  }
 
   return cohort.map((item) => ({
     ...item,
-    multiplier: reference === null || item.views === null ? null : item.views / reference,
+    // La vista de Publicaciones sigue reuniendo imágenes, videos y carruseles. Sólo la
+    // referencia estadística se separa, porque cada formato pide un esfuerzo distinto.
+    // Reels e Historias ya forman grupos homogéneos.
+    multiplier:
+      references.get(item.comparisonFormat) === null || item.views === null
+        ? null
+        : item.views / (references.get(item.comparisonFormat) as number),
   }));
+}
+
+/** Piezas que constituyen una referencia honesta para la seleccionada. */
+export function comparableContentItems<T extends ContentLibraryItem>(items: T[], item: T): T[] {
+  return items.filter((candidate) => isComparableContent(candidate, item));
 }
 
 /**
@@ -88,10 +136,17 @@ export function buildCohort(
  * inflaría artificialmente la posición.
  */
 export function viewsRank(cohort: RankedContentItem[], id: string) {
-  const measurable = cohort.filter((item) => item.views !== null);
+  const target = cohort.find((item) => item.id === id);
+  if (!target) return null;
+
+  const measurable = comparableContentItems(cohort, target).filter((item) => item.views !== null);
   const position = sortContentItems(measurable, "views").findIndex((item) => item.id === id);
 
   return position === -1 ? null : { position: position + 1, total: measurable.length };
+}
+
+function isComparableContent(left: ContentLibraryItem, right: ContentLibraryItem) {
+  return left.kind === right.kind && left.comparisonFormat === right.comparisonFormat;
 }
 
 /**
