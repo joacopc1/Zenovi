@@ -20,3 +20,22 @@ export async function deleteDirectorChat(chatId: string) {
   await supabase.from("director_chats").delete().eq("id", chatId);
   revalidatePath("/director", "layout");
 }
+
+export type AnswerRating = "up" | "down";
+
+/** Me sirvió / no me sirvió. Volver a tocar la misma la quita. RLS limita a respuestas de chats propios. */
+export async function rateDirectorAnswer(messageId: string, rating: AnswerRating | null) {
+  if (typeof messageId !== "string" || messageId.length > 100) return;
+  if (rating !== null && rating !== "up" && rating !== "down") return;
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return;
+
+  if (rating === null) {
+    await supabase.from("director_message_feedback").delete().eq("message_id", messageId).eq("user_id", auth.user.id);
+    return;
+  }
+  await supabase
+    .from("director_message_feedback")
+    .upsert({ message_id: messageId, user_id: auth.user.id, rating }, { onConflict: "message_id,user_id" });
+}

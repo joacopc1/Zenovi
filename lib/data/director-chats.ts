@@ -29,9 +29,16 @@ export async function loadDirectorChat(chatId: string) {
   ]);
 
   if (!chat || error) return null;
+  const messageIds = (messages ?? []).map((message) => message.id as string);
+  const { data: ratings } = messageIds.length
+    ? await supabase.from("director_message_feedback").select("message_id, rating").in("message_id", messageIds)
+    : { data: [] };
+
   return {
     id: chat.id as string,
     title: chat.title as string | null,
+    // Si la tabla todavía no existe o falla la lectura, el chat abre igual, sin calificaciones.
+    ratings: Object.fromEntries((ratings ?? []).map((row) => [row.message_id, row.rating])) as Record<string, "up" | "down">,
     messages: (messages ?? []).map((message) => ({
       id: message.id,
       role: message.role,

@@ -249,38 +249,28 @@ export function DirectorComposer({
   );
 }
 
-/** Luces difusas y quietas en el fondo, como en el original. */
-export function AmbientGlow() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute left-1/4 top-0 size-96 animate-pulse rounded-full bg-data/10 blur-[128px]" />
-      <div className="absolute bottom-0 right-1/4 size-96 animate-pulse rounded-full bg-data/[0.08] blur-[128px] [animation-delay:700ms]" />
-      <div className="absolute right-1/3 top-1/4 size-64 animate-pulse rounded-full bg-ink/[0.04] blur-[96px] [animation-delay:1000ms]" />
-    </div>
-  );
-}
-
+/** Mientras el Director piensa: va en el lugar donde aparece la respuesta, como en ChatGPT. */
 export function ThinkingIndicator() {
   return (
     <motion.div
-      className="fixed bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-ink/[0.05] bg-paper/70 px-4 py-2 shadow-lg backdrop-blur-2xl"
-      initial={{ opacity: 0, y: 10 }}
+      className="flex items-center gap-2.5 px-1 py-2"
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
+      exit={{ opacity: 0 }}
+      role="status"
     >
-      <span className="grid h-7 w-8 place-items-center rounded-full bg-ink/[0.05] text-[11px] font-medium text-ink/90">IA</span>
-      <span className="font-support text-sm text-ink/70">Pensando</span>
-      <span className="flex items-center">
-        {[1, 2, 3].map((dot) => (
-          <motion.span
-            key={dot}
-            className="mx-0.5 size-1.5 rounded-full bg-ink/70"
-            initial={{ opacity: 0.3 }}
-            animate={{ opacity: [0.3, 0.9, 0.3], scale: [0.85, 1.1, 0.85] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: dot * 0.15, ease: "easeInOut" }}
-          />
-        ))}
-      </span>
+      <motion.span
+        className="size-2.5 rounded-full bg-ink"
+        animate={{ scale: [0.85, 1.15, 0.85], opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="text-[14px] text-graphite"
+        animate={{ opacity: [0.45, 1, 0.45] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        Pensando…
+      </motion.span>
     </motion.div>
   );
 }

@@ -10,7 +10,9 @@ import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
-import { AmbientGlow, DirectorComposer, ThinkingIndicator } from "./director-composer";
+import { rateDirectorAnswer, type AnswerRating } from "@/app/(dashboard)/director/actions";
+import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import { DirectorComposer, ThinkingIndicator } from "./director-composer";
 
 const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
 
@@ -18,12 +20,14 @@ export function DirectorScreen({
   chatId,
   isNew,
   initialMessages,
+  initialRatings,
   chats,
 }: {
   chatId: string;
   /** Todavía sin mensajes: existe en la base recién con el primero. */
   isNew: boolean;
   initialMessages: UIMessage[];
+  initialRatings: Record<string, AnswerRating>;
   chats: DirectorChatSummary[];
 }) {
   const router = useRouter();
@@ -73,7 +77,6 @@ export function DirectorScreen({
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
       <section className="font-reading relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
-        <AmbientGlow />
         {chatsOpen ? null : (
           <button
             type="button"
@@ -117,7 +120,12 @@ export function DirectorScreen({
             <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-8">
               <div className="mx-auto w-full max-w-3xl space-y-6">
                 {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} streaming={status === "streaming" && message.id === messages.at(-1)?.id} />
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    streaming={busy && message.id === messages.at(-1)?.id}
+                    initialRating={initialRatings[message.id] ?? null}
+                  />
                 ))}
                 <AnimatePresence>{status === "submitted" ? <ThinkingIndicator key="thinking" /> : null}</AnimatePresence>
                 {errorMessage ? <ErrorNotice message={errorMessage} /> : null}
@@ -135,7 +143,15 @@ export function DirectorScreen({
   );
 }
 
-function ChatMessage({ message, streaming }: { message: UIMessage; streaming: boolean }) {
+function ChatMessage({
+  message,
+  streaming,
+  initialRating,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+  initialRating: AnswerRating | null;
+}) {
   const text = message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
   const consulted = message.parts.some((part) => part.type === "tool-consultar_guia");
   if (message.role === "user") {
@@ -145,11 +161,81 @@ function ChatMessage({ message, streaming }: { message: UIMessage; streaming: bo
       </div>
     );
   }
+  // Consultó una guía pero todavía no escribió: sigue pensando.
+  if (!text) return streaming ? <ThinkingIndicator /> : null;
   return (
-    <div className="director-answer rounded-2xl border border-mist bg-paper/80 px-5 py-4 text-[15px] leading-7 text-ink shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-      {consulted ? <p className="mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
-      <Streamdown isAnimating={streaming}>{text}</Streamdown>
+    <div className="group/answer">
+      <div className="director-answer rounded-2xl border border-mist bg-paper px-5 py-4 text-[15px] leading-7 text-ink">
+        {consulted ? <p className="mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
+        <Streamdown isAnimating={streaming}>{text}</Streamdown>
+      </div>
+      {streaming ? null : <AnswerActions messageId={message.id} text={text} initialRating={initialRating} />}
     </div>
+  );
+}
+
+/** Copiar y calificar, debajo de cada respuesta terminada. */
+function AnswerActions({ messageId, text, initialRating }: { messageId: string; text: string; initialRating: AnswerRating | null }) {
+  const [copied, setCopied] = useState(false);
+  const [rating, setRating] = useState<AnswerRating | null>(initialRating);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Sin permiso de portapapeles: no hay nada que mostrar.
+    }
+  }
+
+  function rate(next: AnswerRating) {
+    // Tocar la misma calificación otra vez la quita.
+    const value = rating === next ? null : next;
+    setRating(value);
+    void rateDirectorAnswer(messageId, value);
+  }
+
+  return (
+    <div className="mt-1.5 flex items-center gap-0.5 pl-1">
+      <ActionButton label={copied ? "Copiado" : "Copiar"} onClick={copy}>
+        {copied ? <Check className="size-4" strokeWidth={1.7} /> : <Copy className="size-4" strokeWidth={1.7} />}
+      </ActionButton>
+      <ActionButton label="Me sirvió" onClick={() => rate("up")} active={rating === "up"}>
+        <ThumbsUp className="size-4" strokeWidth={1.7} fill={rating === "up" ? "currentColor" : "none"} />
+      </ActionButton>
+      <ActionButton label="No me sirvió" onClick={() => rate("down")} active={rating === "down"}>
+        <ThumbsDown className="size-4" strokeWidth={1.7} fill={rating === "down" ? "currentColor" : "none"} />
+      </ActionButton>
+    </div>
+  );
+}
+
+/** Ícono con tooltip propio, blanco y al instante, como el resto de Zenovi. */
+function ActionButton({
+  label,
+  onClick,
+  active = false,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={`group/action relative grid size-8 place-items-center rounded-control transition-colors hover:bg-ink/[0.045] ${active ? "text-ink" : "text-graphite hover:text-ink"}`}
+    >
+      {children}
+      <span className="pointer-events-none absolute top-full z-20 mt-1 whitespace-nowrap rounded-lg bg-paper/90 px-2 py-1 text-[11px] text-ink opacity-0 ring ring-ink/10 backdrop-blur-lg transition-opacity duration-75 group-hover/action:opacity-100">
+        {label}
+      </span>
+    </button>
   );
 }
 

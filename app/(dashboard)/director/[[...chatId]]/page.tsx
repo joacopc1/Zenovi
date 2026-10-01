@@ -32,7 +32,14 @@ export default async function DirectorPage({ params }: { params: Promise<{ chatI
   return (
     <>
       <AppHeader />
-      <DirectorScreen key={chatId} chatId={chatId} isNew={!chat} initialMessages={chat?.messages ?? []} chats={chats} />
+      <DirectorScreen
+        key={chatId}
+        chatId={chatId}
+        isNew={!chat}
+        initialMessages={chat?.messages ?? []}
+        initialRatings={chat?.ratings ?? {}}
+        chats={chats}
+      />
     </>
   );
 }
