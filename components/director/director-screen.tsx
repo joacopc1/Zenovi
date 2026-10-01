@@ -11,7 +11,9 @@ import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
 import { rateDirectorAnswer, type AnswerRating } from "@/app/(dashboard)/director/actions";
-import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import Link from "next/link";
+import { Check, Copy, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
+import { HoverLabel } from "@/components/ui/hover-label";
 import { DirectorComposer, ThinkingIndicator } from "./director-composer";
 
 const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
@@ -77,16 +79,6 @@ export function DirectorScreen({
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
       <section className="font-reading relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
-        {chatsOpen ? null : (
-          <button
-            type="button"
-            onClick={() => setChatsOpen(true)}
-            aria-label="Mostrar chats"
-            className="absolute right-3 top-3 z-20 hidden size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink lg:grid"
-          >
-            <CollapseSidebarIcon className="size-4 -scale-x-100 rotate-180" />
-          </button>
-        )}
         {empty ? (
           <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <motion.div
@@ -138,7 +130,11 @@ export function DirectorScreen({
           </>
         )}
       </section>
-      {chatsOpen ? <ChatList chats={chats} activeChatId={isNew ? null : chatId} onClose={() => setChatsOpen(false)} /> : null}
+      {chatsOpen ? (
+        <ChatList chats={chats} activeChatId={isNew ? null : chatId} onClose={() => setChatsOpen(false)} />
+      ) : (
+        <ChatRail onOpen={() => setChatsOpen(true)} />
+      )}
     </div>
   );
 }
@@ -171,6 +167,31 @@ function ChatMessage({
       </div>
       {streaming ? null : <AnswerActions messageId={message.id} text={text} initialRating={initialRating} />}
     </div>
+  );
+}
+
+/** Con los chats cerrados queda una barra angosta, como la lateral de la izquierda. */
+function ChatRail({ onOpen }: { onOpen: () => void }) {
+  return (
+    <aside className="hidden w-[60px] shrink-0 flex-col items-center gap-1 border-l border-mist bg-paper py-3 lg:flex" aria-label="Chats">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label="Mostrar chats"
+        className="group/tip relative grid size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+      >
+        <CollapseSidebarIcon className="size-4 -scale-x-100 rotate-180" />
+        <HoverLabel side="left">Mostrar chats</HoverLabel>
+      </button>
+      <Link
+        href="/director"
+        aria-label="Chat nuevo"
+        className="group/tip relative grid size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+      >
+        <Plus className="size-4" strokeWidth={1.75} />
+        <HoverLabel side="left">Chat nuevo</HoverLabel>
+      </Link>
+    </aside>
   );
 }
 
@@ -229,12 +250,10 @@ function ActionButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`group/action relative grid size-8 place-items-center rounded-control transition-colors hover:bg-ink/[0.045] ${active ? "text-ink" : "text-graphite hover:text-ink"}`}
+      className={`group/tip relative grid size-8 place-items-center rounded-control transition-colors hover:bg-ink/[0.045] ${active ? "text-ink" : "text-graphite hover:text-ink"}`}
     >
       {children}
-      <span className="pointer-events-none absolute top-full z-20 mt-1 whitespace-nowrap rounded-lg bg-paper/90 px-2 py-1 text-[11px] text-ink opacity-0 ring ring-ink/10 backdrop-blur-lg transition-opacity duration-75 group-hover/action:opacity-100">
-        {label}
-      </span>
+      <HoverLabel>{label}</HoverLabel>
     </button>
   );
 }

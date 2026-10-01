@@ -1,5 +1,6 @@
 "use client";
 
+import { HoverLabel } from "@/components/ui/hover-label";
 import { ProfileSwitcher } from "./profile-switcher";
 import { SidebarNav } from "./sidebar-nav";
 import { useShellIdentity } from "./shell-identity";
@@ -28,11 +29,11 @@ export function SidebarContent({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+            className="group/tip relative grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
             aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-            title={collapsed ? "Expandir" : "Colapsar"}
           >
             <CollapseSidebarIcon className={`size-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
+            <HoverLabel side={collapsed ? "right" : "bottom"}>{collapsed ? "Expandir" : "Colapsar"}</HoverLabel>
           </button>
         ) : null}
       </div>
@@ -43,11 +44,13 @@ export function SidebarContent({
 
       <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
 
+      {/* El cartel va afuera del botón: el botón recorta lo que sobresale. */}
+      <div className="group/tip relative mt-auto">
       <button
         type="button"
         disabled
-        title="Upgrade · Próximamente"
-        className={`relative mt-auto flex min-h-10 items-center overflow-hidden rounded-navigation border border-mist-strong text-ink disabled:opacity-100 ${collapsed ? "justify-center px-1" : "justify-between px-2.5"}`}
+        aria-label="Upgrade, próximamente"
+        className={`relative flex min-h-10 w-full items-center overflow-hidden rounded-navigation border border-mist-strong text-ink disabled:opacity-100 ${collapsed ? "justify-center px-1" : "justify-between px-2.5"}`}
       >
         <span
           aria-hidden="true"
@@ -61,6 +64,8 @@ export function SidebarContent({
         </span>
         <span className={collapsed ? "sr-only" : "relative z-10 text-[9px] text-graphite"}>Próximamente</span>
       </button>
+      {collapsed ? <HoverLabel side="right">Upgrade · Próximamente</HoverLabel> : null}
+      </div>
     </>
   );
 }

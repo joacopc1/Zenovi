@@ -8,7 +8,7 @@ import {
   streamText,
   tool,
   validateUIMessages,
-  type ModelMessage,
+  type SystemModelMessage,
   type ToolSet,
   type UIMessage,
 } from "ai";
@@ -19,6 +19,7 @@ import { getBrandDna } from "@/lib/data/brand-dna";
 import { getCreditBalance } from "@/lib/data/credit-balance";
 import { DIRECTOR_GUIDES } from "@/lib/director/guides";
 import { readDirectorGuide } from "@/lib/director/guides/read-guide";
+import { hasAnswerText, historyForModel } from "@/lib/director/history";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
   const messages = await validateUIMessages({ messages: [...((stored ?? []) as UIMessage[]), message] });
 
   const dna = await getBrandDna(workspaceId);
-  const system: ModelMessage = {
+  const system: SystemModelMessage = {
     role: "system",
     content: buildDirectorSystem(dna, account.instagram?.username ?? null),
     providerOptions: CACHE,
@@ -77,7 +78,8 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: anthropic(DIRECTOR_MODEL),
-    messages: [system, ...(await convertToModelMessages(messages, { tools: directorTools }))],
+    system,
+    messages: await convertToModelMessages(historyForModel(messages), { tools: directorTools }),
     tools: directorTools,
     // Consultar una guía y después responder: pocos pasos, para que el costo no se dispare.
     stopWhen: stepCountIs(4),
@@ -89,24 +91,18 @@ export async function POST(request: Request) {
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     generateMessageId: generateId,
-    onFinish: async ({ messages: finished, responseMessage }) => {
-      const userMessage = finished.at(-2);
+    onFinish: async ({ responseMessage }) => {
+      // Lo que escribió el creador se guarda siempre; la respuesta, sólo si tiene texto.
       await admin.from("director_messages").upsert(
-        [
-          ...(userMessage?.role === "user" ? [row(chatId, userMessage, startedAt)] : []),
-          row(chatId, responseMessage, startedAt + 1),
-        ],
+        [row(chatId, message, startedAt), ...(hasAnswerText(responseMessage) ? [row(chatId, responseMessage, startedAt + 1)] : [])],
         { onConflict: "id" },
       );
       await admin.from("director_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
-      await recordAiUsage({
-        workspaceId,
-        userId: account.userId,
-        feature: "director_chat",
-        model: DIRECTOR_MODEL,
-        usage: await result.totalUsage,
-        referenceId: chatId,
-      });
+      // Si el modelo falló no hay uso que leer; lo que sí se consumió queda en la consola de Anthropic.
+      const usage = await Promise.resolve(result.totalUsage).catch(() => null);
+      if (usage) {
+        await recordAiUsage({ workspaceId, userId: account.userId, feature: "director_chat", model: DIRECTOR_MODEL, usage, referenceId: chatId });
+      }
       if (!existing?.title) await nameChat(chatId, workspaceId, account.userId, message);
     },
     onError: () => "El Director no pudo responder. Probá de nuevo en un momento.",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HoverLabel } from "@/components/ui/hover-label";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -179,13 +180,13 @@ function NavigationLink({
   return (
     <Link
       href={item.href}
-      title={collapsed ? item.label : undefined}
       onClick={onNavigate}
       aria-current={selected ? "page" : undefined}
-      className={`${collapsed ? collapsedItemClass : expandedItemClass} ${selected ? "bg-ink/[0.065] hover:bg-ink/[0.065]" : ""}`}
+      className={`group/tip relative ${collapsed ? collapsedItemClass : expandedItemClass} ${selected ? "bg-ink/[0.065] hover:bg-ink/[0.065]" : ""}`}
     >
       <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
       <span className={collapsed ? "sr-only" : "block"}>{item.label}</span>
+      {collapsed ? <HoverLabel side="right">{item.label}</HoverLabel> : null}
     </Link>
   );
 }

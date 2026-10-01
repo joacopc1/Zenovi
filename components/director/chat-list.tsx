@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { deleteDirectorChat, renameDirectorChat } from "@/app/(dashboard)/director/actions";
 import { CollapseSidebarIcon } from "@/components/shell/icons";
+import { HoverLabel } from "@/components/ui/hover-label";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 
 /** Los chats a la derecha: a la izquierda ya está la barra lateral de la app. */
@@ -26,9 +27,10 @@ export function ChatList({
             type="button"
             onClick={onClose}
             aria-label="Ocultar chats"
-            className="grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+            className="group/tip relative grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
           >
             <CollapseSidebarIcon className="size-4 -scale-x-100" />
+            <HoverLabel>Ocultar chats</HoverLabel>
           </button>
           <h2 className="text-[13px] font-semibold text-ink">Chats</h2>
         </div>
@@ -136,10 +138,11 @@ function IconButton({
     <button
       type="button"
       aria-label={label}
-      className="grid size-7 place-items-center rounded-control text-graphite hover:bg-paper hover:text-ink disabled:opacity-50"
+      className="group/tip relative grid size-7 place-items-center rounded-control text-graphite hover:bg-paper hover:text-ink disabled:opacity-50"
       {...props}
     >
       {children}
+      <HoverLabel>{label}</HoverLabel>
     </button>
   );
 }

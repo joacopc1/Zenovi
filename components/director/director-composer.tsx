@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarRange, Command, FileText, Lightbulb, LoaderIcon, ScanSearch, SendIcon } from "lucide-react";
+import { ArrowUp, CalendarRange, Command, FileText, Lightbulb, LoaderIcon, ScanSearch } from "lucide-react";
 
 /**
  * La caja para hablar con el Director. Es el componente `animated-ai-chat` de la colección
@@ -200,22 +200,22 @@ export function DirectorComposer({
 
           <div className="flex items-center gap-3">
             <span className="font-support hidden text-[11px] text-muted sm:inline">{creditsLabel}</span>
+            {/* Apagado sin texto; negro con la flecha blanca cuando hay algo para mandar. */}
             <motion.button
               type="button"
               onClick={send}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.94 }}
               disabled={busy || !value.trim()}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                value.trim() && !busy ? "bg-ink text-paper shadow-lg shadow-ink/10" : "bg-ink/[0.05] text-ink/40"
+              aria-label="Enviar"
+              className={`grid size-9 place-items-center rounded-full text-paper transition-colors ${
+                value.trim() && !busy ? "bg-ink hover:bg-ink/85" : "bg-ink/15"
               }`}
             >
               {busy ? (
-                <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={1.7} />
+                <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={2} />
               ) : (
-                <SendIcon className="size-4" strokeWidth={1.7} />
+                <ArrowUp className="size-[18px]" strokeWidth={2.2} />
               )}
-              <span>Enviar</span>
             </motion.button>
           </div>
         </div>
