@@ -310,6 +310,8 @@ Objetivo: base productiva antes de features.
 
 ### Sprint 4 - ADN y Director
 
+Plan de construcción del Director en cuatro fases (pantalla con chat real, conocimiento de la cuenta, acciones, memoria y costo): [`docs/director-plan.md`](director-plan.md). Faltan tres decisiones de Joaco anotadas al final.
+
 - [-] ADN mínimo: sección `/brand` con mapa radial ("cerebro") como hero centrado y editor del nodo activo debajo (identidad, voz, diferenciación, objetivo, ofertas y cliente ideal), respaldada por `brand_profiles`, `offers` y `audience_profiles` con RLS de workspace. El guardado es un reemplazo completo de ofertas y audiencia en cada envío. Falta conectar el Director para que consuma este contexto y validar los textos con usuarios. Responsable: Joaco/Claude.
 - [ ] Definir la separación estructural entre el ADN de marca y la capacitación del Director: el ADN es data por cuenta (cambia por usuario, se guarda en las tablas de arriba) mientras que el system prompt del Director es la "capacitación" de cómo crear contenido, común a todos los workspaces y versionado por el equipo. No mezclar: un dato del ADN nunca se vuelca al system prompt global, y una regla de capacitación nunca se guarda por cuenta. Falta documentar dónde vive cada uno y cómo se combinan en el prompt final (ver decisión 2026-09-21).
 - [ ] Chats persistentes.
@@ -676,6 +678,7 @@ Solo entra si los gates anteriores justifican inversión.
 | 2026-08-28 | Costos/modelos no elegidos | Desarrollo | Benchmark con dataset |
 | 2026-08-28 | ICP aún no entrevistado sistemáticamente | Comercial | 10 entrevistas |
 | 2026-09-18 | La revisión de Meta no se puede enviar sin verificar el negocio | Joaco/socios | Meta exige un porfolio empresarial verificado. El porfolio `Zenovi` (2930002774030568) quedó creado y conectado a la app, con tipo "sociedad unipersonal, no registrada aún". Todos los métodos —dominio, email, SMS, WhatsApp, llamada— terminan pidiendo un documento con la razón social: extracto bancario, registro o licencia, documento fiscal o escritura. Joaco no tiene cuenta bancaria. Dos salidas: (a) verificar a nombre del socio que sí tenga cuenta, cambiando el nombre legal del porfolio y subiendo su extracto, costo cero; (b) inscribir la unipersonal en DGI, que da la constancia fiscal pero genera aportes mensuales a BPS desde el alta, a confirmar con un contador. El resto de la solicitud quedó completo y guardado. |
+| 2026-10-01 | Verificación del negocio en Meta: falta el documento correcto | Joaco/socio | El PDF "Itaú Link" (impresión de la pantalla del home banking, sin dirección) no sirve: Meta pide un documento oficial con nombre legal y dirección, y rechaza capturas e impresiones. El socio pasó otro documento emitido por Itaú que no quedó guardado; se le vuelve a pedir. Al cargarlo, el nombre legal y la dirección del porfolio deben coincidir exactamente con el documento. Si no trae dirección, una factura de UTE/OSE/Antel a su nombre valida dirección y teléfono. |
 
 ## Ritmo de trabajo de los tres socios
 
