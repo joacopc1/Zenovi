@@ -27,8 +27,10 @@ Director viéndolo en pantalla. Cada fase se puede usar al terminar y se sube po
 
 ### 1. La pantalla, con la conversación funcionando de verdad
 
-- `/director`: lista de chats a la izquierda, conversación en el centro y caja de texto
-  abajo, armada con componentes de la colección guardada en 21st.dev.
+- `/director`: conversación en el centro con la caja de texto abajo, y la lista de chats
+  a la **derecha** (a la izquierda ya está la barra lateral de la app: dos listas del mismo
+  lado se leerían como un solo menú). Armada con componentes de la colección guardada en
+  21st.dev.
 - **Estado vacío** con tres o cuatro preguntas de arranque armadas con los datos de la
   cuenta ("¿Por qué el Reel del 28 rindió el doble?").
 - Respuestas **en tiempo real**, a medida que se escriben.
