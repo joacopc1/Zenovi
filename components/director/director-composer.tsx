@@ -124,42 +124,6 @@ export function DirectorComposer({
         animate={{ scale: 1 }}
         transition={{ delay: 0.1 }}
       >
-        <AnimatePresence>
-          {showCommandPalette ? (
-            <motion.div
-              ref={commandPaletteRef}
-              className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-mist bg-paper/95 shadow-[0_12px_32px_rgba(0,0,0,0.10)] backdrop-blur-xl"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-              transition={{ duration: 0.15 }}
-            >
-              <div className="py-1" role="listbox" aria-label="Comandos del Director">
-                {DIRECTOR_COMMANDS.map((command, index) => (
-                  <motion.button
-                    type="button"
-                    role="option"
-                    aria-selected={activeSuggestion === index}
-                    key={command.prefix}
-                    className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs transition-colors ${
-                      activeSuggestion === index ? "bg-canvas text-ink" : "text-graphite hover:bg-canvas/70"
-                    }`}
-                    onClick={() => selectCommand(index)}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: index * 0.03 }}
-                  >
-                    <span className="flex size-5 items-center justify-center text-graphite">{command.icon}</span>
-                    <span className="font-medium text-ink">{command.label}</span>
-                    <span className="text-muted">{command.prefix}</span>
-                    <span className="ml-auto hidden text-muted sm:inline">{command.description}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
         <div className="p-4 pb-2">
           <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
           <textarea
@@ -177,20 +141,62 @@ export function DirectorComposer({
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-ink/[0.05] p-4">
-          <motion.button
-            ref={commandButtonRef}
-            type="button"
-            onClick={() => setShowCommandPalette((previous) => !previous)}
-            whileTap={{ scale: 0.94 }}
-            aria-label="Ver comandos"
-            className={`group relative rounded-lg p-2 text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
-          >
-            <Command className="size-4" strokeWidth={1.7} />
-            <motion.span
-              className="absolute inset-0 rounded-lg bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
-              layoutId="button-highlight"
-            />
-          </motion.button>
+          {/* El menú sale del botón, flotando, en lugar de ocupar todo el ancho de la caja. */}
+          <div className="relative">
+            <motion.button
+              ref={commandButtonRef}
+              type="button"
+              onClick={() => setShowCommandPalette((previous) => !previous)}
+              whileTap={{ scale: 0.94 }}
+              aria-label="Ver comandos"
+              className={`group relative rounded-lg p-2 text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
+            >
+              <Command className="size-4" strokeWidth={1.7} />
+              <motion.span
+                className="absolute inset-0 rounded-lg bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
+                layoutId="button-highlight"
+              />
+            </motion.button>
+            <AnimatePresence>
+              {showCommandPalette ? (
+                <motion.div
+                  ref={commandPaletteRef}
+                  className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <div role="listbox" aria-label="Comandos del Director">
+                    {DIRECTOR_COMMANDS.map((command, index) => (
+                      <motion.button
+                        type="button"
+                        role="option"
+                        aria-selected={activeSuggestion === index}
+                        key={command.prefix}
+                        className={`flex w-full cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                          activeSuggestion === index ? "bg-canvas" : "hover:bg-canvas/70"
+                        }`}
+                        onClick={() => selectCommand(index)}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.03 }}
+                      >
+                        <span className="mt-0.5 flex size-5 items-center justify-center text-graphite">{command.icon}</span>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5 text-[13px]">
+                            <span className="font-medium text-ink">{command.label}</span>
+                            <span className="text-muted">{command.prefix}</span>
+                          </span>
+                          <span className="block text-[12px] text-graphite">{command.description}</span>
+                        </span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
 
           <div className="flex items-center gap-3">
             <span className="font-support hidden text-[11px] text-muted sm:inline">{creditsLabel}</span>

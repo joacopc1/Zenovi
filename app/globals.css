@@ -9,6 +9,8 @@
   /* Los títulos van en la fuente de la marca; números y textos de apoyo, en DM Sans. */
   --font-numeric: "DM Sans Variable", var(--font-sans);
   --font-support: "DM Sans Variable", var(--font-sans);
+  /* Conversación con el Director: la fuente del sistema, como en los chats de IA conocidos. */
+  --font-reading: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --color-canvas: #f1f1f2;
   --color-paper: #ffffff;
   --color-ink: #000000;

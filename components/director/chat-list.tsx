@@ -5,14 +5,33 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { deleteDirectorChat, renameDirectorChat } from "@/app/(dashboard)/director/actions";
+import { CollapseSidebarIcon } from "@/components/shell/icons";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 
 /** Los chats a la derecha: a la izquierda ya está la barra lateral de la app. */
-export function ChatList({ chats, activeChatId }: { chats: DirectorChatSummary[]; activeChatId: string | null }) {
+export function ChatList({
+  chats,
+  activeChatId,
+  onClose,
+}: {
+  chats: DirectorChatSummary[];
+  activeChatId: string | null;
+  onClose: () => void;
+}) {
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-mist bg-paper lg:flex" aria-label="Tus chats">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="text-[13px] font-semibold text-ink">Chats</h2>
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Ocultar chats"
+            className="grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+          >
+            <CollapseSidebarIcon className="size-4 -scale-x-100" />
+          </button>
+          <h2 className="text-[13px] font-semibold text-ink">Chats</h2>
+        </div>
         <Link
           href="/director"
           className="flex min-h-8 items-center gap-1.5 rounded-control border border-mist px-2.5 text-[12px] font-medium text-ink hover:bg-canvas"

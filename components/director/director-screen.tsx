@@ -4,8 +4,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Streamdown } from "streamdown";
+import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
@@ -15,22 +16,24 @@ const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 
 
 export function DirectorScreen({
   chatId,
+  isNew,
   initialMessages,
   chats,
 }: {
-  /** Null en un chat nuevo: el id se crea en el navegador y el servidor lo adopta al primer mensaje. */
-  chatId: string | null;
+  chatId: string;
+  /** Todavía sin mensajes: existe en la base recién con el primero. */
+  isNew: boolean;
   initialMessages: UIMessage[];
   chats: DirectorChatSummary[];
 }) {
   const router = useRouter();
   const { credits } = useShellIdentity();
-  const [id] = useState(() => chatId ?? crypto.randomUUID());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [chatsOpen, setChatsOpen] = useChatsPanelPreference();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
-    id,
+    id: chatId,
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/director/chat",
@@ -38,8 +41,9 @@ export function DirectorScreen({
       prepareSendMessagesRequest: ({ id: requestId, messages: all }) => ({ body: { id: requestId, message: all.at(-1) } }),
     }),
     onFinish: () => {
-      // El chat nuevo pasa a tener su dirección, y la lista y el círculo de créditos se actualizan.
-      if (!chatId) router.replace(`/director/${id}`);
+      // Sólo cambia la dirección: es la misma página, así que no hay navegación que pueda
+      // quedar a medio camino. Un refresco trae la lista de chats y el saldo al día.
+      if (isNew) window.history.replaceState(null, "", `/director/${chatId}`);
       router.refresh();
     },
     onError: (error) => setErrorMessage(readError(error)),
@@ -68,8 +72,18 @@ export function DirectorScreen({
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
-      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
+      <section className="font-reading relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
         <AmbientGlow />
+        {chatsOpen ? null : (
+          <button
+            type="button"
+            onClick={() => setChatsOpen(true)}
+            aria-label="Mostrar chats"
+            className="absolute right-3 top-3 z-20 hidden size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink lg:grid"
+          >
+            <CollapseSidebarIcon className="size-4 -scale-x-100 rotate-180" />
+          </button>
+        )}
         {empty ? (
           <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <motion.div
@@ -116,7 +130,7 @@ export function DirectorScreen({
           </>
         )}
       </section>
-      <ChatList chats={chats} activeChatId={chatId} />
+      {chatsOpen ? <ChatList chats={chats} activeChatId={isNew ? null : chatId} onClose={() => setChatsOpen(false)} /> : null}
     </div>
   );
 }
@@ -132,15 +146,54 @@ function ChatMessage({ message, streaming }: { message: UIMessage; streaming: bo
     );
   }
   return (
-    <div className="director-answer text-[15px] leading-7 text-ink">
-      {consulted ? <p className="font-support mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
+    <div className="director-answer rounded-2xl border border-mist bg-paper/80 px-5 py-4 text-[15px] leading-7 text-ink shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+      {consulted ? <p className="mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
       <Streamdown isAnimating={streaming}>{text}</Streamdown>
     </div>
   );
 }
 
+const CHATS_PANEL_KEY = "zenovi.director.chatsOpen";
+const chatsPanelListeners = new Set<() => void>();
+/** Si el navegador no deja guardar (modo privado), la preferencia vive sólo mientras dura la página. */
+let chatsPanelMemory: boolean | null = null;
+
+function readChatsPanel() {
+  try {
+    const stored = window.localStorage.getItem(CHATS_PANEL_KEY);
+    if (stored !== null) return stored !== "false";
+  } catch {
+    // Sin almacenamiento: se usa lo que quedó en memoria.
+  }
+  return chatsPanelMemory ?? true;
+}
+
+function subscribeChatsPanel(listener: () => void) {
+  chatsPanelListeners.add(listener);
+  return () => {
+    chatsPanelListeners.delete(listener);
+  };
+}
+
+/** Abierto o cerrado, recordado en este navegador. En el servidor y sin dato, abierto. */
+function useChatsPanelPreference() {
+  const open = useSyncExternalStore(subscribeChatsPanel, readChatsPanel, () => true);
+
+  function update(next: boolean) {
+    chatsPanelMemory = next;
+    try {
+      window.localStorage.setItem(CHATS_PANEL_KEY, String(next));
+    } catch {
+      // Igual cambia en pantalla; sólo no se recuerda al volver.
+    }
+    chatsPanelListeners.forEach((listener) => listener());
+  }
+
+  return [open, update] as const;
+}
+
 function ErrorNotice({ message }: { message: string }) {
-  return <p role="alert" className="font-support rounded-control border border-danger/20 bg-danger/5 px-3 py-2 text-[13px] text-danger">{message}</p>;
+  return <p role="alert" className="rounded-control border border-danger/20 bg-danger/5 px-3 py-2 text-[13px] text-danger">{message}</p>;
 }
 
 /** El servidor responde los errores esperables como `{ error }`; el resto se dice en general. */
