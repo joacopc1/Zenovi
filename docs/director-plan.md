@@ -88,7 +88,26 @@ con instrucciones propias y acciones automatizadas con aprobación.
    **qué sabe del rubro**: tipos de contenido y para qué sirve cada uno, Trial Reels,
    cómo se piensa una marca personal o un infoproducto. ¿Lo arma Joaco con material del
    mercado, lo redacto yo y él corrige, o una mezcla?
-2. **Cuánto se puede usar mientras no haya planes.** Propuesta: 30 mensajes por día y por
-   usuario, medir el costo real durante la beta y recién ahí dimensionar créditos.
-3. **Modelo por defecto.** Propuesta: Claude Sonnet 5 para conversar y Haiku 4.5 para
-   títulos y resúmenes, vía el AI Gateway que ya está configurado.
+2. **Cómo se mide el uso (propuesta del 2026-10-01).** No por mensaje: una pregunta corta y
+   un guion con todo el contexto de la cuenta cuestan diez veces distinto. Una sola moneda,
+   "créditos": las acciones grandes (analizar un Reel o una secuencia, generar un guion)
+   tienen precio fijo y visible antes de hacerlas; el chat descuenta según su costo real y
+   el creador ve una barra de cuánto le queda en el mes, con aviso al 80 % y sin cortar una
+   respuesta a la mitad. Por dentro, cada operación guarda su costo real. En la beta, tope
+   generoso sin mostrar la moneda; los créditos se dimensionan con el costo medido.
+3. **Modelo.** Costo estimado por respuesta del Director (capacitación y ADN en caché, unos
+   20k tokens de entrada y 1,8k de salida): Haiku 4.5 ~US$0,02, **Sonnet 5 ~US$0,045**,
+   Opus 5.5 ~US$0,09, Opus 5 ~US$0,11. Propuesta: Sonnet 5 para conversar, Haiku 4.5 para
+   títulos y resúmenes, Opus como "análisis profundo" más adelante. Medir con
+   conversaciones reales antes de fijar precios (Fase 3 del roadmap).
+
+## Diseño de la pantalla
+
+Base de estructura: el componente `animated-ai-chat` de 21st.dev que trajo Joaco (saludo
+centrado, caja que crece, comandos con "/", sugerencias en chips, indicador de "pensando"),
+adaptado a los tokens de Zenovi (claro, tinta y papel, sin el violeta ni las manchas que
+siguen al mouse). Comandos propios: `/idea`, `/guion`, `/analizar`, `/plan`. Lista de chats
+a la derecha.
+
+**Nombre propio o mascota del agente** (tipo "Zenovi AI", con un 3D): idea de Joaco a
+analizar después del MVP; no bloquea nada.
