@@ -3,7 +3,7 @@ import test from "node:test";
 import { creditBalance, creditPeriodStart, usageCostUsd, usdToCredits } from "../lib/credits/pricing.ts";
 
 test("una respuesta típica del Director cuesta unos cuatro créditos", () => {
-  const usd = usageCostUsd("anthropic/claude-sonnet-5.5", {
+  const usd = usageCostUsd("claude-sonnet-5-5", {
     inputTokens: 12_000,
     cacheReadTokens: 8_000,
     cacheWriteTokens: 0,

@@ -6,11 +6,6 @@
  * dimensiona con lo medido y no con estimaciones.
  */
 
-/** Conversa el Director: el Sonnet más nuevo, al mismo precio que Sonnet 5. */
-export const DIRECTOR_MODEL = "anthropic/claude-sonnet-5.5";
-/** Lo que no se ve —títulos de chats, resúmenes— va por el modelo rápido. */
-export const UTILITY_MODEL = "anthropic/claude-haiku-4.5";
-
 /** Un crédito equivale a un centavo de dólar de costo nuestro. */
 export const USD_PER_CREDIT = 0.01;
 
@@ -22,11 +17,13 @@ export const BETA_MONTHLY_CREDITS = 1500;
 
 type ModelPrice = { input: number; cacheRead: number; cacheWrite: number; output: number };
 
-/** Dólares por millón de tokens, según la lista pública del AI Gateway (2026-10-02). */
+/**
+ * Dólares por millón de tokens, precios de lista de Anthropic (2026-10-02). La escritura en
+ * caché vale 1,25 veces la entrada; la lectura, una décima parte.
+ */
 const PRICES_PER_MILLION: Record<string, ModelPrice> = {
-  "anthropic/claude-sonnet-5.5": { input: 2, cacheRead: 0.2, cacheWrite: 2.5, output: 10 },
-  "anthropic/claude-sonnet-5": { input: 2, cacheRead: 0.2, cacheWrite: 2.5, output: 10 },
-  "anthropic/claude-haiku-4.5": { input: 1, cacheRead: 0.1, cacheWrite: 1.25, output: 5 },
+  "claude-sonnet-5-5": { input: 2, cacheRead: 0.2, cacheWrite: 2.5, output: 10 },
+  "claude-haiku-4-5": { input: 1, cacheRead: 0.1, cacheWrite: 1.25, output: 5 },
 };
 
 export type TokenUsage = {

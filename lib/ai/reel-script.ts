@@ -1,6 +1,6 @@
 import "server-only";
 
-import { generateGatewayJson } from "@/lib/ai/gateway-json";
+import { generateAnthropicJson } from "@/lib/ai/anthropic-json";
 import { generateGeminiTextJson } from "@/lib/ai/gemini-json";
 import { normalizeAiFailure } from "@/lib/ai/provider-error";
 import { transcribeReel } from "@/lib/ai/groq-transcription";
@@ -53,19 +53,19 @@ async function classifyScript(prompt: string) {
     const failure = normalizeAiFailure(primaryError);
     console.warn(JSON.stringify({
       event: "ai_provider_fallback",
-      provider: "gateway",
+      provider: "anthropic",
       fromModel: GEMINI_MODEL,
       reason: failure?.kind ?? "unknown",
       modality: "text",
     }));
 
     try {
-      return await generateGatewayJson({
+      return await generateAnthropicJson({
         prompt,
         schema: GEMINI_REEL_SCRIPT_CLASSIFICATION_SCHEMA,
       });
     } catch (fallbackError) {
-      const fallbackFailure = normalizeAiFailure(fallbackError, "gateway");
+      const fallbackFailure = normalizeAiFailure(fallbackError, "anthropic");
       if (fallbackFailure?.kind === "authentication" || fallbackFailure?.kind === "configuration") {
         throw primaryError;
       }

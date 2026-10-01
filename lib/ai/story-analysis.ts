@@ -1,6 +1,6 @@
 import "server-only";
 
-import { generateGatewayJson } from "@/lib/ai/gateway-json";
+import { generateAnthropicJson } from "@/lib/ai/anthropic-json";
 import { generateGeminiMediaJson } from "@/lib/ai/gemini-json";
 import { normalizeAiFailure } from "@/lib/ai/provider-error";
 import { downloadStorySequenceMedia } from "@/lib/ai/story-media";
@@ -82,14 +82,14 @@ async function generateStoryAnalysis({
     const failure = normalizeAiFailure(primaryError);
     console.warn(JSON.stringify({
       event: "ai_provider_fallback",
-      provider: "gateway",
+      provider: "anthropic",
       fromModel: GEMINI_MODEL,
       reason: failure?.kind ?? "unknown",
       modality: images.length === sources.length ? "all-frames" : "partial-frames",
     }));
 
     try {
-      const result = await generateGatewayJson({
+      const result = await generateAnthropicJson({
         prompt: buildReducedStoryPrompt(prompt, sources.length, fallbackImageUrls),
         schema: GEMINI_STORY_ANALYSIS_SCHEMA,
         images,
@@ -101,7 +101,7 @@ async function generateStoryAnalysis({
           : "partial-frames" as const,
       };
     } catch (fallbackError) {
-      const fallbackFailure = normalizeAiFailure(fallbackError, "gateway");
+      const fallbackFailure = normalizeAiFailure(fallbackError, "anthropic");
       if (fallbackFailure?.kind === "authentication" || fallbackFailure?.kind === "configuration") {
         throw primaryError;
       }

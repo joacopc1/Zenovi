@@ -9,7 +9,7 @@ import { Streamdown } from "streamdown";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
-import { DirectorComposer, ThinkingIndicator } from "./director-composer";
+import { AmbientGlow, DirectorComposer, ThinkingIndicator } from "./director-composer";
 
 const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
 
@@ -27,6 +27,7 @@ export function DirectorScreen({
   const { credits } = useShellIdentity();
   const [id] = useState(() => chatId ?? crypto.randomUUID());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
@@ -62,24 +63,28 @@ export function DirectorScreen({
       onSend={send}
       busy={busy}
       showSuggestions={empty}
+      onFocusChange={setInputFocused}
       creditsLabel={credits.remaining > 0 ? `Te quedan ${creditFormatter.format(credits.remaining)} créditos` : "Sin créditos este mes"}
     />
   );
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
-      <section className="flex min-w-0 flex-1 flex-col" aria-label="Conversación con el Director">
+      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
+        <AmbientGlow followMouse={inputFocused} />
         {empty ? (
-          <div className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-10">
+          <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <motion.div
-              className="w-full max-w-2xl space-y-10"
+              className="relative z-10 w-full max-w-2xl space-y-12"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <div className="space-y-3 text-center">
                 <motion.div className="inline-block" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}>
-                  <h1 className="pb-1 text-3xl font-medium tracking-tight text-ink">¿En qué te ayudo hoy?</h1>
+                  <h1 className="bg-gradient-to-r from-ink/90 to-ink/40 bg-clip-text pb-1 text-3xl font-medium tracking-tight text-transparent">
+                    ¿En qué te ayudo hoy?
+                  </h1>
                   <motion.div
                     className="h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent"
                     initial={{ width: 0, opacity: 0 }}
@@ -87,7 +92,7 @@ export function DirectorScreen({
                     transition={{ delay: 0.5, duration: 0.8 }}
                   />
                 </motion.div>
-                <motion.p className="font-support text-sm text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                <motion.p className="text-sm text-ink/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                   Pedí ideas, guiones o un plan, o escribí / para ver los comandos
                 </motion.p>
               </div>
@@ -97,7 +102,7 @@ export function DirectorScreen({
           </div>
         ) : (
           <>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-8">
+            <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-8">
               <div className="mx-auto w-full max-w-3xl space-y-6">
                 {messages.map((message) => (
                   <ChatMessage key={message.id} message={message} streaming={status === "streaming" && message.id === messages.at(-1)?.id} />
@@ -107,7 +112,7 @@ export function DirectorScreen({
                 <div ref={bottomRef} />
               </div>
             </div>
-            <div className="px-5 pb-5 pt-2">
+            <div className="relative px-5 pb-5 pt-2">
               <div className="mx-auto w-full max-w-3xl">{composer}</div>
             </div>
           </>
@@ -120,6 +125,7 @@ export function DirectorScreen({
 
 function ChatMessage({ message, streaming }: { message: UIMessage; streaming: boolean }) {
   const text = message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
+  const consulted = message.parts.some((part) => part.type === "tool-consultar_guia");
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -129,6 +135,7 @@ function ChatMessage({ message, streaming }: { message: UIMessage; streaming: bo
   }
   return (
     <div className="director-answer text-[15px] leading-7 text-ink">
+      {consulted ? <p className="font-support mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
       <Streamdown isAnimating={streaming}>{text}</Streamdown>
     </div>
   );

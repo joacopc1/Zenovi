@@ -1,4 +1,5 @@
 import type { BrandDnaDraft } from "@/lib/brand/dna";
+import { DIRECTOR_GUIDES, type DirectorGuide } from "./guides/index.ts";
 import { DIRECTOR_TRAINING } from "./training.ts";
 
 /**
@@ -6,8 +7,21 @@ import { DIRECTOR_TRAINING } from "./training.ts";
  * cuenta. Va todo junto y estable para que se pueda guardar en caché: nada que cambie
  * en cada mensaje (como la fecha) entra acá.
  */
-export function buildDirectorSystem(dna: BrandDnaDraft, username: string | null) {
-  return `${DIRECTOR_TRAINING}\n\n${brandContext(dna, username)}`;
+export function buildDirectorSystem(dna: BrandDnaDraft, username: string | null, guides: readonly DirectorGuide[] = DIRECTOR_GUIDES) {
+  return [DIRECTOR_TRAINING, guidesIndex(guides), brandContext(dna, username)].filter(Boolean).join("\n\n");
+}
+
+/**
+ * Lo único que el Director ve de las guías hasta que decide leer una: el nombre y cuándo
+ * sirve. Detecta el pedido aunque el creador no use un comando.
+ */
+export function guidesIndex(guides: readonly DirectorGuide[]) {
+  if (guides.length === 0) return "";
+  return [
+    "Guías de Zenovi",
+    "Antes de responder un pedido que coincida con una de estas guías, consultala con la herramienta consultar_guia, aunque el creador no haya usado un comando. Consultá sólo las que hagan falta.",
+    ...guides.map((guide) => `- ${guide.slug}: ${guide.title}. Usala ${guide.useWhen}.`),
+  ].join("\n");
 }
 
 export function brandContext(dna: BrandDnaDraft, username: string | null) {

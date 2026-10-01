@@ -1,17 +1,24 @@
+import { anthropic } from "@ai-sdk/anthropic";
 import {
   convertToModelMessages,
   generateId,
   generateText,
+  jsonSchema,
+  stepCountIs,
   streamText,
+  tool,
   validateUIMessages,
   type ModelMessage,
+  type ToolSet,
   type UIMessage,
 } from "ai";
 import { recordAiUsage } from "@/lib/credits/record-usage";
-import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/credits/pricing";
+import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/ai/models";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getBrandDna } from "@/lib/data/brand-dna";
 import { getCreditBalance } from "@/lib/data/credit-balance";
+import { DIRECTOR_GUIDES } from "@/lib/director/guides";
+import { readDirectorGuide } from "@/lib/director/guides/read-guide";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -57,6 +64,7 @@ export async function POST(request: Request) {
     .select("id, role, parts")
     .eq("chat_id", chatId)
     .order("created_at");
+  // Lo guardado lo escribió este servidor; se valida la forma, no cada herramienta.
   const messages = await validateUIMessages({ messages: [...((stored ?? []) as UIMessage[]), message] });
 
   const dna = await getBrandDna(workspaceId);
@@ -68,8 +76,11 @@ export async function POST(request: Request) {
   const startedAt = Date.now();
 
   const result = streamText({
-    model: DIRECTOR_MODEL,
-    messages: [system, ...(await convertToModelMessages(messages))],
+    model: anthropic(DIRECTOR_MODEL),
+    messages: [system, ...(await convertToModelMessages(messages, { tools: directorTools }))],
+    tools: directorTools,
+    // Consultar una guía y después responder: pocos pasos, para que el costo no se dispare.
+    stopWhen: stepCountIs(4),
     maxOutputTokens: 8000,
   });
   // Aunque se cierre la pestaña, la respuesta termina y se guarda con su costo.
@@ -102,11 +113,31 @@ export async function POST(request: Request) {
   });
 }
 
+/**
+ * La única herramienta del Director: leer una guía del índice. El modelo sólo puede elegir
+ * entre esos nombres, y el lector abre únicamente archivos de la carpeta de guías: no hay
+ * forma de pedirle al servidor otro archivo, ni variables de entorno, ni claves.
+ */
+const directorTools: ToolSet | undefined = DIRECTOR_GUIDES.length > 0
+  ? {
+      consultar_guia: tool({
+        description: "Lee una guía de Zenovi antes de responder un pedido que la necesita.",
+        inputSchema: jsonSchema<{ tema: string }>({
+          type: "object",
+          properties: { tema: { type: "string", enum: DIRECTOR_GUIDES.map((guide) => guide.slug) } },
+          required: ["tema"],
+          additionalProperties: false,
+        }),
+        execute: async ({ tema }) => (await readDirectorGuide(tema)) ?? "Esa guía no existe.",
+      }),
+    }
+  : undefined;
+
 /** Un título corto a partir del primer mensaje, con el modelo rápido. */
 async function nameChat(chatId: string, workspaceId: string, userId: string, message: UIMessage) {
   try {
     const { text, usage } = await generateText({
-      model: UTILITY_MODEL,
+      model: anthropic(UTILITY_MODEL),
       prompt: `Escribí un título de 2 a 6 palabras, en español, sin comillas ni punto final, para una conversación que empieza con este mensaje:\n\n${textOf(message).slice(0, 1000)}`,
       maxOutputTokens: 30,
     });

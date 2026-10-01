@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Las guías del Director se leen del disco al responder: tienen que viajar con la ruta.
+  outputFileTracingIncludes: {
+    "/api/director/chat": ["./lib/director/guides/**/*.md"],
+  },
   reactStrictMode: true,
   images: {
     remotePatterns: [

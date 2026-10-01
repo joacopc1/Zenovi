@@ -5,10 +5,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { CalendarRange, Command, FileText, Lightbulb, LoaderIcon, ScanSearch, SendIcon } from "lucide-react";
 
 /**
- * La caja para hablar con el Director. Adaptada del componente `animated-ai-chat` de la
- * colección de 21st.dev: misma composición (caja que crece, comandos con "/", barra de
- * acciones, chips de sugerencia), en la paleta clara de Zenovi y sin los efectos de luz
- * que seguían al mouse.
+ * La caja para hablar con el Director. Es el componente `animated-ai-chat` de la colección
+ * de 21st.dev con su composición y sus efectos (vidrio, comandos con "/", chips, brillo que
+ * sigue al mouse); lo único que cambia es la paleta: clara, con el azul de datos de Zenovi
+ * donde el original usaba violeta.
  */
 
 type DirectorCommand = { icon: ReactNode; label: string; description: string; prefix: string };
@@ -46,9 +46,12 @@ export function DirectorComposer({
   busy,
   creditsLabel,
   showSuggestions,
+  onFocusChange,
 }: {
   onSend: (text: string) => void;
   busy: boolean;
+  /** El brillo que sigue al mouse se enciende mientras se escribe. */
+  onFocusChange?: (focused: boolean) => void;
   /** "Te quedan 1.320 créditos": el uso también se ve donde se gasta. */
   creditsLabel: string;
   showSuggestions: boolean;
@@ -119,7 +122,7 @@ export function DirectorComposer({
   return (
     <div className="w-full space-y-4">
       <motion.div
-        className="relative rounded-2xl border border-mist bg-paper shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
+        className="relative rounded-2xl border border-ink/[0.06] bg-paper/70 shadow-2xl shadow-ink/[0.06] backdrop-blur-2xl"
         initial={{ scale: 0.98 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1 }}
@@ -171,21 +174,27 @@ export function DirectorComposer({
               adjustHeight();
             }}
             onKeyDown={handleKeyDown}
+            onFocus={() => onFocusChange?.(true)}
+            onBlur={() => onFocusChange?.(false)}
             placeholder="Preguntale al Director…"
             className="min-h-[60px] w-full resize-none overflow-hidden bg-transparent px-1 py-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-t border-mist px-3 py-2.5">
+        <div className="flex items-center justify-between gap-4 border-t border-ink/[0.05] p-4">
           <motion.button
             ref={commandButtonRef}
             type="button"
             onClick={() => setShowCommandPalette((previous) => !previous)}
             whileTap={{ scale: 0.94 }}
             aria-label="Ver comandos"
-            className={`rounded-lg p-2 text-graphite transition-colors hover:bg-canvas hover:text-ink ${showCommandPalette ? "bg-canvas text-ink" : ""}`}
+            className={`group relative rounded-lg p-2 text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
           >
             <Command className="size-4" strokeWidth={1.7} />
+            <motion.span
+              className="absolute inset-0 rounded-lg bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
+              layoutId="button-highlight"
+            />
           </motion.button>
 
           <div className="flex items-center gap-3">
@@ -197,7 +206,7 @@ export function DirectorComposer({
               whileTap={{ scale: 0.98 }}
               disabled={busy || !value.trim()}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                value.trim() && !busy ? "bg-ink text-paper" : "bg-control text-muted"
+                value.trim() && !busy ? "bg-ink text-paper shadow-lg shadow-ink/10" : "bg-ink/[0.05] text-ink/40"
               }`}
             >
               {busy ? (
@@ -218,13 +227,19 @@ export function DirectorComposer({
               type="button"
               key={command.prefix}
               onClick={() => selectCommand(index)}
-              className="flex items-center gap-2 rounded-lg border border-mist bg-paper px-3 py-2 text-sm text-graphite transition-colors hover:bg-canvas hover:text-ink"
+              className="group relative flex items-center gap-2 rounded-lg bg-ink/[0.02] px-3 py-2 text-sm text-ink/60 transition-all hover:bg-ink/[0.05] hover:text-ink/90"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
               {command.icon}
               <span>{command.label}</span>
+              <motion.span
+                className="absolute inset-0 rounded-lg border border-ink/[0.05]"
+                initial={false}
+                animate={{ opacity: [0, 1], scale: [0.98, 1] }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              />
             </motion.button>
           ))}
         </div>
@@ -233,15 +248,45 @@ export function DirectorComposer({
   );
 }
 
+/** Luces difusas del fondo y el brillo que sigue al mouse mientras se escribe, como en el original. */
+export function AmbientGlow({ followMouse }: { followMouse: boolean }) {
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => setMouse({ x: event.clientX, y: event.clientY });
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  return (
+    <>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/4 top-0 size-96 animate-pulse rounded-full bg-data/10 blur-[128px]" />
+        <div className="absolute bottom-0 right-1/4 size-96 animate-pulse rounded-full bg-data/[0.08] blur-[128px] [animation-delay:700ms]" />
+        <div className="absolute right-1/3 top-1/4 size-64 animate-pulse rounded-full bg-ink/[0.04] blur-[96px] [animation-delay:1000ms]" />
+      </div>
+      {followMouse ? (
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-0 size-[50rem] rounded-full bg-gradient-to-r from-data via-ink/40 to-data opacity-[0.03] blur-[96px]"
+          animate={{ x: mouse.x - 400, y: mouse.y - 400 }}
+          transition={{ type: "spring", damping: 25, stiffness: 150, mass: 0.5 }}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function ThinkingIndicator() {
   return (
     <motion.div
-      className="inline-flex items-center gap-3 rounded-full border border-mist bg-paper px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+      className="fixed bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-ink/[0.05] bg-paper/70 px-4 py-2 shadow-lg backdrop-blur-2xl"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
     >
-      <span className="font-support text-sm text-graphite">Pensando</span>
+      <span className="grid h-7 w-8 place-items-center rounded-full bg-ink/[0.05] text-[11px] font-medium text-ink/90">IA</span>
+      <span className="font-support text-sm text-ink/70">Pensando</span>
       <span className="flex items-center">
         {[1, 2, 3].map((dot) => (
           <motion.span

@@ -9,7 +9,7 @@ export type AiFailureKind =
   | "configuration"
   | "unknown";
 
-export type AiProvider = "gemini" | "groq" | "gateway";
+export type AiProvider = "gemini" | "groq" | "anthropic";
 
 export class AiProviderError extends Error {
   readonly provider: AiProvider;

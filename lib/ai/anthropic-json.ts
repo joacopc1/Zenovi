@@ -1,41 +1,37 @@
 import "server-only";
 
+import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, jsonSchema, Output } from "ai";
-import { gatewayModelCandidates } from "./gateway-config.ts";
+import { ANALYSIS_FALLBACK_MODEL } from "./models.ts";
 import { AiProviderError } from "./provider-error.ts";
 
-const GATEWAY_TIMEOUT_MS = 90_000;
+const FALLBACK_TIMEOUT_MS = 90_000;
 
-export type GatewayImage = {
+export type FallbackImage = {
   data: Buffer | URL | string;
   mediaType?: string;
   label?: string;
 };
 
-type GenerateGatewayJsonInput = {
+type GenerateFallbackJsonInput = {
   prompt: string;
   schema: object;
-  images?: GatewayImage[];
+  images?: FallbackImage[];
 };
 
 /**
- * Respaldo multimodelo para cuando Gemini no puede completar una operación.
- * Sólo recibe imágenes: nunca presenta una miniatura o una transcripción como si el
- * proveedor alternativo hubiera inspeccionado el video completo.
+ * Respaldo de los análisis cuando Gemini no puede completarlos: Claude, directo con
+ * Anthropic. Sólo recibe imágenes: nunca presenta una miniatura o una transcripción como si
+ * hubiera visto el video completo.
  */
-export async function generateGatewayJson({
+export async function generateAnthropicJson({
   prompt,
   schema,
   images = [],
-}: GenerateGatewayJsonInput) {
-  const [model, ...fallbacks] = gatewayModelCandidates(
-    process.env.AI_GATEWAY_MODEL,
-    process.env.AI_GATEWAY_FALLBACK_MODEL,
-  );
-
+}: GenerateFallbackJsonInput) {
   try {
     const result = await generateText({
-      model,
+      model: anthropic(ANALYSIS_FALLBACK_MODEL),
       messages: [{
         role: "user",
         content: [
@@ -56,46 +52,40 @@ export async function generateGatewayJson({
         description: "Análisis accionable de contenido para una marca personal",
       }),
       maxRetries: 1,
-      timeout: { totalMs: GATEWAY_TIMEOUT_MS },
-      providerOptions: {
-        gateway: {
-          ...(fallbacks.length > 0 ? { models: fallbacks } : {}),
-          has: ["structured-output", ...(images.length > 0 ? ["vision" as const] : [])],
-        },
-      },
+      timeout: { totalMs: FALLBACK_TIMEOUT_MS },
     });
 
     return {
       value: result.output as unknown,
-      model: result.response.modelId || model,
+      model: result.response.modelId || ANALYSIS_FALLBACK_MODEL,
     };
   } catch (error) {
-    throw normalizeGatewayFailure(error);
+    throw normalizeFallbackFailure(error);
   }
 }
 
-function normalizeGatewayFailure(error: unknown) {
+function normalizeFallbackFailure(error: unknown) {
   if (error instanceof AiProviderError) return error;
   const status = readStatus(error);
-  const detail = error instanceof Error ? error.message : "gateway_error";
+  const detail = error instanceof Error ? error.message : "anthropic_error";
 
   if (status === 401 || status === 403) {
-    return new AiProviderError({ provider: "gateway", kind: "authentication", status, detail });
+    return new AiProviderError({ provider: "anthropic", kind: "authentication", status, detail });
   }
   if (status === 402 || (status === 429 && /credit|billing|quota/i.test(detail))) {
-    return new AiProviderError({ provider: "gateway", kind: "quota_exhausted", status, detail });
+    return new AiProviderError({ provider: "anthropic", kind: "quota_exhausted", status, detail });
   }
   if (status === 429) {
-    return new AiProviderError({ provider: "gateway", kind: "rate_limit", status, retryable: true, detail });
+    return new AiProviderError({ provider: "anthropic", kind: "rate_limit", status, retryable: true, detail });
   }
   if (status !== null && status >= 500) {
-    return new AiProviderError({ provider: "gateway", kind: "unavailable", status, retryable: true, detail });
+    return new AiProviderError({ provider: "anthropic", kind: "unavailable", status, retryable: true, detail });
   }
   if (error instanceof Error && (error.name === "TimeoutError" || /timeout/i.test(error.message))) {
-    return new AiProviderError({ provider: "gateway", kind: "timeout", retryable: true, detail });
+    return new AiProviderError({ provider: "anthropic", kind: "timeout", retryable: true, detail });
   }
   return new AiProviderError({
-    provider: "gateway",
+    provider: "anthropic",
     kind: status === 400 || status === 422 ? "invalid_request" : "invalid_response",
     status,
     detail,

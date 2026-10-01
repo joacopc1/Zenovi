@@ -101,6 +101,20 @@ con instrucciones propias y acciones automatizadas con aprobación.
    títulos y resúmenes, Opus como "análisis profundo" más adelante. Medir con
    conversaciones reales antes de fijar precios (Fase 3 del roadmap).
 
+## Proveedor y guías (2026-10-02)
+
+- Los modelos de Claude van **directo a Anthropic** (`@ai-sdk/anthropic`, clave `ANTHROPIC_API_KEY`)
+  y se pagan en la consola de Claude; el AI Gateway de Vercel se dejó porque exigía cargar
+  saldo allá aparte. El respaldo de los análisis también pasó a Claude Sonnet 5.5 directo.
+  Ver `docs/ai-providers.md`.
+- **Guías del Director** en `lib/director/guides/`: archivos `.md` que el Director lee sólo
+  cuando el pedido los necesita, mediante su única herramienta, `consultar_guia`. Ve un
+  índice con cuándo usar cada una y detecta el pedido aunque no se use un comando. El
+  contenido lo arma Joaco; la carpeta trae las instrucciones de formato.
+- **Seguridad**: el modelo no tiene acceso a archivos, variables de entorno ni claves. La
+  herramienta sólo acepta nombres del índice (letras, números y guiones, comprobado en los
+  tests) y el lector abre únicamente archivos de esa carpeta.
+
 ## Diseño de la pantalla
 
 Base de estructura: el componente `animated-ai-chat` de 21st.dev que trajo Joaco (saludo

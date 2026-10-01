@@ -1,6 +1,6 @@
 import "server-only";
 
-import { generateGatewayJson } from "@/lib/ai/gateway-json";
+import { generateAnthropicJson } from "@/lib/ai/anthropic-json";
 import { generateGeminiVideoJson } from "@/lib/ai/gemini-json";
 import { normalizeAiFailure } from "@/lib/ai/provider-error";
 import { transcribeReel } from "@/lib/ai/groq-transcription";
@@ -69,14 +69,14 @@ async function generateReelAnalysis({
     const failure = normalizeAiFailure(primaryError);
     console.warn(JSON.stringify({
       event: "ai_provider_fallback",
-      provider: "gateway",
+      provider: "anthropic",
       fromModel: GEMINI_MODEL,
       reason: failure?.kind ?? "unknown",
       modality: thumbnailUrl ? "transcript+cover" : "transcript",
     }));
 
     try {
-      const result = await generateGatewayJson({
+      const result = await generateAnthropicJson({
         prompt: buildReducedVisualPrompt(prompt, Boolean(thumbnailUrl)),
         schema: GEMINI_REEL_ANALYSIS_SCHEMA,
         images: thumbnailUrl ? [{ data: new URL(thumbnailUrl), label: "Portada disponible del Reel:" }] : [],
@@ -86,7 +86,7 @@ async function generateReelAnalysis({
         modality: thumbnailUrl ? "transcript+cover" as const : "transcript" as const,
       };
     } catch (fallbackError) {
-      const fallbackFailure = normalizeAiFailure(fallbackError, "gateway");
+      const fallbackFailure = normalizeAiFailure(fallbackError, "anthropic");
       if (fallbackFailure?.kind === "authentication" || fallbackFailure?.kind === "configuration") {
         throw primaryError;
       }
