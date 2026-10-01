@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#e9e7e2"/>
+  <text x="90" y="180" fill="#6e6e73" font-family="Arial, sans-serif" font-size="32">PRUEBA REAL</text>
+  <rect x="90" y="340" width="900" height="720" rx="42" fill="#ffffff"/>
+  <circle cx="180" cy="450" r="42" fill="#171717"/>
+  <text x="245" y="465" fill="#111111" font-family="Arial, sans-serif" font-size="34" font-weight="700">Cliente de consultoría</text>
+  <text x="150" y="620" fill="#242424" font-family="Arial, sans-serif" font-size="48">
+    <tspan x="150" dy="0">“Ordenamos las Historias</tspan>
+    <tspan x="150" dy="70">como una conversación y</tspan>
+    <tspan x="150" dy="70">duplicamos las respuestas</tspan>
+    <tspan x="150" dy="70">en una semana.”</tspan>
+  </text>
+  <line x1="150" y1="930" x2="930" y2="930" stroke="#ddddda" stroke-width="3"/>
+  <text x="150" y="1000" fill="#6e6e73" font-family="Arial, sans-serif" font-size="30">Resultado compartido por mensaje</text>
+  <text x="90" y="1300" fill="#111111" font-family="Arial, sans-serif" font-size="64" font-weight="700">
+    <tspan x="90" dy="0">La prueba aparece</tspan>
+    <tspan x="90" dy="82">antes de la oferta.</tspan>
+  </text>
+  <text x="90" y="1760" fill="#777777" font-family="Arial, sans-serif" font-size="30">ZENOVI · EJEMPLO</text>
+</svg>

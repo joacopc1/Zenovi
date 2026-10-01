@@ -38,8 +38,8 @@ export function SyncButton({ redirectTo }: { redirectTo: string }) {
       <button
         type="submit"
         aria-disabled={pending}
-        className={`flex min-h-8 items-center gap-1.5 rounded-control border border-mist bg-paper px-3 text-xs font-medium ${
-          pending ? "cursor-progress text-ink" : "text-graphite hover:border-mist-strong hover:text-ink"
+        className={`flex min-h-8 items-center gap-1.5 rounded-control border border-mist bg-paper px-3 text-xs font-medium text-ink ${
+          pending ? "cursor-progress" : "hover:border-mist-strong hover:bg-canvas"
         }`}
       >
         <RefreshIcon className={`size-3.5 ${pending ? "animate-spin motion-reduce:animate-none" : ""}`} />

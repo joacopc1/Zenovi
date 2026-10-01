@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ANALYSIS_PIPELINE_VERSION,
   GEMINI_REEL_ANALYSIS_SCHEMA,
+  isAnalysisOutdated,
   estimateSpeakingPaceWpm,
   isAnalysisJobStatus,
   parseReelAnalysis,
@@ -25,7 +27,7 @@ test("sin fila, la pieza todavía no se pidió", () => {
 });
 
 test("en cola y corriendo conservan cuándo empezó", () => {
-  const now = new Date("2026-09-27T10:05:00Z");
+  const now = new Date("2026-09-27T10:03:00Z");
   const enCola = readAnalysisState(fila({ startedAt: "2026-09-27T10:00:00Z" }), now);
 
   assert.equal(enCola.status, "queued");
@@ -43,7 +45,7 @@ test("un trabajo interrumpido se puede volver a intentar", () => {
   assert.equal(state.status, "failed");
   assert.equal(state.canRetry, true);
   assert.equal(isAnalysisStale("2026-09-27T10:00:00Z", now), true);
-  assert.equal(isAnalysisStale("2026-09-27T10:05:00Z", now), false);
+  assert.equal(isAnalysisStale("2026-09-27T10:08:00Z", now), false);
 });
 
 test("un análisis listo devuelve su resultado", () => {
@@ -358,4 +360,12 @@ test("el análisis guardado exige metadatos y transcripción válidos", () => {
     "Hay una métrica",
   );
   assert.equal(parseReelAnalysis({ ...draft, transcript: [] }), null);
+});
+
+test("un análisis de Reel hecho con el modelo de respaldo no queda marcado como viejo", () => {
+  assert.equal(
+    isAnalysisOutdated({ pipelineVersion: `${ANALYSIS_PIPELINE_VERSION}:fallback=gpt:modality=transcript` }),
+    false,
+  );
+  assert.equal(isAnalysisOutdated({ pipelineVersion: "reel-v4-old" }), true);
 });

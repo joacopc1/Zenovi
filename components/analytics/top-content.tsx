@@ -50,7 +50,7 @@ export function TopContent({ items }: { items: RankedContentItem[] }) {
                         alt=""
                         fill
                         sizes="48px"
-                        className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                        className="object-cover"
                       />
                     ) : null}
                   </span>

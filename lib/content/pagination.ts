@@ -1,4 +1,5 @@
 import type { ContentKind, ContentSort, ContentSortDirection } from "./library";
+import type { StorySequenceSort } from "./story-sequences";
 
 /** Entra justo en las grillas de 4, 3 y 2 columnas: nunca queda una fila a medias. */
 export const CONTENT_PAGE_SIZE = 24;
@@ -22,7 +23,7 @@ export function paginate<T>(items: readonly T[], requestedPage: number, pageSize
 
 export type ContentUrlState = {
   kind: ContentKind;
-  sort: ContentSort;
+  sort: ContentSort | StorySequenceSort;
   direction: ContentSortDirection;
   search: string;
   page?: number;

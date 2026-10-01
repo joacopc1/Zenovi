@@ -11,8 +11,10 @@ import {
   getInstagramDailyTotals,
   getInstagramMedia,
   getInstagramMediaInsights,
+  getInstagramStories,
   getInstagramFollowerDemographics,
   getInstagramPeriodInsights,
+  type InstagramMedia,
 } from "@/lib/meta/api";
 import {
   breakdownMetricKey,
@@ -32,6 +34,7 @@ import {
 import { planMediaInsightRefresh } from "@/lib/meta/media-sync-plan";
 import { buildMediaInsightSnapshotRows } from "@/lib/meta/media-insight-snapshots";
 import { requiresReauthorization } from "@/lib/meta/meta-error";
+import { archiveStories } from "@/lib/meta/story-archive";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -60,9 +63,10 @@ export async function syncInstagramConnection({
     return { ok: false, code: "sync_state_unavailable" };
   }
 
-  const [profileResult, mediaResult, accountInsightsResult] = await Promise.all([
+  const [profileResult, mediaResult, storiesResult, accountInsightsResult] = await Promise.all([
     getInstagramAccountProfile(accessToken),
     getInstagramMedia(accessToken),
+    getInstagramStories(accessToken),
     getInstagramAccountInsights(providerAccountId, accessToken),
   ]);
 
@@ -80,6 +84,19 @@ export async function syncInstagramConnection({
     await markSyncFailure(admin, connectionId, "account_mismatch");
     return { ok: false, code: "account_mismatch" };
   }
+
+  if (!storiesResult.ok) {
+    // Una restricción puntual de Stories no vuelve inútiles las publicaciones, los
+    // Reels ni los insights de cuenta que ya llegaron correctamente.
+    console.warn(
+      JSON.stringify({ event: "instagram_sync", warning: "stories_unavailable", code: storiesResult.code }),
+    );
+  }
+
+  const syncedMedia = mergeMedia(
+    mediaResult.data,
+    storiesResult.ok ? storiesResult.data : [],
+  );
 
   const { data: refreshedAccount, error: profileError } = await admin
     .from("social_accounts")
@@ -104,20 +121,7 @@ export async function syncInstagramConnection({
   }
 
   const syncedAt = new Date().toISOString();
-  const mediaRows = mediaResult.data.map((media) => ({
-    social_account_id: socialAccountId,
-    provider_media_id: media.id,
-    caption: media.caption,
-    media_type: media.mediaType,
-    media_product_type: media.mediaProductType,
-    media_url: media.mediaUrl,
-    thumbnail_url: media.thumbnailUrl,
-    permalink: media.permalink,
-    posted_at: media.timestamp,
-    like_count: media.likeCount,
-    comments_count: media.commentsCount,
-    synced_at: syncedAt,
-  }));
+  const mediaRows = syncedMedia.map((media) => toMediaRow(media, socialAccountId, syncedAt));
 
   let storedMedia: { id: string; provider_media_id: string }[] = [];
 
@@ -139,7 +143,7 @@ export async function syncInstagramConnection({
     storedMedia.map((media) => [media.provider_media_id, media.id]),
   );
 
-  const carouselRows = mediaResult.data.flatMap((media) => {
+  const carouselRows = syncedMedia.flatMap((media) => {
     const parentId = mediaIdByProviderId.get(media.id);
     if (!parentId || media.mediaType !== "CAROUSEL_ALBUM" || media.children.length === 0) {
       return [];
@@ -170,13 +174,17 @@ export async function syncInstagramConnection({
     }
   }
 
-  const mediaInsightRows: {
-    instagram_media_id: string;
-    metric: string;
-    period: string;
-    value: number;
-    synced_at: string;
-  }[] = [];
+  await archiveStories(
+    admin,
+    socialAccountId,
+    syncedMedia.flatMap((media) => {
+      const storedMediaId = mediaIdByProviderId.get(media.id);
+      return media.mediaProductType === "STORY" && storedMediaId
+        ? [{ storedMediaId, mediaUrl: media.mediaUrl, thumbnailUrl: media.thumbnailUrl }]
+        : [];
+    }),
+  );
+
 
   // Qué piezas ya tienen estadísticas: las viejas con datos no se vuelven a pedir.
   const { data: coverage, error: coverageError } = await admin
@@ -193,7 +201,7 @@ export async function syncInstagramConnection({
 
   const plannedIds = new Set(
     planMediaInsightRefresh({
-      media: mediaResult.data.flatMap((media) => {
+      media: syncedMedia.flatMap((media) => {
         const storedMediaId = mediaIdByProviderId.get(media.id);
         return storedMediaId
           ? [{
@@ -207,54 +215,14 @@ export async function syncInstagramConnection({
       now: new Date(),
     }),
   );
-  const mediaToRefresh = mediaResult.data.filter((media) =>
+  const mediaToRefresh = syncedMedia.filter((media) =>
     plannedIds.has(mediaIdByProviderId.get(media.id) ?? ""),
   );
 
-  const insightResults = await mapWithConcurrency(mediaToRefresh, 5, async (media) => ({
-    media,
-    result: await getInstagramMediaInsights(media.id, accessToken, media.mediaProductType),
-  }));
-
-  for (const { media, result } of insightResults) {
-    const storedMediaId = mediaIdByProviderId.get(media.id);
-    if (!storedMediaId || !result.ok) continue;
-
-    for (const insight of result.data) {
-      mediaInsightRows.push({
-        instagram_media_id: storedMediaId,
-        metric: insight.metric,
-        period: insight.period,
-        value: insight.value,
-        synced_at: syncedAt,
-      });
-    }
-  }
-
-  if (mediaInsightRows.length > 0) {
-    const snapshotRows = buildMediaInsightSnapshotRows(mediaInsightRows, syncedAt);
-    const [{ error: insightsError }, { error: snapshotsError }] = await Promise.all([
-      admin.from("instagram_media_insights").upsert(mediaInsightRows, {
-        onConflict: "instagram_media_id,metric,period",
-      }),
-      admin.from("instagram_media_insight_snapshots").upsert(snapshotRows, {
-        onConflict: "instagram_media_id,metric,observed_on",
-      }),
-    ]);
-
-    if (insightsError) {
-      await markSyncFailure(admin, connectionId, "media_insights_persistence_failed");
-      return { ok: false, code: "media_insights_persistence_failed" };
-    }
-
-    // Las fotos diarias son un extra para la curva de evolución: si fallan, no se tira
-    // abajo una sincronización cuyas métricas sí se guardaron. Se reintentan en la
-    // próxima corrida, igual que el relleno diario.
-    if (snapshotsError) {
-      console.warn(
-        JSON.stringify({ event: "instagram_sync", warning: "media_insight_snapshots_failed" }),
-      );
-    }
+  const mediaInsightRows = await fetchMediaInsightRows(mediaToRefresh, mediaIdByProviderId, accessToken, syncedAt);
+  if (!(await saveMediaInsights(admin, mediaInsightRows, syncedAt))) {
+    await markSyncFailure(admin, connectionId, "media_insights_persistence_failed");
+    return { ok: false, code: "media_insights_persistence_failed" };
   }
 
   const dailyAccountInsightRows = accountInsightsResult.ok
@@ -367,6 +335,84 @@ export async function syncInstagramConnection({
     mediaInsightCount: mediaInsightRows.length,
     accountInsightCount: accountInsightRows.length,
   };
+}
+
+export function toMediaRow(media: InstagramMedia, socialAccountId: string, syncedAt: string) {
+  return {
+    social_account_id: socialAccountId,
+    provider_media_id: media.id,
+    caption: media.caption,
+    media_type: media.mediaType,
+    media_product_type: media.mediaProductType,
+    media_url: media.mediaUrl,
+    thumbnail_url: media.thumbnailUrl,
+    permalink: media.permalink,
+    posted_at: media.timestamp,
+    like_count: media.likeCount,
+    comments_count: media.commentsCount,
+    synced_at: syncedAt,
+  };
+}
+
+export type MediaInsightRow = {
+  instagram_media_id: string;
+  metric: string;
+  period: string;
+  value: number;
+  synced_at: string;
+};
+
+/** Pide las métricas de cada pieza a Meta; una que falla se saltea y se reintenta en otra corrida. */
+export async function fetchMediaInsightRows(
+  media: readonly InstagramMedia[],
+  storedIdByProviderId: ReadonlyMap<string, string>,
+  accessToken: string,
+  syncedAt: string,
+): Promise<MediaInsightRow[]> {
+  const results = await mapWithConcurrency([...media], 5, async (item) => ({
+    item,
+    result: await getInstagramMediaInsights(item.id, accessToken, item.mediaProductType),
+  }));
+
+  return results.flatMap(({ item, result }) => {
+    const storedMediaId = storedIdByProviderId.get(item.id);
+    if (!storedMediaId || !result.ok) return [];
+    return result.data.map((insight) => ({
+      instagram_media_id: storedMediaId,
+      metric: insight.metric,
+      period: insight.period,
+      value: insight.value,
+      synced_at: syncedAt,
+    }));
+  });
+}
+
+/**
+ * Guarda el valor vigente y la foto del día. Si fallan las métricas, la corrida falla; las
+ * fotos diarias son un extra para la curva de evolución y se reintentan en la próxima.
+ */
+export async function saveMediaInsights(admin: AdminClient, rows: MediaInsightRow[], syncedAt: string) {
+  if (rows.length === 0) return true;
+
+  const [{ error: insightsError }, { error: snapshotsError }] = await Promise.all([
+    admin.from("instagram_media_insights").upsert(rows, {
+      onConflict: "instagram_media_id,metric,period",
+    }),
+    admin.from("instagram_media_insight_snapshots").upsert(buildMediaInsightSnapshotRows(rows, syncedAt), {
+      onConflict: "instagram_media_id,metric,observed_on",
+    }),
+  ]);
+
+  if (snapshotsError) {
+    console.warn(JSON.stringify({ event: "instagram_sync", warning: "media_insight_snapshots_failed" }));
+  }
+  return !insightsError;
+}
+
+function mergeMedia<T extends { id: string }>(regular: T[], stories: T[]) {
+  const byId = new Map(regular.map((item) => [item.id, item]));
+  for (const story of stories) byId.set(story.id, story);
+  return [...byId.values()];
 }
 
 async function updateConnection(

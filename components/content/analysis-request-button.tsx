@@ -7,12 +7,22 @@ import {
   requestReelAnalysis,
   type RequestAnalysisResult,
 } from "@/app/(dashboard)/content/[id]/actions";
+import { requestStorySequenceAnalysis } from "@/app/(dashboard)/content/[id]/story-actions";
+
+export type AnalysisSubject = "reel" | "story";
+
+const subjects = {
+  reel: { request: requestReelAnalysis, label: "Analizar este Reel" },
+  story: { request: requestStorySequenceAnalysis, label: "Analizar secuencia" },
+} satisfies Record<AnalysisSubject, { request: typeof requestReelAnalysis; label: string }>;
 
 export function AnalysisRequestButton({
+  subject,
   mediaId,
   retry = false,
   refresh = false,
 }: {
+  subject: AnalysisSubject;
   mediaId: string;
   retry?: boolean;
   refresh?: boolean;
@@ -25,7 +35,7 @@ export function AnalysisRequestButton({
   function requestAnalysis() {
     setResult({ status: "idle" });
     startTransition(async () => {
-      const next = await requestReelAnalysis(mediaId, refresh);
+      const next = await subjects[subject].request(mediaId, refresh);
       setResult(next);
       router.refresh();
     });
@@ -50,7 +60,7 @@ export function AnalysisRequestButton({
             ? "Volver a intentar"
             : refresh
               ? "Actualizar análisis"
-              : "Analizar este Reel"}
+              : subjects[subject].label}
       </button>
       {result.status === "error" && result.message ? (
         <p className="font-support mt-2 text-xs text-danger" role="alert">

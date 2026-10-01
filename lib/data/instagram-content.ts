@@ -7,6 +7,7 @@ import type {
 } from "@/lib/content/library";
 import { createClient } from "@/lib/supabase/server";
 import { readEmbeddedRow } from "./embedded-row";
+import { signArchivedStoryPaths } from "./story-archive";
 
 type InstagramMediaRow = {
   id: string;
@@ -15,6 +16,8 @@ type InstagramMediaRow = {
   media_product_type: string | null;
   media_url: string | null;
   thumbnail_url: string | null;
+  archived_media_path: string | null;
+  archived_thumbnail_path: string | null;
   duration_ms: number | null;
   media_width: number | null;
   media_height: number | null;
@@ -64,7 +67,7 @@ export async function getInstagramContentLibrary(
   const { data: media, error: mediaError } = await supabase
     .from("instagram_media")
     .select(
-      "id, caption, media_type, media_product_type, media_url, thumbnail_url, duration_ms, media_width, media_height, permalink, posted_at, like_count, comments_count, instagram_media_children(position, media_type, media_url, thumbnail_url)",
+      "id, caption, media_type, media_product_type, media_url, thumbnail_url, archived_media_path, archived_thumbnail_path, duration_ms, media_width, media_height, permalink, posted_at, like_count, comments_count, instagram_media_children(position, media_type, media_url, thumbnail_url)",
     )
     .eq("social_account_id", account.id)
     .order("posted_at", { ascending: false })
@@ -72,19 +75,22 @@ export async function getInstagramContentLibrary(
 
   if (mediaError) throw new Error("No pudimos cargar el contenido de Instagram.");
 
-  const mediaRows = (media ?? []) as InstagramMediaRow[];
-  const mediaIds = mediaRows.map((item) => item.id);
-  let insights: InstagramInsightRow[] = [];
-
-  if (mediaIds.length > 0) {
-    const { data, error } = await supabase
-      .from("instagram_media_insights")
-      .select("instagram_media_id, metric, value")
-      .in("instagram_media_id", mediaIds);
-
-    if (error) throw new Error("No pudimos cargar las métricas del contenido.");
-    insights = (data ?? []) as InstagramInsightRow[];
-  }
+  const rows = (media ?? []) as InstagramMediaRow[];
+  const mediaIds = rows.map((item) => item.id);
+  // Las Historias vencidas sólo se ven desde la copia propia: la URL de Meta caduca.
+  const [archived, insights] = await Promise.all([
+    signArchivedStoryPaths(
+      rows.flatMap((item) =>
+        [item.archived_media_path, item.archived_thumbnail_path].filter((path): path is string => Boolean(path)),
+      ),
+    ),
+    readInsights(supabase, mediaIds),
+  ]);
+  const mediaRows = rows.map((item) => ({
+    ...item,
+    media_url: (item.archived_media_path && archived.get(item.archived_media_path)) || item.media_url,
+    thumbnail_url: (item.archived_thumbnail_path && archived.get(item.archived_thumbnail_path)) || item.thumbnail_url,
+  }));
 
   const metricsByMedia = new Map<string, Map<string, number>>();
 
@@ -103,6 +109,21 @@ export async function getInstagramContentLibrary(
   };
 }
 
+async function readInsights(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  mediaIds: string[],
+): Promise<InstagramInsightRow[]> {
+  if (mediaIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("instagram_media_insights")
+    .select("instagram_media_id, metric, value")
+    .in("instagram_media_id", mediaIds);
+
+  if (error) throw new Error("No pudimos cargar las métricas del contenido.");
+  return (data ?? []) as InstagramInsightRow[];
+}
+
 function mapContentItem(
   item: InstagramMediaRow,
   metrics: Map<string, number> | undefined,
@@ -112,6 +133,7 @@ function mapContentItem(
     kind: getContentKind(item),
     comparisonFormat: getComparisonFormat(item),
     formatLabel: getFormatLabel(item),
+    mediaType: item.media_type,
     caption: item.caption,
     thumbnailUrl: getThumbnailUrl(item),
     mediaUrl: item.media_url,
@@ -144,7 +166,20 @@ function mapContentItem(
     averageWatchTimeMs: metrics?.get("ig_reels_avg_watch_time") ?? null,
     totalWatchTimeMs: metrics?.get("ig_reels_video_view_total_time") ?? null,
     skipRate: metrics?.get("reels_skip_rate") ?? null,
+    replies: metrics?.get("replies") ?? null,
+    storyForwardTaps: readNavigation(metrics, "tap_forward"),
+    storyBackTaps: readNavigation(metrics, "tap_back"),
+    storyExits: readNavigation(metrics, "tap_exit"),
+    storyNextSwipes: readNavigation(metrics, "swipe_forward"),
   };
+}
+
+/**
+ * Meta manda el desglose de navegación sólo cuando hubo toques: con el total en 0 llega
+ * sin desglose, y ahí cada acción es 0, no un dato que falta.
+ */
+function readNavigation(metrics: Map<string, number> | undefined, action: string) {
+  return metrics?.get(`navigation.${action}`) ?? (metrics?.get("navigation") === 0 ? 0 : null);
 }
 
 function readDimension(value: number | null) {

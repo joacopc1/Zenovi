@@ -1,6 +1,8 @@
 import "server-only";
 
+import { generateGatewayJson } from "@/lib/ai/gateway-json";
 import { generateGeminiTextJson } from "@/lib/ai/gemini-json";
+import { normalizeAiFailure } from "@/lib/ai/provider-error";
 import { transcribeReel } from "@/lib/ai/groq-transcription";
 import { downloadReelVideo } from "@/lib/ai/reel-media";
 import {
@@ -26,22 +28,54 @@ export async function generateReelScript(
       : await transcribeFreshReel(workspaceId, item.id);
   if (transcript.length === 0) throw new Error("empty_transcript");
 
-  const { value } = await generateGeminiTextJson({
-    apiKey: requireSecret("GEMINI_API_KEY"),
-    model: GEMINI_MODEL,
-    prompt: buildPrompt(item, transcript),
-    schema: GEMINI_REEL_SCRIPT_CLASSIFICATION_SCHEMA,
-  });
+  const { value, model } = await classifyScript(buildPrompt(item, transcript));
   const classification = parseScriptClassification(value);
   if (!classification) throw new Error("gemini_invalid_script_classification");
   const segments = buildScriptSegments(transcript, classification);
 
   return {
-    pipelineVersion: SCRIPT_PIPELINE_VERSION,
+    pipelineVersion: pipelineVersion(SCRIPT_PIPELINE_VERSION, model),
     completedAt: new Date().toISOString(),
     segments,
     transcript,
   };
+}
+
+async function classifyScript(prompt: string) {
+  try {
+    return await generateGeminiTextJson({
+      apiKey: requireSecret("GEMINI_API_KEY"),
+      model: GEMINI_MODEL,
+      prompt,
+      schema: GEMINI_REEL_SCRIPT_CLASSIFICATION_SCHEMA,
+    });
+  } catch (primaryError) {
+    const failure = normalizeAiFailure(primaryError);
+    console.warn(JSON.stringify({
+      event: "ai_provider_fallback",
+      provider: "gateway",
+      fromModel: GEMINI_MODEL,
+      reason: failure?.kind ?? "unknown",
+      modality: "text",
+    }));
+
+    try {
+      return await generateGatewayJson({
+        prompt,
+        schema: GEMINI_REEL_SCRIPT_CLASSIFICATION_SCHEMA,
+      });
+    } catch (fallbackError) {
+      const fallbackFailure = normalizeAiFailure(fallbackError, "gateway");
+      if (fallbackFailure?.kind === "authentication" || fallbackFailure?.kind === "configuration") {
+        throw primaryError;
+      }
+      throw fallbackError;
+    }
+  }
+}
+
+function pipelineVersion(base: string, model: string) {
+  return model === GEMINI_MODEL ? base : `${base}:fallback=${model}`;
 }
 
 async function transcribeFreshReel(workspaceId: string, mediaId: string) {

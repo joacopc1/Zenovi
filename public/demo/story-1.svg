@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#111111"/>
+  <text x="90" y="180" fill="#a3a3a3" font-family="Arial, sans-serif" font-size="34">UNA IDEA PARA TU MARCA</text>
+  <text x="90" y="650" fill="#ffffff" font-family="Arial, sans-serif" font-size="76" font-weight="700">
+    <tspan x="90" dy="0">Tu contenido</tspan>
+    <tspan x="90" dy="98">no falla por</tspan>
+    <tspan x="90" dy="98">falta de ideas.</tspan>
+  </text>
+  <line x1="90" y1="1040" x2="350" y2="1040" stroke="#ffffff" stroke-width="8"/>
+  <text x="90" y="1145" fill="#d4d4d4" font-family="Arial, sans-serif" font-size="42">
+    <tspan x="90" dy="0">Falla cuando no sabés</tspan>
+    <tspan x="90" dy="60">qué decisión tomar después.</tspan>
+  </text>
+  <text x="90" y="1760" fill="#737373" font-family="Arial, sans-serif" font-size="30">ZENOVI · EJEMPLO</text>
+</svg>

@@ -28,7 +28,7 @@ export function ReelCard({ item, priority }: { item: RankedContentItem; priority
               fill
               priority={priority}
               sizes="(min-width: 1280px) 260px, (min-width: 768px) 32vw, 80vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+              className="object-cover"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted">Vista previa no disponible</div>

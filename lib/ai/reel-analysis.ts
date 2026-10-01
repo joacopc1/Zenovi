@@ -1,6 +1,8 @@
 import "server-only";
 
+import { generateGatewayJson } from "@/lib/ai/gateway-json";
 import { generateGeminiVideoJson } from "@/lib/ai/gemini-json";
+import { normalizeAiFailure } from "@/lib/ai/provider-error";
 import { transcribeReel } from "@/lib/ai/groq-transcription";
 import { downloadReelVideo } from "@/lib/ai/reel-media";
 import {
@@ -28,22 +30,82 @@ export async function analyzeReel(
     existingTranscript && existingTranscript.length > 0
       ? existingTranscript
       : await transcribeReel(video, requireSecret("GROQ_API_KEY"));
-  const { value: rawDraft } = await generateGeminiVideoJson({
-    apiKey: requireSecret("GEMINI_API_KEY"),
-    model: GEMINI_MODEL,
+  const prompt = buildPrompt(item, transcript);
+  const { value: rawDraft, model, modality } = await generateReelAnalysis({
     video,
-    prompt: buildPrompt(item, transcript),
-    schema: GEMINI_REEL_ANALYSIS_SCHEMA,
+    prompt,
+    thumbnailUrl: source.thumbnailUrl ?? item.thumbnailUrl,
   });
   const draft = parseGeneratedReelAnalysisDraft(rawDraft);
   if (!draft) throw new Error("gemini_invalid_analysis");
 
   return {
-    pipelineVersion: ANALYSIS_PIPELINE_VERSION,
+    pipelineVersion: pipelineVersion(ANALYSIS_PIPELINE_VERSION, model, modality),
     completedAt: new Date().toISOString(),
     ...draft,
     transcript,
   };
+}
+
+async function generateReelAnalysis({
+  video,
+  prompt,
+  thumbnailUrl,
+}: {
+  video: Buffer;
+  prompt: string;
+  thumbnailUrl: string | null;
+}) {
+  try {
+    const result = await generateGeminiVideoJson({
+      apiKey: requireSecret("GEMINI_API_KEY"),
+      model: GEMINI_MODEL,
+      video,
+      prompt,
+      schema: GEMINI_REEL_ANALYSIS_SCHEMA,
+    });
+    return { ...result, modality: "full-video" as const };
+  } catch (primaryError) {
+    const failure = normalizeAiFailure(primaryError);
+    console.warn(JSON.stringify({
+      event: "ai_provider_fallback",
+      provider: "gateway",
+      fromModel: GEMINI_MODEL,
+      reason: failure?.kind ?? "unknown",
+      modality: thumbnailUrl ? "transcript+cover" : "transcript",
+    }));
+
+    try {
+      const result = await generateGatewayJson({
+        prompt: buildReducedVisualPrompt(prompt, Boolean(thumbnailUrl)),
+        schema: GEMINI_REEL_ANALYSIS_SCHEMA,
+        images: thumbnailUrl ? [{ data: new URL(thumbnailUrl), label: "Portada disponible del Reel:" }] : [],
+      });
+      return {
+        ...result,
+        modality: thumbnailUrl ? "transcript+cover" as const : "transcript" as const,
+      };
+    } catch (fallbackError) {
+      const fallbackFailure = normalizeAiFailure(fallbackError, "gateway");
+      if (fallbackFailure?.kind === "authentication" || fallbackFailure?.kind === "configuration") {
+        throw primaryError;
+      }
+      throw fallbackError;
+    }
+  }
+}
+
+function buildReducedVisualPrompt(prompt: string, hasThumbnail: boolean) {
+  return `${prompt}\n\nMODO DE RESPALDO: no recibiste el video completo. Recibiste la transcripción con\n` +
+    `timestamps y ${hasThumbnail ? "una imagen de portada" : "ninguna imagen"}. No afirmes haber observado movimiento, edición,\n` +
+    `postura, sonido ni texto en pantalla fuera de esa evidencia. En executionReview omití dimensiones\n` +
+    `que no puedan sostenerse. El reelMap puede apoyarse en los timestamps de la transcripción, pero\n` +
+    `visual y onScreenText deben quedar vacíos cuando no sean comprobables.`;
+}
+
+function pipelineVersion(base: string, model: string, modality: "full-video" | "transcript+cover" | "transcript") {
+  if (model === GEMINI_MODEL && modality === "full-video") return base;
+  return `${base}:fallback=${model}:modality=${modality}`;
 }
 
 function buildPrompt(item: RankedContentItem, transcript: ReelAnalysis["transcript"]) {

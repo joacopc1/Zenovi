@@ -23,6 +23,7 @@ import { ReelPlayer } from "@/components/content/reel-player";
 import { ReelMapSection } from "@/components/content/reel-map-section";
 import { ReelViewsEvolution } from "@/components/content/reel-views-evolution";
 import { ScriptSection } from "@/components/content/script-section";
+import { StoryDetail } from "@/components/content/story-detail";
 import { ContentCaption } from "@/components/content/content-caption";
 import { AppHeader } from "@/components/shell/app-header";
 import type { AnalysisState } from "@/lib/content/analysis";
@@ -34,6 +35,7 @@ import {
   CONTENT_KIND_PLURALS,
 } from "@/lib/content/library";
 import { hasChartableViewEvolution } from "@/lib/content/media-view-evolution";
+import { reelAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import { getEngagementRate } from "@/lib/content/metrics";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
@@ -41,6 +43,8 @@ import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source"
 import { getMediaViewEvolution } from "@/lib/data/media-view-evolution";
 import { getContentAnalysis } from "@/lib/data/content-analysis";
 import { getContentScript } from "@/lib/data/content-script";
+import { getStorySequenceAnalysis } from "@/lib/data/story-analysis";
+import { buildStorySequences } from "@/lib/content/story-sequences";
 
 // Transcription and multimodal analysis run as Server Actions from this route.
 // Keep the route budget aligned with the longest provider call in production.
@@ -82,6 +86,20 @@ export default async function ContentDetailPage({
 
   if (!item) notFound();
 
+  if (item.kind === "story") {
+    const sequences = buildStorySequences(cohort);
+    const sequence = sequences.find((candidate) => candidate.stories.some((story) => story.id === item.id));
+    if (!sequence) notFound();
+    return (
+      <StoryDetail
+        sequence={sequence}
+        sequences={sequences}
+        activeStoryId={item.id}
+        analysisState={await getStorySequenceAnalysis(sequence.stories[0].id)}
+      />
+    );
+  }
+
   const rank = viewsRank(cohort, id);
   const exampleAnalysis =
     process.env.NODE_ENV !== "production" && ejemplo === "1"
@@ -105,7 +123,6 @@ export default async function ContentDetailPage({
   const posterUrl = freshMediaSource?.thumbnailUrl ?? item.thumbnailUrl;
   const showViewEvolution =
     item.kind === "reel" && hasChartableViewEvolution(viewEvolution);
-
   const metrics = [
     { label: "Visualizaciones", value: item.views, icon: Eye, note: null, format: "number" as const },
     { label: "Alcance", value: item.reach, icon: UsersRound, note: "Cuentas únicas", format: "number" as const },
@@ -225,9 +242,7 @@ export default async function ContentDetailPage({
                 <EngagementBreakdown item={item} />
                 <PublicationGrowth item={item} />
               </div>
-            ) : (
-              <EngagementBreakdown item={item} />
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -253,6 +268,7 @@ export default async function ContentDetailPage({
                     state={analysisState}
                     mediaId={item.id}
                     mediaAvailable={Boolean(freshMediaSource?.mediaUrl)}
+                    blockedReason={reelAnalysisBlocker(item.views)}
                   />
                   <ReelMapSection state={analysisState} />
                 </>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#111111"/>
+  <text x="90" y="210" fill="#a3a3a3" font-family="Arial, sans-serif" font-size="32">SI QUERÉS APLICARLO</text>
+  <text x="90" y="610" fill="#ffffff" font-family="Arial, sans-serif" font-size="78" font-weight="700">
+    <tspan x="90" dy="0">Te paso el mapa</tspan>
+    <tspan x="90" dy="100">para ordenar tus</tspan>
+    <tspan x="90" dy="100">próximas Historias.</tspan>
+  </text>
+  <rect x="90" y="1080" width="900" height="190" rx="95" fill="#ffffff"/>
+  <text x="540" y="1198" text-anchor="middle" fill="#111111" font-family="Arial, sans-serif" font-size="48" font-weight="700">RESPONDÉ “MAPA”</text>
+  <text x="90" y="1460" fill="#d4d4d4" font-family="Arial, sans-serif" font-size="38">
+    <tspan x="90" dy="0">Una acción.</tspan>
+    <tspan x="90" dy="56">Una palabra.</tspan>
+    <tspan x="90" dy="56">Sin links ni pasos extra.</tspan>
+  </text>
+  <text x="90" y="1760" fill="#737373" font-family="Arial, sans-serif" font-size="30">ZENOVI · EJEMPLO</text>
+</svg>

@@ -12,6 +12,23 @@ export async function syncStoredInstagramConnection(
   admin: AdminClient,
   connectionId: string,
 ) {
+  const connection = await loadConnectionAccess(admin, connectionId);
+  if (!connection.ok) return connection;
+
+  return syncInstagramConnection({
+    admin,
+    connectionId,
+    socialAccountId: connection.socialAccountId,
+    providerAccountId: connection.providerAccountId,
+    accessToken: connection.accessToken,
+  });
+}
+
+/**
+ * La cuenta y un token vigente de una conexión guardada, renovándolo si está por vencer.
+ * Lo comparten la sincronización diaria y el refresco horario de Historias.
+ */
+export async function loadConnectionAccess(admin: AdminClient, connectionId: string) {
   const [{ data: socialAccount, error: accountError }, { data: credential, error: credentialError }] =
     await Promise.all([
       admin
@@ -61,13 +78,12 @@ export async function syncStoredInstagramConnection(
     accessToken = await renewAccessToken(admin, connectionId, accessToken);
   }
 
-  return syncInstagramConnection({
-    admin,
-    connectionId,
-    socialAccountId: socialAccount.id,
-    providerAccountId: socialAccount.provider_account_id,
+  return {
+    ok: true as const,
+    socialAccountId: socialAccount.id as string,
+    providerAccountId: socialAccount.provider_account_id as string,
     accessToken,
-  });
+  };
 }
 
 /**

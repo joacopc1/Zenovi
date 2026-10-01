@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { analyzeReel } from "@/lib/ai/reel-analysis";
+import { reelAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import { generateReelScript } from "@/lib/ai/reel-script";
+import { userMessageForAiFailure } from "@/lib/ai/provider-error";
 import {
   isAnalysisStale,
   parseReelAnalysis,
@@ -191,6 +193,8 @@ export async function requestReelAnalysis(
   const context = await getAuthorizedReel(mediaId);
   if (!context.ok) return context.error;
   const { workspaceId, item, supabase } = context;
+  const blocker = reelAnalysisBlocker(item.views);
+  if (blocker) return { status: "error", message: blocker };
 
   const admin = createAdminClient();
   const { data: current, error: currentError } = await admin
@@ -463,7 +467,8 @@ function scriptFailureMessage(error: unknown) {
   if (code === "video_too_large_for_inline_analysis") {
     return "Este Reel es demasiado pesado para procesarlo en este momento.";
   }
-  if (code.startsWith("missing_")) return "El guion todavía no está configurado en este entorno.";
+  const aiMessage = userMessageForAiFailure(error, "el guion");
+  if (aiMessage) return aiMessage;
   return "No pudimos preparar el guion. Podés volver a intentarlo.";
 }
 
@@ -504,25 +509,14 @@ function databaseError(event: string, mediaId: string): RequestAnalysisResult {
 
 function analysisFailureMessage(error: unknown) {
   const code = error instanceof Error ? error.message : "unknown";
-  const normalized = code.toLowerCase();
   if (code === "fresh_media_unavailable") {
     return "Instagram reconoce el Reel, pero todavía no está entregando el archivo del video. Puede pasar después de desarchivarlo; sincronizá la cuenta y probá nuevamente más tarde.";
   }
   if (code === "video_too_large_for_inline_analysis") {
     return "Este Reel es demasiado pesado para el analizador actual.";
   }
-  if (normalized.includes("aborted") || normalized.includes("timeout")) {
-    return "Gemini tardó demasiado en procesar el video. El intento no quedó cobrado por Zenovi; podés volver a probar.";
-  }
-  if (normalized.includes("rate limit") || normalized.includes("high demand")) {
-    return "Gemini limitó temporalmente las solicitudes. Esperá un minuto completo antes de volver a intentar; el análisis anterior sigue guardado.";
-  }
-  if (normalized.includes("invalid argument")) {
-    return "Gemini rechazó el formato del análisis. El resultado anterior sigue guardado.";
-  }
-  if (code.startsWith("missing_")) {
-    return "El análisis todavía no está configurado en este entorno.";
-  }
+  const aiMessage = userMessageForAiFailure(error, "el análisis");
+  if (aiMessage) return aiMessage;
   return "No pudimos completar el análisis. No se descontó ningún crédito.";
 }
 

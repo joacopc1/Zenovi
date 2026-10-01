@@ -1,6 +1,9 @@
 /** Contrato persistido del análisis de una pieza y sus estados de trabajo. */
 export type AnalysisStatus = "not_requested" | "queued" | "running" | "ready" | "failed";
-export const ANALYSIS_STALE_AFTER_MS = 10 * 60 * 1000;
+// El pipeline tiene un presupuesto máximo de 150 s para IA, más descarga y persistencia.
+// Cuatro minutos dejan margen real sin bloquear un reintento durante diez minutos si la
+// función serverless se interrumpe antes de guardar el estado final.
+export const ANALYSIS_STALE_AFTER_MS = 4 * 60 * 1000;
 export const ANALYSIS_PIPELINE_VERSION = "reel-v5-reel-map-gemini-3.8-flash";
 
 export type AnalysisMoment = { atMs: number; quote: string };
@@ -126,7 +129,15 @@ export function isActionableAnalysis(
 }
 
 export function isAnalysisOutdated(analysis: ReelAnalysis) {
-  return analysis.pipelineVersion !== ANALYSIS_PIPELINE_VERSION;
+  return pipelineBase(analysis.pipelineVersion) !== ANALYSIS_PIPELINE_VERSION;
+}
+
+/**
+ * La versión sin el sufijo `:fallback=…:modality=…` que se agrega cuando respondió el
+ * modelo de respaldo: ese análisis es de la versión vigente aunque lo haya hecho otro modelo.
+ */
+export function pipelineBase(pipelineVersion: string) {
+  return pipelineVersion.split(":", 1)[0];
 }
 
 const evidenceSchema = {

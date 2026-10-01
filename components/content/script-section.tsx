@@ -1,4 +1,4 @@
-import { Clock3, FileText, RefreshCw } from "lucide-react";
+import { FileText, LoaderCircle } from "lucide-react";
 import { CollapsibleSection } from "@/components/content/collapsible-section";
 import { ScriptDocument, TranscriptCopyButton } from "@/components/content/script-document";
 import { ScriptRequestButton } from "@/components/content/script-request-button";
@@ -14,7 +14,7 @@ export function ScriptSection({
   mediaId: string;
   mediaAvailable: boolean;
 }) {
-  const hasContent = state.status !== "not_requested" || !mediaAvailable;
+  const hasDocument = state.status === "ready";
 
   return (
     <CollapsibleSection
@@ -22,58 +22,34 @@ export function ScriptSection({
       title="Transcripción"
       icon={<FileText aria-hidden className="size-4" strokeWidth={1.7} />}
       help={<HelpHint text="Acá tenés el guion completo del Reel para leerlo, copiarlo o editarlo. Zenovi marca el Hook, el desarrollo y el CTA para ubicar cada parte." />}
-      collapsible={hasContent}
+      collapsible={hasDocument}
       actions={state.status === "ready" ? (
           <TranscriptCopyButton transcript={state.script.transcript} />
         ) : state.status === "not_requested" && mediaAvailable ? (
           <ScriptRequestButton mediaId={mediaId} />
-        ) : null}
+        ) : state.status === "queued" || state.status === "running" ? (
+          <span className="font-support inline-flex min-h-9 items-center gap-2 px-2 text-[13px] font-medium text-graphite">
+            <LoaderCircle aria-hidden className="size-4 animate-spin" strokeWidth={1.8} />
+            Transcribiendo…
+          </span>
+        ) : state.status === "failed" && state.canRetry && mediaAvailable ? (
+          <div className="flex items-center justify-end gap-3">
+            <span className="font-support hidden max-w-[320px] truncate text-[11px] text-danger sm:block">
+              {state.reason}
+            </span>
+            <ScriptRequestButton mediaId={mediaId} retry showError={false} />
+          </div>
+        ) : state.status === "failed" ? (
+          <span className="font-support max-w-[360px] truncate px-2 text-[11px] text-danger">
+            {state.reason}
+          </span>
+        ) : (
+          <span className="font-support px-2 text-[13px] font-medium text-graphite">
+            Video no disponible
+          </span>
+        )}
     >
-      {hasContent ? (
-        <>
-          {state.status === "not_requested" ? <Unavailable /> : null}
-          {state.status === "queued" || state.status === "running" ? <InProgress /> : null}
-          {state.status === "failed" ? (
-            <Failed
-              mediaId={mediaId}
-              reason={state.reason}
-              canRetry={state.canRetry && mediaAvailable}
-            />
-          ) : null}
-          {state.status === "ready" ? <ScriptDocument script={state.script} /> : null}
-        </>
-      ) : null}
+      {hasDocument ? <ScriptDocument script={state.script} /> : null}
     </CollapsibleSection>
-  );
-}
-
-function Unavailable() {
-  return (
-    <p className="font-sans text-[13px] font-normal text-graphite">
-      Esperando que Instagram vuelva a entregar el video.
-    </p>
-  );
-}
-
-function InProgress() {
-  return (
-    <div className="flex items-start gap-3">
-      <Clock3 aria-hidden className="mt-0.5 size-4 shrink-0 text-graphite" strokeWidth={1.7} />
-      <p className="font-sans text-sm font-normal leading-6 text-graphite">
-        Estamos transcribiendo el Reel. El texto aparecerá acá cuando termine.
-      </p>
-    </div>
-  );
-}
-
-function Failed({ mediaId, reason, canRetry }: { mediaId: string; reason: string; canRetry: boolean }) {
-  return (
-    <div className="flex items-start gap-3">
-      <RefreshCw aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" strokeWidth={1.7} />
-      <div>
-        <p className="font-sans text-sm font-normal leading-6 text-graphite">{reason}</p>
-        {canRetry ? <div className="mt-3"><ScriptRequestButton mediaId={mediaId} retry /></div> : null}
-      </div>
-    </div>
   );
 }

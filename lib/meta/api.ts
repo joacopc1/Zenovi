@@ -24,6 +24,7 @@ import {
   DEMOGRAPHIC_DIMENSIONS,
   type DemographicDimension,
 } from "@/lib/data/follower-demographics";
+import { parseMediaInsightResponse } from "@/lib/meta/media-insight-response";
 
 const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_GRAPH_ORIGIN = "https://graph.instagram.com";
@@ -42,6 +43,16 @@ const REEL_INSIGHT_METRICS = [
   "ig_reels_video_view_total_time",
   "ig_reels_avg_watch_time",
   "reels_skip_rate",
+] as const;
+const STORY_INSIGHT_METRICS = [
+  "views",
+  "reach",
+  "replies",
+  "total_interactions",
+  "shares",
+  "follows",
+  "profile_visits",
+  "profile_activity",
 ] as const;
 /**
  * Lo que una pieza hizo por la cuenta, y no sólo por sí misma: seguidores ganados,
@@ -313,6 +324,36 @@ export async function getInstagramMedia(
 }
 
 /**
+ * Stories que siguen activas. Meta no las incluye de forma confiable en `/me/media`,
+ * por eso se consultan por su edge propio y se guardan mientras todavía existen.
+ */
+export async function getInstagramStories(
+  accessToken: string,
+): Promise<MetaResult<InstagramMedia[]>> {
+  const url = new URL(`/${INSTAGRAM_GRAPH_VERSION}/me/stories`, INSTAGRAM_GRAPH_ORIGIN);
+  url.searchParams.set(
+    "fields",
+    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp",
+  );
+
+  const response = await requestMeta(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) return response;
+
+  const data = Array.isArray(response.data.data) ? response.data.data : null;
+  if (!data) return { ok: false, code: "invalid_stories_response" };
+
+  return {
+    ok: true,
+    data: data
+      .map(parseInstagramMedia)
+      .filter((item): item is InstagramMedia => item !== null)
+      .map((item) => ({ ...item, mediaProductType: "STORY" })),
+  };
+}
+
+/**
  * Pide la URL vigente de una pieza justo antes de reproducirla.
  *
  * Meta rota las URLs del CDN, por lo que la copia guardada durante la sincronización
@@ -352,17 +393,35 @@ export async function getInstagramMediaInsights(
   accessToken: string,
   mediaProductType: string | null,
 ): Promise<MetaResult<InstagramInsight[]>> {
+  if (mediaProductType !== "STORY") {
+    return requestMediaInsights(mediaId, accessToken, [
+      ...COMMON_MEDIA_INSIGHT_METRICS,
+      ...(mediaProductType === "REELS" ? REEL_INSIGHT_METRICS : FEED_GROWTH_METRICS),
+    ]);
+  }
+
+  // Pasaron, volvieron y salieron sólo llegan con este desglose, y Meta no deja mezclarlo
+  // con otras métricas en el mismo pedido. Si falla, el resto de la Historia se guarda igual.
+  const [main, navigation] = await Promise.all([
+    requestMediaInsights(mediaId, accessToken, STORY_INSIGHT_METRICS),
+    requestMediaInsights(mediaId, accessToken, ["navigation"], "story_navigation_action_type"),
+  ]);
+  if (!main.ok) return main;
+  return { ok: true, data: navigation.ok ? [...main.data, ...navigation.data] : main.data };
+}
+
+async function requestMediaInsights(
+  mediaId: string,
+  accessToken: string,
+  metrics: readonly string[],
+  breakdown?: string,
+): Promise<MetaResult<InstagramInsight[]>> {
   const url = new URL(
     `/${INSTAGRAM_GRAPH_VERSION}/${encodeURIComponent(mediaId)}/insights`,
     INSTAGRAM_GRAPH_ORIGIN,
   );
-  url.searchParams.set(
-    "metric",
-    [
-      ...COMMON_MEDIA_INSIGHT_METRICS,
-      ...(mediaProductType === "REELS" ? REEL_INSIGHT_METRICS : FEED_GROWTH_METRICS),
-    ].join(","),
-  );
+  url.searchParams.set("metric", metrics.join(","));
+  if (breakdown) url.searchParams.set("breakdown", breakdown);
 
   const response = await requestMeta(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -603,44 +662,10 @@ function parseInstagramMedia(value: unknown): InstagramMedia | null {
 function parseInstagramInsights(
   payload: Record<string, unknown>,
 ): MetaResult<InstagramInsight[]> {
-  if (!Array.isArray(payload.data)) {
-    return { ok: false, code: "invalid_insights_response" };
-  }
-
-  const insights: InstagramInsight[] = [];
-
-  for (const item of payload.data) {
-    if (!isRecord(item)) continue;
-
-    const metric = readNonEmptyString(item, "name");
-    const period = readNonEmptyString(item, "period") ?? "lifetime";
-
-    if (!metric) continue;
-
-    if (Array.isArray(item.values)) {
-      for (const point of item.values) {
-        if (!isRecord(point)) continue;
-        const value = readNonNegativeNumber(point, "value");
-        if (value === null) continue;
-
-        insights.push({
-          metric,
-          period,
-          value,
-          endTime: readNonEmptyString(point, "end_time"),
-        });
-      }
-    }
-
-    if (isRecord(item.total_value)) {
-      const value = readNonNegativeNumber(item.total_value, "value");
-      if (value !== null) {
-        insights.push({ metric, period, value, endTime: null });
-      }
-    }
-  }
-
-  return { ok: true, data: insights };
+  const insights = parseMediaInsightResponse(payload);
+  return insights === null
+    ? { ok: false, code: "invalid_insights_response" }
+    : { ok: true, data: insights };
 }
 
 async function requestMeta(input: string | URL, init: RequestInit = {}): Promise<MetaResult<Record<string, unknown>>> {

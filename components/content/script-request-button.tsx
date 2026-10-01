@@ -11,9 +11,11 @@ import {
 export function ScriptRequestButton({
   mediaId,
   retry = false,
+  showError = true,
 }: {
   mediaId: string;
   retry?: boolean;
+  showError?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,7 +42,7 @@ export function ScriptRequestButton({
         <Icon size={15} strokeWidth={2} aria-hidden className={pending ? "animate-spin" : ""} />
         {pending ? "Transcribiendo…" : retry ? "Volver a intentar" : "Generar transcripción"}
       </button>
-      {result.status === "error" && result.message ? (
+      {showError && result.status === "error" && result.message ? (
         <p className="font-support mt-2 text-xs text-danger" role="alert">
           {result.message}
         </p>

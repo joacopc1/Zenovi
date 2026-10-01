@@ -47,6 +47,7 @@ export type ContentLibraryItem = {
   /** Formato comparable: evita medir un carrusel contra una imagen simple. */
   comparisonFormat: ContentComparisonFormat;
   formatLabel: string;
+  mediaType: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
   caption: string | null;
   thumbnailUrl: string | null;
   mediaUrl: string | null;
@@ -71,6 +72,11 @@ export type ContentLibraryItem = {
   averageWatchTimeMs: number | null;
   totalWatchTimeMs: number | null;
   skipRate: number | null;
+  replies: number | null;
+  storyForwardTaps: number | null;
+  storyBackTaps: number | null;
+  storyExits: number | null;
+  storyNextSwipes: number | null;
 };
 
 export type ContentMediaSlide = {

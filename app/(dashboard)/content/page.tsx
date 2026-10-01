@@ -3,6 +3,7 @@ import { ContentCard } from "@/components/content/content-card";
 import { ContentFilters } from "@/components/content/content-filters";
 import { LibraryPagination } from "@/components/content/library-pagination";
 import { ReelCard } from "@/components/content/reel-card";
+import { StorySequenceCard } from "@/components/content/story-sequence-card";
 import { SyncButton } from "@/components/home/sync-button";
 import { SyncNotice } from "@/components/home/sync-notice";
 import { InstagramConnectionNotice } from "@/components/states/instagram-connection-notice";
@@ -14,8 +15,17 @@ import {
   type ContentKind,
   type ContentSort,
   type ContentSortDirection,
+  type RankedContentItem,
 } from "@/lib/content/library";
 import { paginate } from "@/lib/content/pagination";
+import {
+  buildStorySequences,
+  parseStorySequenceSort,
+  sequenceDayLabel,
+  sortStorySequences,
+  storyAgeLabel,
+  type StorySequenceSort,
+} from "@/lib/content/story-sequences";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 
@@ -49,17 +59,24 @@ export default async function ContentPage({
       ? account.instagram.status
       : null;
   const selectedType = parseContentKind(firstValue(query.type));
-  const selectedSort = parseContentSort(firstValue(query.sort));
+  const isStories = selectedType === "story";
+  // Las Historias se ordenan como secuencias y no tienen texto que buscar.
+  const storySort = parseStorySequenceSort(firstValue(query.sort));
+  const contentSort = parseContentSort(firstValue(query.sort));
+  const selectedSort = isStories ? storySort : contentSort;
   const selectedDirection = parseSortDirection(firstValue(query.dir));
-  const search = firstValue(query.q)?.trim() ?? "";
+  const search = isStories ? "" : firstValue(query.q)?.trim() ?? "";
   const cohort = library ? buildCohort(library.items, selectedType) : [];
-  const visibleItems = sortContentItems(
-    searchContentItems(cohort, search),
-    selectedSort,
-    selectedDirection,
-  );
   // Buscar y ordenar abarcan todo; la página sólo recorta lo que se ve.
-  const pagination = paginate(visibleItems, Number(firstValue(query.page) ?? 1));
+  const requestedPage = Number(firstValue(query.page) ?? 1);
+  const listing = isStories
+    ? listStorySequences(cohort, storySort, selectedDirection, requestedPage)
+    : listContentItems(
+        sortContentItems(searchContentItems(cohort, search), contentSort, selectedDirection),
+        selectedType,
+        requestedPage,
+      );
+  const { pagination } = listing;
 
   return (
     <>
@@ -70,17 +87,10 @@ export default async function ContentPage({
           status={firstValue(query.sync)}
         />
 
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-[-0.02em]">
-              {kindTitles[selectedType]}
-            </h1>
-            <p className="mt-1 text-[13px] text-muted">
-              {library
-                ? `Biblioteca de @${library.username} · ${library.items.length} piezas sincronizadas`
-                : "Tu biblioteca de Instagram"}
-            </p>
-          </div>
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-[-0.02em]">
+            {kindTitles[selectedType]}
+          </h1>
           {library ? <SyncButton redirectTo="/content" /> : null}
         </header>
 
@@ -92,25 +102,18 @@ export default async function ContentPage({
               kind={selectedType}
               search={search}
               sort={selectedSort}
+              sortOptions={isStories ? STORY_SORT_OPTIONS : CONTENT_SORT_OPTIONS}
               direction={selectedDirection}
-              resultCount={visibleItems.length}
+              resultCount={pagination.total}
+              resultLabel={listing.resultLabel}
             />
 
-            {visibleItems.length > 0 ? (
-              <section
-                aria-label="Piezas de contenido"
-                className={`mt-5 grid gap-4 ${selectedType === "reel" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
-              >
-                {pagination.pageItems.map((item, index) => (
-                  selectedType === "reel" ? (
-                    <ReelCard key={item.id} item={item} priority={pagination.page === 1 && index < 4} />
-                  ) : (
-                    <ContentCard key={item.id} item={item} priority={pagination.page === 1 && index < 3} />
-                  )
-                ))}
-              </section>
-            ) : (
-              <EmptyLibrary filtered={library.items.length > 0} selectedType={selectedType} />
+            {listing.results ?? (
+              <EmptyLibrary
+                filtered={library.items.length > 0}
+                selectedType={selectedType}
+                showStoryPreview={process.env.NODE_ENV !== "production"}
+              />
             )}
 
             <LibraryPagination
@@ -130,7 +133,67 @@ export default async function ContentPage({
   );
 }
 
-function EmptyLibrary({ filtered, selectedType }: { filtered: boolean; selectedType: ContentKind }) {
+/** Una Historia sola no cuenta nada: se lee la secuencia del día completa. */
+function listStorySequences(
+  items: RankedContentItem[],
+  sort: StorySequenceSort,
+  direction: ContentSortDirection,
+  requestedPage: number,
+) {
+  const pagination = paginate(sortStorySequences(buildStorySequences(items), sort, direction), requestedPage);
+
+  return {
+    pagination,
+    resultLabel: "secuencia",
+    results: pagination.total > 0 ? (
+      <section aria-label="Secuencias de Historias" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {pagination.pageItems.map((sequence, index) => (
+          <StorySequenceCard
+            key={sequence.id}
+            sequence={sequence}
+            dayLabel={sequenceDayLabel(sequence.startedAt)}
+            ageLabels={sequence.stories.map((story) => storyAgeLabel(story.postedAt))}
+            priority={pagination.page === 1 && index < 4}
+          />
+        ))}
+      </section>
+    ) : null,
+  };
+}
+
+function listContentItems(items: RankedContentItem[], kind: ContentKind, requestedPage: number) {
+  const pagination = paginate(items, requestedPage);
+  const isReel = kind === "reel";
+
+  return {
+    pagination,
+    resultLabel: "pieza",
+    results: pagination.total > 0 ? (
+      <section
+        aria-label="Piezas de contenido"
+        className={`mt-5 grid gap-4 ${isReel ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
+      >
+        {pagination.pageItems.map((item, index) => (
+          isReel ? (
+            <ReelCard key={item.id} item={item} priority={pagination.page === 1 && index < 4} />
+          ) : (
+            <ContentCard key={item.id} item={item} priority={pagination.page === 1 && index < 3} />
+          )
+        ))}
+      </section>
+    ) : null,
+  };
+}
+
+function EmptyLibrary({
+  filtered,
+  selectedType,
+  showStoryPreview,
+}: {
+  filtered: boolean;
+  selectedType: ContentKind;
+  showStoryPreview: boolean;
+}) {
   const isStories = selectedType === "story";
   return (
     <section className="mt-5 rounded-card border border-mist px-6 py-14 text-center">
@@ -144,6 +207,14 @@ function EmptyLibrary({ filtered, selectedType }: { filtered: boolean; selectedT
             ? "Probá otro texto, formato u orden para volver a ver piezas."
             : "Actualizá la cuenta para traer los posts disponibles desde Instagram."}
       </p>
+      {isStories && showStoryPreview ? (
+        <Link
+          href="/content/story-preview"
+          className="font-support mt-5 inline-flex min-h-9 items-center rounded-control border border-mist bg-paper px-4 text-[13px] font-semibold text-ink transition-colors hover:border-mist-strong hover:bg-canvas"
+        >
+          Ver ejemplo de una secuencia
+        </Link>
+      ) : null}
     </section>
   );
 }
@@ -169,6 +240,26 @@ function firstValue(value: string | string[] | undefined) {
 function parseContentKind(value: string | undefined): ContentKind {
   return value === "story" || value === "publication" ? value : "reel";
 }
+
+const CONTENT_SORT_OPTIONS: { value: ContentSort; label: string }[] = [
+  { value: "recent", label: "Fecha" },
+  { value: "views", label: "Visualizaciones" },
+  { value: "reach", label: "Alcance" },
+  { value: "interactions", label: "Interacciones" },
+  { value: "likes", label: "Me gusta" },
+  { value: "comments", label: "Comentarios" },
+  { value: "saves", label: "Guardados" },
+  { value: "shares", label: "Compartidos" },
+  { value: "multiplier", label: "Multiplicador" },
+];
+
+const STORY_SORT_OPTIONS: { value: StorySequenceSort; label: string }[] = [
+  { value: "recent", label: "Fecha" },
+  { value: "completion", label: "Completaron" },
+  { value: "replies", label: "Respuestas" },
+  { value: "reach", label: "Personas" },
+  { value: "stories", label: "Cantidad de Historias" },
+];
 
 const sortValues: ContentSort[] = [
   "views",

@@ -10,10 +10,13 @@ export function ContentThumbnail({
   item,
   priority = false,
   interactive = false,
+  counterClassName = "right-3 top-3",
 }: {
   item: ContentLibraryItem;
   priority?: boolean;
   interactive?: boolean;
+  /** Dónde va el "1/5" de un carrusel; la tarjeta lo corre si ya tiene un botón en esa esquina. */
+  counterClassName?: string;
 }) {
   const slides = mediaSlides(item);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -41,7 +44,7 @@ export function ContentThumbnail({
 
   return (
     <div
-      className={`relative overflow-hidden bg-canvas ${
+      className={`group/slides relative overflow-hidden bg-canvas ${
         usePublicationGridFrame
           ? "aspect-[3/4]"
           : aspectRatio === null
@@ -76,9 +79,7 @@ export function ContentThumbnail({
             onLoad={(event) =>
               rememberDimensions(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)
             }
-            className={`${usePublicationGridFrame ? "object-cover" : "object-contain"} ${
-              interactive ? "transition-transform duration-300 group-hover:scale-[1.015]" : ""
-            }`}
+            className={usePublicationGridFrame ? "object-cover" : "object-contain"}
           />
         )
       ) : (
@@ -97,7 +98,7 @@ export function ContentThumbnail({
               side="left"
               onClick={() => setActiveIndex((index) => Math.max(0, index - 1))}
             >
-              <ChevronLeft aria-hidden="true" className="size-4" strokeWidth={2} />
+              <ChevronLeft aria-hidden="true" className="size-3.5" strokeWidth={2} />
             </SlideButton>
           ) : null}
           {activeIndex < slides.length - 1 ? (
@@ -106,9 +107,14 @@ export function ContentThumbnail({
               side="right"
               onClick={() => setActiveIndex((index) => Math.min(slides.length - 1, index + 1))}
             >
-              <ChevronRight aria-hidden="true" className="size-4" strokeWidth={2} />
+              <ChevronRight aria-hidden="true" className="size-3.5" strokeWidth={2} />
             </SlideButton>
           ) : null}
+          <span
+            className={`font-numeric pointer-events-none absolute z-30 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm ${counterClassName}`}
+          >
+            {activeIndex + 1}/{slides.length}
+          </span>
           <div
             className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center gap-1"
             aria-hidden="true"
@@ -130,13 +136,17 @@ function mediaSlides(item: ContentLibraryItem): ContentMediaSlide[] {
   if (item.slides.length > 0) return item.slides;
   return [{
     position: 0,
-    mediaType: item.comparisonFormat === "video" ? "VIDEO" : "IMAGE",
+    mediaType: item.mediaType === "VIDEO" ? "VIDEO" : "IMAGE",
     mediaUrl: item.mediaUrl ?? item.thumbnailUrl,
     thumbnailUrl: item.thumbnailUrl,
   }];
 }
 
-function SlideButton({
+/**
+ * Aparece al pasar el mouse por la tarjeta (`group`, que contiene el enlace invisible al
+ * detalle que tapa la imagen) o por la imagen cuando no hay tarjeta (`group/slides`, el detalle).
+ */
+export function SlideButton({
   label,
   side,
   onClick,
@@ -156,7 +166,7 @@ function SlideButton({
         event.stopPropagation();
         onClick();
       }}
-      className={`absolute top-1/2 z-40 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white/55 text-ink transition-colors hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 ${
+      className={`absolute top-1/2 z-40 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-white/[0.08] text-white opacity-0 backdrop-blur-[2px] transition-[opacity,background-color] duration-150 hover:bg-white/20 group-hover:opacity-100 group-hover/slides:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 [@media(hover:none)]:opacity-100 ${
         side === "left" ? "left-3" : "right-3"
       }`}
     >

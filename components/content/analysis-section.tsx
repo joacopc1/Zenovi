@@ -1,16 +1,15 @@
 import {
   AudioLines,
   CircleAlert,
-  Clock3,
   Gauge,
   Lightbulb,
-  RefreshCw,
   RotateCcw,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { AnalysisMomentLinks } from "@/components/content/analysis-evidence";
 import { AnalysisRequestButton } from "@/components/content/analysis-request-button";
+import { AnalysisDate, AnalysisFailed, AnalysisInProgress } from "@/components/content/analysis-states";
 import { CollapsibleSection } from "@/components/content/collapsible-section";
 import { HelpHint } from "@/components/ui/help-hint";
 import {
@@ -34,94 +33,57 @@ export function AnalysisSection({
   state,
   mediaId,
   mediaAvailable,
+  blockedReason,
 }: {
   state: AnalysisState;
   mediaId: string;
   mediaAvailable: boolean;
+  /** Por qué todavía no se puede pedir: faltan datos para que el análisis diga algo. */
+  blockedReason: string | null;
 }) {
+  const hasContent = state.status !== "not_requested" || !mediaAvailable;
+
   return (
     <CollapsibleSection
       sectionId={`analysis-${mediaId}`}
       title="Análisis"
       icon={<Sparkles aria-hidden className="size-4 text-ink" strokeWidth={1.75} />}
       help={<HelpHint text="Explica qué pudo ayudar o frenar el rendimiento y lo convierte en aprendizajes aplicables a futuros contenidos. Las causas no comprobables se marcan como hipótesis." />}
+      collapsible={hasContent}
       actions={state.status === "ready" ? (
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <p className="font-support text-xs text-muted">
-              Analizado el {formatAnalysisDate(state.analysis.completedAt)}
-            </p>
-            {isAnalysisOutdated(state.analysis) && mediaAvailable ? (
-              <AnalysisRequestButton mediaId={mediaId} refresh />
+            <AnalysisDate completedAt={state.analysis.completedAt} />
+            {isAnalysisOutdated(state.analysis) && mediaAvailable && !blockedReason ? (
+              <AnalysisRequestButton subject="reel" mediaId={mediaId} refresh />
             ) : null}
           </div>
+        ) : state.status === "not_requested" && mediaAvailable ? (
+          blockedReason ? (
+            <p className="font-support max-w-sm text-right text-xs text-muted">{blockedReason}</p>
+          ) : (
+            <AnalysisRequestButton subject="reel" mediaId={mediaId} />
+          )
         ) : null}
-      footer={(
-        <p className="font-support text-[12px] leading-5 text-muted">
-          El análisis cruza la transcripción, lo que ocurre en el video y las métricas disponibles.
-        </p>
-      )}
     >
-        {state.status === "not_requested" ? (
-          <NotRequested mediaId={mediaId} mediaAvailable={mediaAvailable} />
-        ) : null}
-        {state.status === "queued" || state.status === "running" ? <InProgress /> : null}
-        {state.status === "failed" ? (
-          <Failed mediaId={mediaId} reason={state.reason} canRetry={state.canRetry && mediaAvailable} />
-        ) : null}
-        {state.status === "ready" ? <Ready analysis={state.analysis} /> : null}
+      {hasContent ? (
+        <>
+          {state.status === "not_requested" ? <Unavailable /> : null}
+          {state.status === "queued" || state.status === "running" ? <AnalysisInProgress /> : null}
+          {state.status === "failed" ? (
+            <AnalysisFailed subject="reel" mediaId={mediaId} reason={state.reason} canRetry={state.canRetry && mediaAvailable} />
+          ) : null}
+          {state.status === "ready" ? <Ready analysis={state.analysis} /> : null}
+        </>
+      ) : null}
     </CollapsibleSection>
   );
 }
 
-function NotRequested({
-  mediaId,
-  mediaAvailable,
-}: {
-  mediaId: string;
-  mediaAvailable: boolean;
-}) {
+function Unavailable() {
   return (
-    <div>
-      <p className="font-sans max-w-3xl text-sm font-normal leading-6 text-graphite">
-        Zenovi mira el video y cruza sus señales con las métricas disponibles para explicar
-        qué pudo ayudar, qué pudo frenar y qué aprendizaje conviene aplicar en próximos contenidos.
-      </p>
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-mist pt-4">
-        {mediaAvailable ? (
-          <AnalysisRequestButton mediaId={mediaId} />
-        ) : (
-          <p className="font-support text-[13px] font-medium text-graphite">
-            Esperando que Instagram vuelva a entregar el archivo del video.
-          </p>
-        )}
-        <p className="font-support text-xs text-muted">
-          Si hace falta, primero genera la transcripción. Durante esta prueba no descuenta créditos.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function InProgress() {
-  return (
-    <div className="flex items-start gap-3">
-      <Clock3 aria-hidden className="mt-0.5 size-4 shrink-0 text-graphite" strokeWidth={1.75} />
-      <p className="font-sans text-sm font-normal leading-6 text-graphite">
-        Estamos analizando la pieza. El resultado aparece acá cuando termine.
-      </p>
-    </div>
-  );
-}
-
-function Failed({ mediaId, reason, canRetry }: { mediaId: string; reason: string; canRetry: boolean }) {
-  return (
-    <div className="flex items-start gap-3">
-      <RefreshCw aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" strokeWidth={1.75} />
-      <div>
-        <p className="font-sans text-sm font-normal leading-6 text-graphite">{reason}</p>
-        {canRetry ? <div className="mt-3"><AnalysisRequestButton mediaId={mediaId} retry /></div> : null}
-      </div>
-    </div>
+    <p className="font-support text-[13px] font-medium text-graphite">
+      Esperando que Instagram vuelva a entregar el archivo del video.
+    </p>
   );
 }
 
@@ -395,8 +357,4 @@ function Confidence({ value }: { value: AnalysisConfidence }) {
       Confianza {value === "high" ? "alta" : value === "medium" ? "media" : "baja"}
     </span>
   );
-}
-
-function formatAnalysisDate(value: string) {
-  return new Date(value).toLocaleDateString("es-UY", { day: "numeric", month: "long" });
 }

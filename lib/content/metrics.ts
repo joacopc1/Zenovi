@@ -23,7 +23,7 @@ export type ContentBenchmark = {
   sampleSize: number;
 };
 
-const MIN_BENCHMARK_SAMPLE = 3;
+export const MIN_BENCHMARK_SAMPLE = 3;
 const PERFORMANCE_SIGNAL_BAND = { low: 0.8, high: 1.2 } as const;
 
 /** Fuera de esta banda la diferencia deja de ser ruido y pasa a ser señal. */
@@ -74,19 +74,21 @@ export function getContentBenchmark(
   const current = measured.find((entry) => entry.id === itemId)?.value ?? null;
   if (current === null) return null;
 
-  const values = measured.map((entry) => entry.value).sort((left, right) => left - right);
-  const middle = Math.floor(values.length / 2);
-  const median =
-    values.length % 2 === 0
-      ? (values[middle - 1] + values[middle]) / 2
-      : values[middle];
+  const typical = median(measured.map((entry) => entry.value));
 
   return {
     current,
-    median,
-    multiplier: median > 0 ? current / median : null,
-    sampleSize: values.length,
+    median: typical,
+    multiplier: typical > 0 ? current / typical : null,
+    sampleSize: measured.length,
   };
+}
+
+/** Mediana de una lista no vacía: lo habitual sin que un pico aislado la arrastre. */
+export function median(values: readonly number[]) {
+  const sorted = values.toSorted((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
 function readBenchmarkValue(item: ContentLibraryItem, key: ContentBenchmarkKey) {

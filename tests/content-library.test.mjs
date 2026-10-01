@@ -153,6 +153,7 @@ function item(id, kind, caption = null, views = 0) {
     kind,
     comparisonFormat: kind === "reel" ? "reel" : kind === "story" ? "story" : "image",
     formatLabel: kind === "reel" ? "Reel" : "Post",
+    mediaType: kind === "reel" ? "VIDEO" : "IMAGE",
     caption,
     thumbnailUrl: null,
     mediaUrl: null,
@@ -177,6 +178,11 @@ function item(id, kind, caption = null, views = 0) {
     averageWatchTimeMs: null,
     totalWatchTimeMs: null,
     skipRate: null,
+    replies: null,
+    storyForwardTaps: null,
+    storyBackTaps: null,
+    storyExits: null,
+    storyNextSwipes: null,
   };
 }
 

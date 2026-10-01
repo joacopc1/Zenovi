@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#f4f4f2"/>
+  <text x="90" y="190" fill="#6e6e73" font-family="Arial, sans-serif" font-size="32">NO MIRES TODO A LA VEZ</text>
+  <text x="90" y="420" fill="#111111" font-family="Arial, sans-serif" font-size="70" font-weight="700">
+    <tspan x="90" dy="0">Para saber si una</tspan>
+    <tspan x="90" dy="88">secuencia vende,</tspan>
+    <tspan x="90" dy="88">mirá estas señales:</tspan>
+  </text>
+  <rect x="90" y="790" width="900" height="170" rx="28" fill="#ffffff" stroke="#d7d7d2" stroke-width="3"/>
+  <text x="140" y="895" fill="#111111" font-family="Arial, sans-serif" font-size="46" font-weight="700">01 · Respuestas</text>
+  <rect x="90" y="990" width="900" height="170" rx="28" fill="#ffffff" stroke="#d7d7d2" stroke-width="3"/>
+  <text x="140" y="1095" fill="#111111" font-family="Arial, sans-serif" font-size="46" font-weight="700">02 · Visitas al perfil</text>
+  <rect x="90" y="1190" width="900" height="170" rx="28" fill="#ffffff" stroke="#d7d7d2" stroke-width="3"/>
+  <text x="140" y="1295" fill="#111111" font-family="Arial, sans-serif" font-size="46" font-weight="700">03 · Conversaciones</text>
+  <text x="90" y="1760" fill="#8a8a8a" font-family="Arial, sans-serif" font-size="30">ZENOVI · EJEMPLO</text>
+</svg>

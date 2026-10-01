@@ -74,7 +74,7 @@ export function BenchmarkSection({
           className="flex items-center gap-2 text-[15px] font-semibold text-ink"
         >
           <ChartNoAxesColumnIncreasing aria-hidden="true" className="size-4 text-ink" strokeWidth={1.7} />
-          Interacciones vs. lo habitual
+          Interacciones vs. tu benchmark
           <HelpHint text={`Sirve para comparar las interacciones de ${copy.demonstrative} con el rendimiento habitual de ${copy.habitual}. Se activa cuando hay al menos tres piezas medidas.`} />
         </h2>
         {rows.length > 0 ? (
@@ -107,7 +107,6 @@ export function BenchmarkSection({
               count={row.count?.(item) ?? null}
               benchmark={row.benchmark}
               scale={scale}
-              habitualLabel={copy.habitualCapitalized}
             />
           ))}
         </div>
@@ -121,13 +120,11 @@ function BarGroup({
   count,
   benchmark,
   scale,
-  habitualLabel,
 }: {
   label: string;
   count: number | null;
   benchmark: ContentBenchmark;
   scale: number;
-  habitualLabel: string;
 }) {
   const difference = benchmarkDifference(benchmark);
   const currentHeight = barHeight(benchmark.current, scale);
@@ -162,7 +159,6 @@ function BarGroup({
           value={benchmark.current}
           height={currentHeight}
           count={count}
-          difference={difference}
           className="bg-ink"
         />
         <VerticalBar
@@ -171,7 +167,6 @@ function BarGroup({
           value={benchmark.median}
           height={medianHeight}
           className="bg-control"
-          habitualLabel={habitualLabel}
         />
       </div>
     </div>
@@ -184,18 +179,14 @@ function VerticalBar({
   value,
   height,
   count,
-  difference,
   className,
-  habitualLabel,
 }: {
   label: string;
   series: "Esta pieza" | "Tu mediana";
   value: number;
   height: number;
   count?: number | null;
-  difference?: number | null;
   className: string;
-  habitualLabel?: string;
 }) {
   return (
     <div
@@ -209,29 +200,13 @@ function VerticalBar({
         className={`block w-full rounded-t-[4px] transition-[height] duration-500 ${className}`}
         style={{ height: `${height}%` }}
       />
-      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden min-w-28 -translate-x-1/2 rounded-control border border-mist bg-paper px-2.5 py-2 text-left group-hover/bar:block group-focus-visible/bar:block">
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden min-w-20 -translate-x-1/2 whitespace-nowrap rounded-control border border-mist bg-paper px-2.5 py-2 text-left group-hover/bar:block group-focus-visible/bar:block">
         <span className="font-numeric block text-[13px] font-semibold tabular-nums text-ink">
-          {decimalFormatter.format(value)}% <span className="font-support text-[10px] font-normal text-muted">de las views</span>
+          {decimalFormatter.format(value)}%
         </span>
         {series === "Esta pieza" && count !== undefined ? (
           <span className="font-support mt-0.5 block text-[10px] text-graphite">
             {count === null ? "Sin datos" : `${formatCompact(count)} interacciones`}
-          </span>
-        ) : null}
-        {series === "Esta pieza" && difference !== undefined && difference !== null ? (
-          <span
-            className={`font-numeric mt-1 block text-[10px] font-semibold tabular-nums ${
-              difference > 0 ? "text-success" : difference < 0 ? "text-danger" : "text-graphite"
-            }`}
-          >
-            {difference === 0
-              ? "Igual que lo habitual"
-              : `${Math.abs(difference)}% ${difference > 0 ? "por encima" : "por debajo"} de lo habitual`}
-          </span>
-        ) : null}
-        {series === "Tu mediana" ? (
-          <span className="font-support mt-1 block text-[10px] text-graphite">
-            {habitualLabel}
           </span>
         ) : null}
       </span>
@@ -245,7 +220,6 @@ function benchmarkCopy(item: RankedContentItem) {
       current: "Carrusel",
       demonstrative: "este carrusel",
       habitual: "tus carruseles",
-      habitualCapitalized: "Habitual en tus carruseles",
     };
   }
   if (item.comparisonFormat === "video") {
@@ -253,7 +227,6 @@ function benchmarkCopy(item: RankedContentItem) {
       current: "Video",
       demonstrative: "este video",
       habitual: "tus videos",
-      habitualCapitalized: "Habitual en tus videos",
     };
   }
   if (item.kind === "publication") {
@@ -261,7 +234,6 @@ function benchmarkCopy(item: RankedContentItem) {
       current: "Post",
       demonstrative: "este post",
       habitual: "tus posts",
-      habitualCapitalized: "Habitual en tus posts",
     };
   }
   if (item.kind === "story") {
@@ -269,14 +241,12 @@ function benchmarkCopy(item: RankedContentItem) {
       current: "Historia",
       demonstrative: "esta historia",
       habitual: "tus historias",
-      habitualCapitalized: "Habitual en tus historias",
     };
   }
   return {
     current: "Reel",
     demonstrative: "este Reel",
     habitual: "tus Reels",
-    habitualCapitalized: "Habitual en tus Reels",
   };
 }
 
