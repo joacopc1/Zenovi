@@ -27,7 +27,6 @@ export function DirectorScreen({
   const { credits } = useShellIdentity();
   const [id] = useState(() => chatId ?? crypto.randomUUID());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [inputFocused, setInputFocused] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
@@ -63,7 +62,6 @@ export function DirectorScreen({
       onSend={send}
       busy={busy}
       showSuggestions={empty}
-      onFocusChange={setInputFocused}
       creditsLabel={credits.remaining > 0 ? `Te quedan ${creditFormatter.format(credits.remaining)} créditos` : "Sin créditos este mes"}
     />
   );
@@ -71,7 +69,7 @@ export function DirectorScreen({
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
       <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
-        <AmbientGlow followMouse={inputFocused} />
+        <AmbientGlow />
         {empty ? (
           <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <motion.div

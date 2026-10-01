@@ -6,9 +6,9 @@ import { CalendarRange, Command, FileText, Lightbulb, LoaderIcon, ScanSearch, Se
 
 /**
  * La caja para hablar con el Director. Es el componente `animated-ai-chat` de la colección
- * de 21st.dev con su composición y sus efectos (vidrio, comandos con "/", chips, brillo que
- * sigue al mouse); lo único que cambia es la paleta: clara, con el azul de datos de Zenovi
- * donde el original usaba violeta.
+ * de 21st.dev con su composición y sus efectos (vidrio, comandos con "/", chips); lo único
+ * que cambia es la paleta, clara y con el azul de datos de Zenovi donde el original usaba
+ * violeta, y no lleva el brillo que seguía al mouse (lo pidió Joaco).
  */
 
 type DirectorCommand = { icon: ReactNode; label: string; description: string; prefix: string };
@@ -46,12 +46,9 @@ export function DirectorComposer({
   busy,
   creditsLabel,
   showSuggestions,
-  onFocusChange,
 }: {
   onSend: (text: string) => void;
   busy: boolean;
-  /** El brillo que sigue al mouse se enciende mientras se escribe. */
-  onFocusChange?: (focused: boolean) => void;
   /** "Te quedan 1.320 créditos": el uso también se ve donde se gasta. */
   creditsLabel: string;
   showSuggestions: boolean;
@@ -174,8 +171,6 @@ export function DirectorComposer({
               adjustHeight();
             }}
             onKeyDown={handleKeyDown}
-            onFocus={() => onFocusChange?.(true)}
-            onBlur={() => onFocusChange?.(false)}
             placeholder="Preguntale al Director…"
             className="min-h-[60px] w-full resize-none overflow-hidden bg-transparent px-1 py-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
           />
@@ -248,32 +243,14 @@ export function DirectorComposer({
   );
 }
 
-/** Luces difusas del fondo y el brillo que sigue al mouse mientras se escribe, como en el original. */
-export function AmbientGlow({ followMouse }: { followMouse: boolean }) {
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => setMouse({ x: event.clientX, y: event.clientY });
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
+/** Luces difusas y quietas en el fondo, como en el original. */
+export function AmbientGlow() {
   return (
-    <>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/4 top-0 size-96 animate-pulse rounded-full bg-data/10 blur-[128px]" />
-        <div className="absolute bottom-0 right-1/4 size-96 animate-pulse rounded-full bg-data/[0.08] blur-[128px] [animation-delay:700ms]" />
-        <div className="absolute right-1/3 top-1/4 size-64 animate-pulse rounded-full bg-ink/[0.04] blur-[96px] [animation-delay:1000ms]" />
-      </div>
-      {followMouse ? (
-        <motion.div
-          aria-hidden="true"
-          className="pointer-events-none fixed z-0 size-[50rem] rounded-full bg-gradient-to-r from-data via-ink/40 to-data opacity-[0.03] blur-[96px]"
-          animate={{ x: mouse.x - 400, y: mouse.y - 400 }}
-          transition={{ type: "spring", damping: 25, stiffness: 150, mass: 0.5 }}
-        />
-      ) : null}
-    </>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute left-1/4 top-0 size-96 animate-pulse rounded-full bg-data/10 blur-[128px]" />
+      <div className="absolute bottom-0 right-1/4 size-96 animate-pulse rounded-full bg-data/[0.08] blur-[128px] [animation-delay:700ms]" />
+      <div className="absolute right-1/3 top-1/4 size-64 animate-pulse rounded-full bg-ink/[0.04] blur-[96px] [animation-delay:1000ms]" />
+    </div>
   );
 }
 
