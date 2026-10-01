@@ -1,7 +1,8 @@
 import "server-only";
 
 import { getInstagramStories } from "@/lib/meta/api";
-import { archiveStories } from "@/lib/meta/story-archive";
+import { archiveStories, storiesToArchive } from "@/lib/meta/story-archive";
+import { planStoryRefresh } from "@/lib/meta/story-archive-file";
 import { loadConnectionAccess } from "@/lib/meta/stored-sync";
 import { fetchMediaInsightRows, saveMediaInsights, toMediaRow } from "@/lib/meta/sync";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -34,15 +35,8 @@ export async function refreshLiveStories(admin: AdminClient, connectionId: strin
 
   const storedIdByProviderId = new Map(stored.map((row) => [row.provider_media_id as string, row.id as string]));
   const [insightRows] = await Promise.all([
-    fetchMediaInsightRows(stories.data, storedIdByProviderId, connection.accessToken, syncedAt),
-    archiveStories(
-      admin,
-      connection.socialAccountId,
-      stories.data.flatMap((story) => {
-        const storedMediaId = storedIdByProviderId.get(story.id);
-        return storedMediaId ? [{ storedMediaId, mediaUrl: story.mediaUrl, thumbnailUrl: story.thumbnailUrl }] : [];
-      }),
-    ),
+    fetchMediaInsightRows(planStoryRefresh(stories.data), storedIdByProviderId, connection.accessToken, syncedAt),
+    archiveStories(admin, connection.socialAccountId, storiesToArchive(stories.data, storedIdByProviderId)),
   ]);
 
   if (!(await saveMediaInsights(admin, insightRows, syncedAt))) {

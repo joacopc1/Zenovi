@@ -35,3 +35,22 @@ export function archivedVideoCutoff(now: Date) {
 export function isArchivedVideo(path: string) {
   return Object.values(VIDEO_EXTENSIONS).some((extension) => path.endsWith(`.${extension}`));
 }
+
+/**
+ * Tope de videos guardados por cuenta en los 30 días que se conservan: unos cinco por día,
+ * el uso normal, y como mucho del orden de 900 MB por cuenta. Pasado el tope se guarda
+ * sólo la portada, para que nadie convierta el almacenamiento en un costo sin techo
+ * (Instagram permite subir hasta 100 Historias por día).
+ */
+export const ARCHIVED_VIDEOS_PER_ACCOUNT = 150;
+
+/**
+ * Cuántas Historias vivas se refrescan por cuenta en cada corrida horaria, empezando por
+ * las más cercanas a vencer, que son las que necesitan su última lectura. Son dos pedidos
+ * a Meta por Historia: así una cuenta con 100 Historias vivas no agota su límite por hora.
+ */
+export const STORIES_REFRESHED_PER_RUN = 40;
+
+export function planStoryRefresh<T extends { timestamp: string }>(stories: readonly T[], limit = STORIES_REFRESHED_PER_RUN) {
+  return stories.toSorted((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)).slice(0, limit);
+}

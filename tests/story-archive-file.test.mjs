@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
-import { archivedVideoCutoff, isArchivedVideo, toArchiveFile } from "../lib/meta/story-archive-file.ts";
+import { archivedVideoCutoff, isArchivedVideo, planStoryRefresh, toArchiveFile } from "../lib/meta/story-archive-file.ts";
 
 test("convierte una imagen de Historia a WebP y pesa menos que el JPEG", async () => {
   const jpeg = await sharp({
@@ -38,4 +38,13 @@ test("sólo los videos de más de 30 días se borran del archivo", () => {
   assert.equal(isArchivedVideo("cuenta/historia/media.mp4"), true);
   assert.equal(isArchivedVideo("cuenta/historia/media.mov"), true);
   assert.equal(isArchivedVideo("cuenta/historia/media.webp"), false);
+});
+
+test("refresca primero las Historias más cercanas a vencer, con tope por corrida", () => {
+  const stories = [
+    { id: "nueva", timestamp: "2026-10-01T20:00:00Z" },
+    { id: "por-vencer", timestamp: "2026-10-01T01:00:00Z" },
+    { id: "media", timestamp: "2026-10-01T10:00:00Z" },
+  ];
+  assert.deepEqual(planStoryRefresh(stories, 2).map(({ id }) => id), ["por-vencer", "media"]);
 });

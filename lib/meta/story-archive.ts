@@ -1,8 +1,9 @@
 import "server-only";
 
 import { mapWithConcurrency } from "@/lib/async/map-with-concurrency";
+import type { InstagramMedia } from "@/lib/meta/api";
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { archivedVideoCutoff, isArchivedVideo, toArchiveFile } from "./story-archive-file";
+import { ARCHIVED_VIDEOS_PER_ACCOUNT, archivedVideoCutoff, isArchivedVideo, toArchiveFile } from "./story-archive-file";
 
 export const STORY_ARCHIVE_BUCKET = "instagram-story-archive";
 
@@ -12,9 +13,23 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 
 export type StoryToArchive = {
   storedMediaId: string;
+  isVideo: boolean;
   mediaUrl: string | null;
   thumbnailUrl: string | null;
 };
+
+/** Las Historias de una corrida, con su id guardado, listas para archivar. */
+export function storiesToArchive(
+  media: readonly InstagramMedia[],
+  storedIdByProviderId: ReadonlyMap<string, string>,
+): StoryToArchive[] {
+  return media.flatMap((item) => {
+    const storedMediaId = storedIdByProviderId.get(item.id);
+    return item.mediaProductType === "STORY" && storedMediaId
+      ? [{ storedMediaId, isVideo: item.mediaType === "VIDEO", mediaUrl: item.mediaUrl, thumbnailUrl: item.thumbnailUrl }]
+      : [];
+  });
+}
 
 /**
  * Guarda una copia propia de las Historias que todavía no la tienen.
@@ -26,28 +41,40 @@ export type StoryToArchive = {
 export async function archiveStories(admin: AdminClient, socialAccountId: string, stories: StoryToArchive[]) {
   if (stories.length === 0) return;
 
-  const { data: pending, error } = await admin
-    .from("instagram_media")
-    .select("id")
-    .in("id", stories.map((story) => story.storedMediaId))
-    .is("archived_media_path", null);
-  if (error) {
+  const [{ data: pending, error }, { count: archivedVideos, error: countError }] = await Promise.all([
+    admin
+      .from("instagram_media")
+      .select("id")
+      .in("id", stories.map((story) => story.storedMediaId))
+      // Una Historia ya guardada tiene al menos una de las dos rutas (un video pasado del tope, sólo la portada).
+      .is("archived_media_path", null)
+      .is("archived_thumbnail_path", null),
+    admin
+      .from("instagram_media")
+      .select("id", { count: "exact", head: true })
+      .eq("social_account_id", socialAccountId)
+      .or("archived_media_path.like.*.mp4,archived_media_path.like.*.mov"),
+  ]);
+  if (error || countError) {
     console.warn(JSON.stringify({ event: "story_archive", warning: "pending_read_failed" }));
     return;
   }
 
   const pendingIds = new Set((pending ?? []).map((row) => row.id as string));
+  let videoBudget = ARCHIVED_VIDEOS_PER_ACCOUNT - (archivedVideos ?? 0);
   await mapWithConcurrency(
     stories.filter((story) => pendingIds.has(story.storedMediaId)),
     3,
     async (story) => {
+      // Se descuenta antes de esperar nada: las tres descargas en paralelo no pasan el tope.
+      const keepMedia = !story.isVideo || videoBudget-- > 0;
       try {
         const folder = `${socialAccountId}/${story.storedMediaId}`;
         const [mediaPath, thumbnailPath] = await Promise.all([
-          story.mediaUrl ? copyToArchive(admin, story.mediaUrl, `${folder}/media`) : null,
+          keepMedia && story.mediaUrl ? copyToArchive(admin, story.mediaUrl, `${folder}/media`) : null,
           story.thumbnailUrl ? copyToArchive(admin, story.thumbnailUrl, `${folder}/thumbnail`) : null,
         ]);
-        if (!mediaPath) return;
+        if (!mediaPath && !thumbnailPath) return;
 
         const { error: updateError } = await admin
           .from("instagram_media")

@@ -34,7 +34,7 @@ import {
 import { planMediaInsightRefresh } from "@/lib/meta/media-sync-plan";
 import { buildMediaInsightSnapshotRows } from "@/lib/meta/media-insight-snapshots";
 import { requiresReauthorization } from "@/lib/meta/meta-error";
-import { archiveStories } from "@/lib/meta/story-archive";
+import { archiveStories, storiesToArchive } from "@/lib/meta/story-archive";
 import { ACCOUNT_INSIGHT_LOOKBACK_DAYS } from "@/lib/meta/insight-periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -174,16 +174,7 @@ export async function syncInstagramConnection({
     }
   }
 
-  await archiveStories(
-    admin,
-    socialAccountId,
-    syncedMedia.flatMap((media) => {
-      const storedMediaId = mediaIdByProviderId.get(media.id);
-      return media.mediaProductType === "STORY" && storedMediaId
-        ? [{ storedMediaId, mediaUrl: media.mediaUrl, thumbnailUrl: media.thumbnailUrl }]
-        : [];
-    }),
-  );
+  await archiveStories(admin, socialAccountId, storiesToArchive(syncedMedia, mediaIdByProviderId));
 
 
   // Qué piezas ya tienen estadísticas: las viejas con datos no se vuelven a pedir.

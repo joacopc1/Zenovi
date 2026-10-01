@@ -31,12 +31,7 @@ type InstagramMediaRow = {
     media_url: string | null;
     thumbnail_url: string | null;
   }[] | null;
-};
-
-type InstagramInsightRow = {
-  instagram_media_id: string;
-  metric: string;
-  value: number | string;
+  instagram_media_insights: { metric: string; value: number | string }[] | null;
 };
 
 export type InstagramContentLibrary = {
@@ -64,31 +59,27 @@ export async function getInstagramContentLibrary(
   const account = readEmbeddedRow<{ id: string; username: string }>(connection.social_accounts);
   if (!account) return null;
 
-  const { data: media, error: mediaError } = await supabase
-    .from("instagram_media")
-    .select(
-      "id, caption, media_type, media_product_type, media_url, thumbnail_url, archived_media_path, archived_thumbnail_path, duration_ms, media_width, media_height, permalink, posted_at, like_count, comments_count, instagram_media_children(position, media_type, media_url, thumbnail_url)",
-    )
-    .eq("social_account_id", account.id)
-    .order("posted_at", { ascending: false })
-    .limit(100);
-
-  if (mediaError) throw new Error("No pudimos cargar el contenido de Instagram.");
-
-  const rows = (media ?? []) as InstagramMediaRow[];
-  const mediaIds = rows.map((item) => item.id);
-  // Las Historias vencidas sólo se ven desde la copia propia: la URL de Meta caduca.
-  const [archived, insights] = await Promise.all([
-    signArchivedStoryPaths(
-      rows.flatMap((item) =>
-        [item.archived_media_path, item.archived_thumbnail_path].filter((path): path is string => Boolean(path)),
-      ),
-    ),
-    readInsights(supabase, mediaIds),
+  // El feed y las Historias se cargan por separado: con un solo tope, cinco Historias por
+  // día empujaban afuera a los Reels y Posts, y las secuencias viejas desaparecían.
+  const [feed, stories] = await Promise.all([
+    readMedia(supabase, account.id, "feed", FEED_LIMIT),
+    readMedia(supabase, account.id, "stories", STORY_LIMIT),
   ]);
+  const rows = [...feed, ...stories].sort((left, right) => Date.parse(right.posted_at) - Date.parse(left.posted_at));
+  const insights = rows.flatMap((row) =>
+    (row.instagram_media_insights ?? []).map((insight) => ({ ...insight, instagram_media_id: row.id })),
+  );
+  // Las Historias vencidas sólo se ven desde la copia propia: la URL de Meta caduca.
+  const archived = await signArchivedStoryPaths(
+    rows.flatMap((item) =>
+      [item.archived_media_path, item.archived_thumbnail_path].filter((path): path is string => Boolean(path)),
+    ),
+  );
+  const now = Date.now();
   const mediaRows = rows.map((item) => ({
     ...item,
-    media_url: (item.archived_media_path && archived.get(item.archived_media_path)) || item.media_url,
+    media_url: (item.archived_media_path && archived.get(item.archived_media_path))
+      || (keepsOnlyCover(item, now) ? null : item.media_url),
     thumbnail_url: (item.archived_thumbnail_path && archived.get(item.archived_thumbnail_path)) || item.thumbnail_url,
   }));
 
@@ -109,19 +100,38 @@ export async function getInstagramContentLibrary(
   };
 }
 
-async function readInsights(
+/**
+ * Un video de Historia que pasó el tope de archivo guardó sólo la portada. Vencida la
+ * Historia, la URL de Meta ya no reproduce: se muestra la portada en lugar de un video roto.
+ */
+function keepsOnlyCover(item: InstagramMediaRow, now: number) {
+  return item.media_product_type === "STORY"
+    && item.archived_thumbnail_path !== null
+    && item.archived_media_path === null
+    && now - Date.parse(item.posted_at) > 24 * 60 * 60 * 1000;
+}
+
+const FEED_LIMIT = 100;
+/** Unos dos meses a cinco Historias por día: alcanza para la biblioteca y para comparar con las últimas 10 secuencias. */
+const STORY_LIMIT = 300;
+const MEDIA_COLUMNS =
+  "id, caption, media_type, media_product_type, media_url, thumbnail_url, archived_media_path, archived_thumbnail_path, duration_ms, media_width, media_height, permalink, posted_at, like_count, comments_count, instagram_media_children(position, media_type, media_url, thumbnail_url), instagram_media_insights(metric, value)";
+
+/** Las métricas vienen incrustadas: una lista de cientos de ids en la URL excede su largo máximo. */
+async function readMedia(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  mediaIds: string[],
-): Promise<InstagramInsightRow[]> {
-  if (mediaIds.length === 0) return [];
+  accountId: string,
+  scope: "feed" | "stories",
+  limit: number,
+): Promise<InstagramMediaRow[]> {
+  const query = supabase.from("instagram_media").select(MEDIA_COLUMNS).eq("social_account_id", accountId);
+  const scoped = scope === "stories"
+    ? query.eq("media_product_type", "STORY")
+    : query.or("media_product_type.is.null,media_product_type.neq.STORY");
+  const { data, error } = await scoped.order("posted_at", { ascending: false }).limit(limit);
 
-  const { data, error } = await supabase
-    .from("instagram_media_insights")
-    .select("instagram_media_id, metric, value")
-    .in("instagram_media_id", mediaIds);
-
-  if (error) throw new Error("No pudimos cargar las métricas del contenido.");
-  return (data ?? []) as InstagramInsightRow[];
+  if (error) throw new Error("No pudimos cargar el contenido de Instagram.");
+  return (data ?? []) as InstagramMediaRow[];
 }
 
 function mapContentItem(
