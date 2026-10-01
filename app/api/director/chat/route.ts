@@ -1,0 +1,145 @@
+import {
+  convertToModelMessages,
+  generateId,
+  generateText,
+  streamText,
+  validateUIMessages,
+  type ModelMessage,
+  type UIMessage,
+} from "ai";
+import { recordAiUsage } from "@/lib/credits/record-usage";
+import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/credits/pricing";
+import { getAccountContext } from "@/lib/data/account-context";
+import { getBrandDna } from "@/lib/data/brand-dna";
+import { getCreditBalance } from "@/lib/data/credit-balance";
+import { buildDirectorSystem } from "@/lib/director/prompt";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
+const MAX_MESSAGE_CHARACTERS = 8000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** La capacitación y el ADN se repiten en cada mensaje: en caché cuestan un 10 %. */
+const CACHE = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
+
+/**
+ * Un mensaje al Director. El navegador manda sólo el mensaje nuevo; la conversación se
+ * lee de la base, así nadie puede reescribir lo que el Director dijo antes.
+ */
+export async function POST(request: Request) {
+  const account = await getAccountContext();
+  if (!account?.workspace) return failure(401, "Tu sesión venció. Volvé a iniciar sesión.");
+  const workspaceId = account.workspace.id;
+
+  const body = await request.json().catch(() => null);
+  const chatId = typeof body?.id === "string" && UUID.test(body.id) ? body.id : null;
+  const message = readUserMessage(body?.message);
+  if (!chatId || !message) return failure(400, "No pudimos leer el mensaje.");
+
+  const balance = await getCreditBalance(workspaceId);
+  if (balance.remaining <= 0) {
+    return failure(402, "Usaste todos los créditos de este mes. Se renuevan el primer día del mes que viene.");
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("director_chats").select("id, title").eq("id", chatId).maybeSingle();
+  if (!existing) {
+    const { error } = await supabase.from("director_chats").insert({ id: chatId, workspace_id: workspaceId, user_id: account.userId });
+    // Un id ajeno choca con RLS o con la clave: no se continúa sobre un chat que no es propio.
+    if (error) return failure(403, "No encontramos ese chat.");
+  }
+
+  const admin = createAdminClient();
+  const { data: stored } = await admin
+    .from("director_messages")
+    .select("id, role, parts")
+    .eq("chat_id", chatId)
+    .order("created_at");
+  const messages = await validateUIMessages({ messages: [...((stored ?? []) as UIMessage[]), message] });
+
+  const dna = await getBrandDna(workspaceId);
+  const system: ModelMessage = {
+    role: "system",
+    content: buildDirectorSystem(dna, account.instagram?.username ?? null),
+    providerOptions: CACHE,
+  };
+  const startedAt = Date.now();
+
+  const result = streamText({
+    model: DIRECTOR_MODEL,
+    messages: [system, ...(await convertToModelMessages(messages))],
+    maxOutputTokens: 8000,
+  });
+  // Aunque se cierre la pestaña, la respuesta termina y se guarda con su costo.
+  result.consumeStream();
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    generateMessageId: generateId,
+    onFinish: async ({ messages: finished, responseMessage }) => {
+      const userMessage = finished.at(-2);
+      await admin.from("director_messages").upsert(
+        [
+          ...(userMessage?.role === "user" ? [row(chatId, userMessage, startedAt)] : []),
+          row(chatId, responseMessage, startedAt + 1),
+        ],
+        { onConflict: "id" },
+      );
+      await admin.from("director_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
+      await recordAiUsage({
+        workspaceId,
+        userId: account.userId,
+        feature: "director_chat",
+        model: DIRECTOR_MODEL,
+        usage: await result.totalUsage,
+        referenceId: chatId,
+      });
+      if (!existing?.title) await nameChat(chatId, workspaceId, account.userId, message);
+    },
+    onError: () => "El Director no pudo responder. Probá de nuevo en un momento.",
+  });
+}
+
+/** Un título corto a partir del primer mensaje, con el modelo rápido. */
+async function nameChat(chatId: string, workspaceId: string, userId: string, message: UIMessage) {
+  try {
+    const { text, usage } = await generateText({
+      model: UTILITY_MODEL,
+      prompt: `Escribí un título de 2 a 6 palabras, en español, sin comillas ni punto final, para una conversación que empieza con este mensaje:\n\n${textOf(message).slice(0, 1000)}`,
+      maxOutputTokens: 30,
+    });
+    const title = text.replace(/["“”.]/g, "").trim().slice(0, 120);
+    if (title) await createAdminClient().from("director_chats").update({ title }).eq("id", chatId);
+    await recordAiUsage({ workspaceId, userId, feature: "director_title", model: UTILITY_MODEL, usage, referenceId: chatId });
+  } catch {
+    // Sin título el chat sigue funcionando: se muestra como "Chat nuevo".
+  }
+}
+
+function readUserMessage(value: unknown): UIMessage | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as UIMessage;
+  if (candidate.role !== "user") return null;
+  if (!Array.isArray(candidate.parts) || candidate.parts.length === 0) return null;
+  // Por ahora sólo texto: los adjuntos llegan en otra fase y con su propio control.
+  if (!candidate.parts.every((part) => part.type === "text" && typeof part.text === "string")) return null;
+  const text = textOf(candidate).trim();
+  if (!text || text.length > MAX_MESSAGE_CHARACTERS) return null;
+  // El id lo pone el servidor: los mensajes se guardan con la clave de servicio, y un id
+  // elegido por el navegador podría pisar un mensaje de otra conversación.
+  return { id: generateId(), role: "user", parts: [{ type: "text", text }] };
+}
+
+function textOf(message: UIMessage) {
+  return message.parts.map((part) => (part.type === "text" ? part.text : "")).join("\n");
+}
+
+function row(chatId: string, message: UIMessage, at: number) {
+  return { id: message.id, chat_id: chatId, role: message.role, parts: message.parts, created_at: new Date(at).toISOString() };
+}
+
+function failure(status: number, message: string) {
+  return Response.json({ error: message }, { status });
+}

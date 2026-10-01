@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { CreditBalance } from "@/lib/credits/pricing";
 import type { InstagramAccountIdentity } from "@/lib/meta/connection-state";
 
 export type ShellIdentity = {
@@ -9,6 +10,7 @@ export type ShellIdentity = {
   initials: string;
   workspaceName: string;
   instagram: InstagramAccountIdentity | null;
+  credits: CreditBalance;
 };
 
 const ShellIdentityContext = createContext<ShellIdentity | null>(null);

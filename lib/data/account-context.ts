@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { readEmbeddedRow } from "./embedded-row";
 
 export type AccountContext = {
+  userId: string;
   avatarUrl: string | null;
   displayName: string;
   initials: string;
@@ -79,6 +80,7 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
   }
 
   return {
+    userId: authData.user.id,
     avatarUrl: profile?.avatar_url ?? getMetadataAvatar(authData.user.user_metadata),
     displayName,
     initials: getInitials(displayName),

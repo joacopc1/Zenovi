@@ -314,14 +314,14 @@ Plan de construcción del Director en cuatro fases (pantalla con chat real, cono
 
 - [-] ADN mínimo: sección `/brand` con mapa radial ("cerebro") como hero centrado y editor del nodo activo debajo (identidad, voz, diferenciación, objetivo, ofertas y cliente ideal), respaldada por `brand_profiles`, `offers` y `audience_profiles` con RLS de workspace. El guardado es un reemplazo completo de ofertas y audiencia en cada envío. Falta conectar el Director para que consuma este contexto y validar los textos con usuarios. Responsable: Joaco/Claude.
 - [ ] Definir la separación estructural entre el ADN de marca y la capacitación del Director: el ADN es data por cuenta (cambia por usuario, se guarda en las tablas de arriba) mientras que el system prompt del Director es la "capacitación" de cómo crear contenido, común a todos los workspaces y versionado por el equipo. No mezclar: un dato del ADN nunca se vuelca al system prompt global, y una regla de capacitación nunca se guarda por cuenta. Falta documentar dónde vive cada uno y cómo se combinan en el prompt final (ver decisión 2026-09-21).
-- [ ] Chats persistentes.
-- [ ] Streaming.
+- [-] Chats persistentes (2026-10-02): `/director` y `/director/[chatId]`, tablas `director_chats` y `director_messages` con RLS por persona; crear, reabrir, renombrar y borrar. Título automático con Haiku 4.5. Falta archivar.
+- [x] Streaming (2026-10-02): AI SDK 6 con `useChat`, Sonnet 5.5 por el AI Gateway, el navegador manda sólo el mensaje nuevo y la conversación se lee de la base.
 - [ ] Model router.
 - [ ] RAG y tools autorizadas.
 - [ ] Citas internas.
 - [ ] Adjuntos temporales.
 - [ ] Memoria/resumen.
-- [ ] Créditos y rate limits.
+- [-] Créditos (2026-10-02): `ai_usage_events` guarda el costo real de cada operación; 1 crédito = US$0,01; 1.500 créditos por mes y workspace en la beta; círculo de uso en el encabezado y saldo en el Director; sin saldo, el chat no responde. Falta registrar el consumo de los análisis de Reels e Historias y el precio fijo por acción.
 
 ### Sprint 5 - Producción y Stories
 

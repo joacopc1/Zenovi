@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { getAccountContext } from "@/lib/data/account-context";
+import { getCreditBalance } from "@/lib/data/credit-balance";
 
 export default async function DashboardLayout({
   children,
@@ -15,6 +16,8 @@ export default async function DashboardLayout({
     redirect("/onboarding/workspace");
   }
 
+  const credits = await getCreditBalance(account.workspace.id);
+
   return (
     <AppShell
       identity={{
@@ -23,6 +26,7 @@ export default async function DashboardLayout({
         initials: account.initials,
         workspaceName: account.workspace.name,
         instagram: account.instagram,
+        credits,
       }}
     >
       {children}
