@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { ChevronLeft, LayoutGrid, LoaderIcon, Paperclip, Plus, Search } from "lucide-react";
 import { listDirectorPieces, type DirectorPieceOption } from "@/app/(dashboard)/director/actions";
 
-export type DirectorCommand = { icon: ReactNode; label: string; description: string; prefix: string };
+export type DirectorCommand = { icon: ReactNode; label: string; prefix: string };
 
 /**
  * El "+" de la caja, como en ChatGPT: adjuntar una pieza de la cuenta, archivos (más
@@ -58,7 +58,7 @@ export function ComposerMenu({
       <AnimatePresence>
         {open ? (
           <motion.div
-            className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+            className="absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl"
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
@@ -74,16 +74,14 @@ export function ComposerMenu({
               />
             ) : (
               <div role="menu">
-                <MenuRow icon={<LayoutGrid className="size-4" strokeWidth={1.7} />} label="Elegir una pieza" description="Un Reel, Post o Historia para que el Director lo mire" onClick={() => setView("pieces")} />
-                <MenuRow icon={<Paperclip className="size-4" strokeWidth={1.7} />} label="Adjuntar archivo" description="Próximamente" disabled />
+                <MenuRow icon={<LayoutGrid className="size-4" strokeWidth={1.7} />} label="Elegir una pieza" onClick={() => setView("pieces")} />
+                <MenuRow icon={<Paperclip className="size-4" strokeWidth={1.7} />} label="Adjuntar archivo" badge="Pronto" disabled />
                 <div className="mx-2 my-1 border-t border-mist" />
                 {commands.map((command, index) => (
                   <MenuRow
                     key={command.prefix}
                     icon={command.icon}
                     label={command.label}
-                    hint={command.prefix}
-                    description={command.description}
                     active={activeCommand === index}
                     onClick={() => onCommand(index)}
                   />
@@ -100,16 +98,14 @@ export function ComposerMenu({
 function MenuRow({
   icon,
   label,
-  hint,
-  description,
+  badge,
   active = false,
   disabled = false,
   onClick,
 }: {
   icon: ReactNode;
   label: string;
-  hint?: string;
-  description: string;
+  badge?: string;
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
@@ -120,18 +116,13 @@ function MenuRow({
       role="menuitem"
       disabled={disabled}
       onClick={onClick}
-      className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         active ? "bg-canvas" : "enabled:hover:bg-canvas/70"
       }`}
     >
-      <span className="mt-0.5 flex size-5 items-center justify-center text-graphite">{icon}</span>
-      <span className="min-w-0">
-        <span className="flex items-center gap-1.5 text-[13px]">
-          <span className="font-medium text-ink">{label}</span>
-          {hint ? <span className="text-muted">{hint}</span> : null}
-        </span>
-        <span className="block text-[12px] text-graphite">{description}</span>
-      </span>
+      <span className="flex size-5 items-center justify-center text-ink">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {badge ? <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] text-graphite">{badge}</span> : null}
     </button>
   );
 }
@@ -143,7 +134,7 @@ function PiecePicker({ onBack, onPick }: { onBack: () => void; onPick: (piece: D
   const [, startTransition] = useTransition();
 
   useEffect(() => {
-    startTransition(async () => setPieces(await listDirectorPieces()));
+    startTransition(async () => setPieces(await listDirectorPieces(Intl.DateTimeFormat().resolvedOptions().timeZone)));
   }, []);
 
   const needle = query.trim().toLocaleLowerCase("es");

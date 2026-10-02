@@ -20,6 +20,7 @@ import { getCreditBalance } from "@/lib/data/credit-balance";
 import { buildAccountTools } from "@/lib/director/account-tools";
 import { DIRECTOR_GUIDES } from "@/lib/director/guides";
 import { readDirectorGuide } from "@/lib/director/guides/read-guide";
+import { validTimeZone } from "@/lib/director/account-snapshots";
 import { hasAnswerText, historyForModel } from "@/lib/director/history";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -45,6 +46,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const chatId = typeof body?.id === "string" && UUID.test(body.id) ? body.id : null;
   const message = readUserMessage(body?.message);
+  // Las fechas ("hoy", "el Reel del 19") se leen en la zona del creador, que informa su navegador.
+  const timeZone = validTimeZone(body?.timeZone);
   if (!chatId || !message) return failure(400, "No pudimos leer el mensaje.");
 
   const balance = await getCreditBalance(workspaceId);
@@ -76,12 +79,12 @@ export async function POST(request: Request) {
     providerOptions: CACHE,
   };
   const startedAt = Date.now();
-  const tools: ToolSet = { ...buildAccountTools(workspaceId), ...guideTools };
+  const tools: ToolSet = { ...buildAccountTools(workspaceId, timeZone), ...guideTools };
 
   const result = streamText({
     model: anthropic(DIRECTOR_MODEL),
     // La fecha va aparte y después de lo cacheado: si estuviera adentro, rompería la caché cada día.
-    system: [system, { role: "system", content: `Hoy es ${todayInUruguay()} (hora de Uruguay).` }],
+    system: [system, { role: "system", content: `Hoy es ${today(timeZone)} (zona horaria del creador: ${timeZone}).` }],
     messages: await convertToModelMessages(historyForModel(messages), { tools }),
     tools,
     // Cada paso vuelve a leer la conversación: pocos pasos, para que el costo no se dispare.
@@ -148,14 +151,8 @@ async function nameChat(chatId: string, workspaceId: string, userId: string, mes
   }
 }
 
-function todayInUruguay() {
-  return new Intl.DateTimeFormat("es-UY", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "America/Montevideo",
-  }).format(new Date());
+function today(timeZone: string) {
+  return new Intl.DateTimeFormat("es-UY", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone }).format(new Date());
 }
 
 function readUserMessage(value: unknown): UIMessage | null {

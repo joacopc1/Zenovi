@@ -13,10 +13,10 @@ import { ComposerMenu, type DirectorCommand } from "./composer-menu";
  */
 
 export const DIRECTOR_COMMANDS: DirectorCommand[] = [
-  { icon: <Lightbulb className="size-4" strokeWidth={1.7} />, label: "Ideas", description: "Ideas de contenido para grabar", prefix: "/idea" },
-  { icon: <FileText className="size-4" strokeWidth={1.7} />, label: "Guion", description: "Un guion listo para grabar", prefix: "/guion" },
-  { icon: <ScanSearch className="size-4" strokeWidth={1.7} />, label: "Analizar", description: "Qué conservar, qué cambiar y qué probar", prefix: "/analizar" },
-  { icon: <CalendarRange className="size-4" strokeWidth={1.7} />, label: "Plan", description: "Un plan de publicación para los próximos días", prefix: "/plan" },
+  { icon: <Lightbulb className="size-4" strokeWidth={1.7} />, label: "Ideas", prefix: "/idea" },
+  { icon: <FileText className="size-4" strokeWidth={1.7} />, label: "Guion", prefix: "/guion" },
+  { icon: <ScanSearch className="size-4" strokeWidth={1.7} />, label: "Analizar", prefix: "/analizar" },
+  { icon: <CalendarRange className="size-4" strokeWidth={1.7} />, label: "Plan", prefix: "/plan" },
 ];
 
 /**

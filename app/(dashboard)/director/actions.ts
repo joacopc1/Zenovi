@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
-import { pieceHref, pieceLabel } from "@/lib/director/account-snapshots";
+import { pieceHref, pieceLabel, validTimeZone } from "@/lib/director/account-snapshots";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -52,13 +52,14 @@ export type DirectorPieceOption = {
 };
 
 /** Las piezas recientes de la cuenta, para adjuntarle una al Director. Se cargan con la sesión de quien pide. */
-export async function listDirectorPieces(): Promise<DirectorPieceOption[]> {
+export async function listDirectorPieces(timeZone: string): Promise<DirectorPieceOption[]> {
+  const zone = validTimeZone(timeZone);
   const account = await getAccountContext();
   if (!account?.workspace) return [];
   const library = await getInstagramContentLibrary(account.workspace.id);
   return (library?.items ?? []).slice(0, 60).map((item) => ({
     id: item.id,
-    label: pieceLabel(item),
+    label: pieceLabel(item, zone),
     href: pieceHref(item),
     caption: item.caption ? item.caption.slice(0, 90) : null,
     thumbnailUrl: item.thumbnailUrl ?? item.mediaUrl,

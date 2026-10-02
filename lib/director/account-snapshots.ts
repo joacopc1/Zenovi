@@ -22,7 +22,21 @@ export type PieceSnapshot = {
   vs_habitual: number | null;
 };
 
-export function pieceSnapshot(item: RankedContentItem): PieceSnapshot {
+/** Si el navegador no informa una zona válida, se usa la de Uruguay, donde están los primeros usuarios. */
+export const DEFAULT_TIME_ZONE = "America/Montevideo";
+
+/** La zona horaria que manda el navegador, sólo si existe: un valor inventado no llega a Intl. */
+export function validTimeZone(value: unknown) {
+  if (typeof value !== "string" || value.length > 64) return DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("es", { timeZone: value });
+    return value;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+export function pieceSnapshot(item: RankedContentItem, timeZone = DEFAULT_TIME_ZONE): PieceSnapshot {
   const metrics: Record<string, number | null> = {
     views: item.views,
     alcance: item.reach,
@@ -39,7 +53,7 @@ export function pieceSnapshot(item: RankedContentItem): PieceSnapshot {
     id: item.id,
     enlace: pieceHref(item),
     formato: item.formatLabel,
-    publicado: localDay(item.postedAt),
+    publicado: localDay(item.postedAt, timeZone),
     caption: item.caption ? truncate(item.caption.trim(), MAX_CAPTION_CHARACTERS) : null,
     // Un dato que Instagram no devolvió no se manda: el Director no puede confundirlo con un cero.
     metricas: Object.fromEntries(Object.entries(metrics).filter((entry): entry is [string, number] => entry[1] !== null)),
@@ -47,11 +61,10 @@ export function pieceSnapshot(item: RankedContentItem): PieceSnapshot {
   };
 }
 
-const LABEL_FORMATTER = new Intl.DateTimeFormat("es-UY", { day: "numeric", month: "long", timeZone: "America/Montevideo" });
-
-/** Cómo se nombra una pieza en el chat: "Reel del 28 de setiembre". */
-export function pieceLabel(item: Pick<RankedContentItem, "formatLabel" | "postedAt">) {
-  return `${item.formatLabel} del ${LABEL_FORMATTER.format(new Date(item.postedAt))}`;
+/** Cómo se nombra una pieza en el chat: "Reel del 28 de setiembre", según el día del creador. */
+export function pieceLabel(item: Pick<RankedContentItem, "formatLabel" | "postedAt">, timeZone = DEFAULT_TIME_ZONE) {
+  const day = new Intl.DateTimeFormat("es-UY", { day: "numeric", month: "long", timeZone }).format(new Date(item.postedAt));
+  return `${item.formatLabel} del ${day}`;
 }
 
 export function pieceHref(item: Pick<RankedContentItem, "id" | "kind">) {
@@ -71,7 +84,7 @@ export function analysisSnapshot(analysis: ActionableReelAnalysis) {
 }
 
 /** El resumen de un período con las mismas cuentas que Analíticas: lo que el creador ve es lo que el Director lee. */
-export function accountSnapshot(model: ReportModel) {
+export function accountSnapshot(model: ReportModel, timeZone = DEFAULT_TIME_ZONE) {
   const total = (period: { current: number | null; previous: number | null }) => ({
     actual: period.current,
     anterior: period.previous,
@@ -89,25 +102,18 @@ export function accountSnapshot(model: ReportModel) {
     cambio_de_seguidores: model.followers?.change ?? null,
     publicaciones: model.published,
     mejor_dia: model.strongest?.weekday ?? null,
-    mejores_piezas: model.topPieces.slice(0, 3).map(pieceSnapshot),
+    mejores_piezas: model.topPieces.slice(0, 3).map((item) => pieceSnapshot(item, timeZone)),
   };
 }
 
-const DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  timeZone: "America/Montevideo",
-});
-
-/** El día de publicación en Uruguay, para que "el Reel del 19" sea el que el creador vio ese día. */
-export function localDay(isoDate: string) {
-  return DAY_FORMATTER.format(new Date(isoDate));
+/** El día de publicación en la zona del creador, para que "el Reel del 19" sea el que vio ese día. */
+export function localDay(isoDate: string, timeZone = DEFAULT_TIME_ZONE) {
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone }).format(new Date(isoDate));
 }
 
-/** Si una pieza cae entre dos días (inclusive), en hora de Uruguay. Sin límites, entra. */
-export function isWithinDays(postedAt: string, from?: string, to?: string) {
-  const day = localDay(postedAt);
+/** Si una pieza cae entre dos días (inclusive), en la zona del creador. Sin límites, entra. */
+export function isWithinDays(postedAt: string, from?: string, to?: string, timeZone = DEFAULT_TIME_ZONE) {
+  const day = localDay(postedAt, timeZone);
   return (!from || day >= from) && (!to || day <= to);
 }
 

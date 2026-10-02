@@ -47,7 +47,9 @@ export function DirectorScreen({
     transport: new DefaultChatTransport({
       api: "/api/director/chat",
       // Sólo el mensaje nuevo: la conversación la lee el servidor de la base.
-      prepareSendMessagesRequest: ({ id: requestId, messages: all }) => ({ body: { id: requestId, message: all.at(-1) } }),
+      prepareSendMessagesRequest: ({ id: requestId, messages: all }) => ({
+        body: { id: requestId, message: all.at(-1), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      }),
     }),
     onFinish: () => {
       // Sólo cambia la dirección: es la misma página, así que no hay navegación que pueda
@@ -84,7 +86,7 @@ export function DirectorScreen({
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
-      <section className="font-reading relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
+      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
         {empty ? (
           <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
             <motion.div

@@ -26,7 +26,7 @@ const PERIODS = [7, 30, 90] as const;
  * esa biblioteca, nunca por id suelto en la base, así un id ajeno no devuelve nada.
  * Son sólo lecturas: ninguna herramienta escribe.
  */
-export function buildAccountTools(workspaceId: string): ToolSet {
+export function buildAccountTools(workspaceId: string, timeZone: string): ToolSet {
   // Una conversación puede llamar varias herramientas: la biblioteca se carga una sola vez.
   let library: ReturnType<typeof getInstagramContentLibrary> | null = null;
   const loadLibrary = () => (library ??= getInstagramContentLibrary(workspaceId));
@@ -49,7 +49,7 @@ export function buildAccountTools(workspaceId: string): ToolSet {
           ordenar_por: { type: "string", enum: SORTS, description: "recent = más nuevas; multiplier = las que más superaron lo habitual" },
           cantidad: { type: "integer", minimum: 1, maximum: 10 },
           texto: { type: "string", maxLength: 80, description: "Palabras que aparecen en el caption, para buscar una pieza puntual" },
-          desde: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Publicadas desde este día, inclusive (AAAA-MM-DD, hora de Uruguay)" },
+          desde: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Publicadas desde este día, inclusive (AAAA-MM-DD, en la zona horaria del creador)" },
           hasta: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Publicadas hasta este día, inclusive (AAAA-MM-DD). Para un día puntual, el mismo valor en desde y hasta" },
         },
         required: ["formato", "ordenar_por", "cantidad"],
@@ -59,9 +59,9 @@ export function buildAccountTools(workspaceId: string): ToolSet {
         const loaded = await loadLibrary();
         if (!loaded) return { error: "La cuenta de Instagram no está conectada." };
         const ranked = formato === "todos" ? rankAllFormats(loaded.items) : buildCohort(loaded.items, formato as ContentKind);
-        const inRange = ranked.filter((item) => isWithinDays(item.postedAt, desde, hasta));
+        const inRange = ranked.filter((item) => isWithinDays(item.postedAt, desde, hasta, timeZone));
         const found = sortContentItems(searchContentItems(inRange, texto ?? ""), ordenar_por, "desc");
-        return { total: found.length, piezas: found.slice(0, Math.min(Math.max(cantidad, 1), 10)).map(pieceSnapshot) };
+        return { total: found.length, piezas: found.slice(0, Math.min(Math.max(cantidad, 1), 10)).map((piece) => pieceSnapshot(piece, timeZone)) };
       },
     }),
 
@@ -81,7 +81,7 @@ export function buildAccountTools(workspaceId: string): ToolSet {
         const ranked = buildCohort(loaded.items, item.kind).find((candidate) => candidate.id === id) ?? { ...item, multiplier: null };
         const analysis = item.kind === "reel" ? await getContentAnalysis(item.id) : null;
         return {
-          pieza: pieceSnapshot(ranked),
+          pieza: pieceSnapshot(ranked, timeZone),
           analisis:
             analysis?.status === "ready" && isActionableAnalysis(analysis.analysis)
               ? analysisSnapshot(analysis.analysis)
@@ -103,7 +103,7 @@ export function buildAccountTools(workspaceId: string): ToolSet {
         const [dashboard, loaded] = await Promise.all([getInstagramDashboardData(workspaceId), loadLibrary()]);
         if (!dashboard) return { error: "Todavía no hay métricas sincronizadas de la cuenta." };
         const days = PERIODS.includes(dias) ? dias : 30;
-        return accountSnapshot(buildReportModel({ dashboard, contentItems: loaded?.items ?? [], days }));
+        return accountSnapshot(buildReportModel({ dashboard, contentItems: loaded?.items ?? [], days }), timeZone);
       },
     }),
   };

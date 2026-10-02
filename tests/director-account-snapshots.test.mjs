@@ -45,13 +45,22 @@ test("un caption largo se recorta para no gastar tokens", () => {
   assert.ok(snapshot.caption.endsWith("…"));
 });
 
-test("el día de una pieza es el de Uruguay: un Reel de las 22 h no cae al día siguiente", async () => {
+test("el día de una pieza es el de la zona del creador, no el de UTC", async () => {
   const { isWithinDays, localDay } = await import("../lib/director/account-snapshots.ts");
   // 22:30 del 19 de setiembre en Uruguay = 01:30 del 20 en UTC.
   assert.equal(localDay("2026-09-20T01:30:00Z"), "2026-09-19");
   assert.equal(isWithinDays("2026-09-20T01:30:00Z", "2026-09-19", "2026-09-19"), true);
   assert.equal(isWithinDays("2026-09-20T01:30:00Z", "2026-09-20"), false);
   assert.equal(isWithinDays("2026-09-20T01:30:00Z"), true);
+  // El mismo instante en Madrid ya es el 20.
+  assert.equal(localDay("2026-09-20T01:30:00Z", "Europe/Madrid"), "2026-09-20");
+});
+
+test("una zona horaria inventada no llega a Intl: se usa la de Uruguay", async () => {
+  const { validTimeZone } = await import("../lib/director/account-snapshots.ts");
+  assert.equal(validTimeZone("America/Mexico_City"), "America/Mexico_City");
+  assert.equal(validTimeZone("Marte/Base"), "America/Montevideo");
+  assert.equal(validTimeZone(42), "America/Montevideo");
 });
 
 test("una pieza se nombra por su formato y su día", async () => {

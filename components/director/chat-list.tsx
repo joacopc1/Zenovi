@@ -33,10 +33,10 @@ export function ChatList({
         </button>
         <Link
           href="/director"
-          className="flex min-h-8 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-ink hover:bg-ink/[0.045]"
+          className="flex min-h-8 items-center gap-1.5 rounded-control border border-mist px-2.5 text-[12px] font-medium text-ink hover:bg-canvas"
         >
-          <Plus aria-hidden="true" className="size-4" strokeWidth={1.75} />
-          Chat nuevo
+          <Plus aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+          Nuevo
         </Link>
       </div>
       <p className="px-5 pb-1.5 pt-2 text-[12px] font-medium text-muted">Recientes</p>

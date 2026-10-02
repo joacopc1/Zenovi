@@ -9,8 +9,9 @@
   /* Los títulos van en la fuente de la marca; números y textos de apoyo, en DM Sans. */
   --font-numeric: "DM Sans Variable", var(--font-sans);
   --font-support: "DM Sans Variable", var(--font-sans);
-  /* Conversación con el Director: la fuente del sistema, como en los chats de IA conocidos. */
-  --font-reading: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* El trazo de 400 se ve fino en pantalla: el texto normal va un punto más grueso. Ambas
+     fuentes son variables y admiten el valor intermedio. */
+  --font-weight-normal: 450;
   --color-canvas: #f1f1f2;
   --color-paper: #ffffff;
   --color-ink: #000000;
@@ -51,6 +52,7 @@
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-weight: var(--font-weight-normal);
     -webkit-font-smoothing: antialiased;
   }
 
