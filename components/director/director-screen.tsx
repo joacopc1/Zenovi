@@ -10,7 +10,7 @@ import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
-import { rateDirectorAnswer, type AnswerRating } from "@/app/(dashboard)/director/actions";
+import { rateDirectorAnswer, type AnswerRating, type DirectorPieceOption } from "@/app/(dashboard)/director/actions";
 import Link from "next/link";
 import { Check, Copy, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
 import { HoverLabel } from "@/components/ui/hover-label";
@@ -65,9 +65,12 @@ export function DirectorScreen({
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages, status]);
 
-  function send(text: string) {
+  function send(text: string, piece: DirectorPieceOption | null) {
     setErrorMessage(null);
-    sendMessage({ text });
+    // La pieza viaja como un enlace al principio del mensaje: el Director la abre con ver_pieza,
+    // que sólo la encuentra dentro de la biblioteca propia.
+    const body = text || "¿Qué ves en esta pieza?";
+    sendMessage({ text: piece ? `[${piece.label}](${piece.href})\n\n${body}` : body });
   }
 
   const composer = (
@@ -155,9 +158,11 @@ function ChatMessage({
   const text = message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
   const consulted = consultedSources(message);
   if (message.role === "user") {
+    const { piece, body } = splitAttachedPiece(text);
     return (
-      <div className="flex justify-end">
-        <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-canvas px-4 py-2.5 text-[15px] leading-6 text-ink">{text}</p>
+      <div className="flex flex-col items-end gap-1.5">
+        {piece ? <AnswerLink href={piece.href}>{piece.label}</AnswerLink> : null}
+        <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-canvas px-4 py-2.5 text-[15px] leading-6 text-ink">{body}</p>
       </div>
     );
   }
@@ -217,6 +222,14 @@ function consultedSources(message: UIMessage) {
     pending: running ? TOOL_LABELS[running.type].pending : null,
     done: [...new Set(tools.filter((part) => part.state === "output-available").map((part) => TOOL_LABELS[part.type].done))],
   };
+}
+
+const ATTACHED_PIECE = /^\[([^\]]+)\]\((\/content\/[^)\s]+)\)\n\n/;
+
+/** Una pieza adjuntada desde el "+" llega como enlace al principio del mensaje. */
+function splitAttachedPiece(text: string) {
+  const match = ATTACHED_PIECE.exec(text);
+  return match ? { piece: { label: match[1], href: match[2] }, body: text.slice(match[0].length) } : { piece: null, body: text };
 }
 
 /** Una pieza citada por el Director es un chip que la abre; un enlace externo se abre aparte. */

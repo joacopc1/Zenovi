@@ -39,12 +39,19 @@ export function pieceSnapshot(item: RankedContentItem): PieceSnapshot {
     id: item.id,
     enlace: pieceHref(item),
     formato: item.formatLabel,
-    publicado: item.postedAt.slice(0, 10),
+    publicado: localDay(item.postedAt),
     caption: item.caption ? truncate(item.caption.trim(), MAX_CAPTION_CHARACTERS) : null,
     // Un dato que Instagram no devolvió no se manda: el Director no puede confundirlo con un cero.
     metricas: Object.fromEntries(Object.entries(metrics).filter((entry): entry is [string, number] => entry[1] !== null)),
     vs_habitual: item.multiplier === null ? null : Math.round(item.multiplier * 100) / 100,
   };
+}
+
+const LABEL_FORMATTER = new Intl.DateTimeFormat("es-UY", { day: "numeric", month: "long", timeZone: "America/Montevideo" });
+
+/** Cómo se nombra una pieza en el chat: "Reel del 28 de setiembre". */
+export function pieceLabel(item: Pick<RankedContentItem, "formatLabel" | "postedAt">) {
+  return `${item.formatLabel} del ${LABEL_FORMATTER.format(new Date(item.postedAt))}`;
 }
 
 export function pieceHref(item: Pick<RankedContentItem, "id" | "kind">) {
@@ -84,6 +91,24 @@ export function accountSnapshot(model: ReportModel) {
     mejor_dia: model.strongest?.weekday ?? null,
     mejores_piezas: model.topPieces.slice(0, 3).map(pieceSnapshot),
   };
+}
+
+const DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "America/Montevideo",
+});
+
+/** El día de publicación en Uruguay, para que "el Reel del 19" sea el que el creador vio ese día. */
+export function localDay(isoDate: string) {
+  return DAY_FORMATTER.format(new Date(isoDate));
+}
+
+/** Si una pieza cae entre dos días (inclusive), en hora de Uruguay. Sin límites, entra. */
+export function isWithinDays(postedAt: string, from?: string, to?: string) {
+  const day = localDay(postedAt);
+  return (!from || day >= from) && (!to || day <= to);
 }
 
 function truncate(text: string, max: number) {

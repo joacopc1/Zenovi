@@ -80,7 +80,8 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: anthropic(DIRECTOR_MODEL),
-    system,
+    // La fecha va aparte y después de lo cacheado: si estuviera adentro, rompería la caché cada día.
+    system: [system, { role: "system", content: `Hoy es ${todayInUruguay()} (hora de Uruguay).` }],
     messages: await convertToModelMessages(historyForModel(messages), { tools }),
     tools,
     // Cada paso vuelve a leer la conversación: pocos pasos, para que el costo no se dispare.
@@ -145,6 +146,16 @@ async function nameChat(chatId: string, workspaceId: string, userId: string, mes
   } catch {
     // Sin título el chat sigue funcionando: se muestra como "Chat nuevo".
   }
+}
+
+function todayInUruguay() {
+  return new Intl.DateTimeFormat("es-UY", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Montevideo",
+  }).format(new Date());
 }
 
 function readUserMessage(value: unknown): UIMessage | null {

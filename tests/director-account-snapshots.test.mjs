@@ -44,3 +44,17 @@ test("un caption largo se recorta para no gastar tokens", () => {
   assert.equal(snapshot.caption.length, 160);
   assert.ok(snapshot.caption.endsWith("…"));
 });
+
+test("el día de una pieza es el de Uruguay: un Reel de las 22 h no cae al día siguiente", async () => {
+  const { isWithinDays, localDay } = await import("../lib/director/account-snapshots.ts");
+  // 22:30 del 19 de setiembre en Uruguay = 01:30 del 20 en UTC.
+  assert.equal(localDay("2026-09-20T01:30:00Z"), "2026-09-19");
+  assert.equal(isWithinDays("2026-09-20T01:30:00Z", "2026-09-19", "2026-09-19"), true);
+  assert.equal(isWithinDays("2026-09-20T01:30:00Z", "2026-09-20"), false);
+  assert.equal(isWithinDays("2026-09-20T01:30:00Z"), true);
+});
+
+test("una pieza se nombra por su formato y su día", async () => {
+  const { pieceLabel } = await import("../lib/director/account-snapshots.ts");
+  assert.equal(pieceLabel({ formatLabel: "Reel", postedAt: "2026-09-29T01:30:00Z" }), "Reel del 28 de setiembre");
+});

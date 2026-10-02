@@ -14,7 +14,7 @@ import {
 import { getContentAnalysis } from "@/lib/data/content-analysis";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
-import { accountSnapshot, analysisSnapshot, pieceSnapshot } from "./account-snapshots";
+import { accountSnapshot, analysisSnapshot, isWithinDays, pieceSnapshot } from "./account-snapshots";
 
 const SORTS: ContentSort[] = ["recent", "views", "reach", "interactions", "likes", "comments", "saves", "shares", "multiplier"];
 const FORMATS = ["reel", "publication", "story", "todos"] as const;
@@ -35,22 +35,32 @@ export function buildAccountTools(workspaceId: string): ToolSet {
     buscar_contenido: tool({
       description:
         "Lista piezas publicadas de la cuenta con sus métricas reales y cuánto rindieron contra lo habitual de su formato. Usala para responder con números, encontrar lo que mejor o peor funcionó, o buscar una pieza por su texto.",
-      inputSchema: jsonSchema<{ formato: (typeof FORMATS)[number]; ordenar_por: ContentSort; cantidad: number; texto?: string }>({
+      inputSchema: jsonSchema<{
+        formato: (typeof FORMATS)[number];
+        ordenar_por: ContentSort;
+        cantidad: number;
+        texto?: string;
+        desde?: string;
+        hasta?: string;
+      }>({
         type: "object",
         properties: {
           formato: { type: "string", enum: [...FORMATS], description: "reel, publication (posts y carruseles), story o todos" },
           ordenar_por: { type: "string", enum: SORTS, description: "recent = más nuevas; multiplier = las que más superaron lo habitual" },
           cantidad: { type: "integer", minimum: 1, maximum: 10 },
           texto: { type: "string", maxLength: 80, description: "Palabras que aparecen en el caption, para buscar una pieza puntual" },
+          desde: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Publicadas desde este día, inclusive (AAAA-MM-DD, hora de Uruguay)" },
+          hasta: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Publicadas hasta este día, inclusive (AAAA-MM-DD). Para un día puntual, el mismo valor en desde y hasta" },
         },
         required: ["formato", "ordenar_por", "cantidad"],
         additionalProperties: false,
       }),
-      execute: async ({ formato, ordenar_por, cantidad, texto }) => {
+      execute: async ({ formato, ordenar_por, cantidad, texto, desde, hasta }) => {
         const loaded = await loadLibrary();
         if (!loaded) return { error: "La cuenta de Instagram no está conectada." };
         const ranked = formato === "todos" ? rankAllFormats(loaded.items) : buildCohort(loaded.items, formato as ContentKind);
-        const found = sortContentItems(searchContentItems(ranked, texto ?? ""), ordenar_por, "desc");
+        const inRange = ranked.filter((item) => isWithinDays(item.postedAt, desde, hasta));
+        const found = sortContentItems(searchContentItems(inRange, texto ?? ""), ordenar_por, "desc");
         return { total: found.length, piezas: found.slice(0, Math.min(Math.max(cantidad, 1), 10)).map(pieceSnapshot) };
       },
     }),

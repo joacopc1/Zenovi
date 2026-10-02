@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowUp, CalendarRange, Command, FileText, Lightbulb, LoaderIcon, ScanSearch } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { motion } from "motion/react";
+import { ArrowUp, CalendarRange, FileText, Lightbulb, LoaderIcon, ScanSearch, X } from "lucide-react";
+import type { DirectorPieceOption } from "@/app/(dashboard)/director/actions";
+import { ComposerMenu, type DirectorCommand } from "./composer-menu";
 
 /**
- * La caja para hablar con el Director. Es el componente `animated-ai-chat` de la colección
- * de 21st.dev con su composición y sus efectos (vidrio, comandos con "/", chips); lo único
- * que cambia es la paleta, clara y con el azul de datos de Zenovi donde el original usaba
- * violeta, y no lleva el brillo que seguía al mouse (lo pidió Joaco).
+ * La caja para hablar con el Director. Parte del componente `animated-ai-chat` de la
+ * colección de 21st.dev (comandos con "/", chips de sugerencia, "pensando"), en la paleta
+ * clara de Zenovi y con la forma de una sola fila de ChatGPT: "+", texto y enviar.
  */
-
-type DirectorCommand = { icon: ReactNode; label: string; description: string; prefix: string };
 
 export const DIRECTOR_COMMANDS: DirectorCommand[] = [
   { icon: <Lightbulb className="size-4" strokeWidth={1.7} />, label: "Ideas", description: "Ideas de contenido para grabar", prefix: "/idea" },
@@ -55,68 +54,64 @@ export function DirectorComposer({
   creditsLabel,
   showSuggestions,
 }: {
-  onSend: (text: string) => void;
+  /** El texto y, si se adjuntó, la pieza que el Director tiene que mirar. */
+  onSend: (text: string, piece: DirectorPieceOption | null) => void;
   busy: boolean;
   /** "Te quedan 1.320 créditos": el uso también se ve donde se gasta. */
   creditsLabel: string;
   showSuggestions: boolean;
 }) {
   const [value, setValue] = useState("");
+  const [piece, setPiece] = useState<DirectorPieceOption | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 24, maxHeight: 192 });
-  const commandPaletteRef = useRef<HTMLDivElement>(null);
-  const commandButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!commandPaletteRef.current?.contains(target) && !commandButtonRef.current?.contains(target)) {
-        setShowCommandPalette(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   function updateValue(next: string) {
     setValue(next);
-    // Escribir "/" al principio abre los comandos y va marcando el que coincide.
+    // Escribir "/" al principio abre el menú en los comandos y va marcando el que coincide.
     const typingCommand = next.startsWith("/") && !next.includes(" ");
-    setShowCommandPalette(typingCommand);
-    if (typingCommand) setActiveSuggestion(DIRECTOR_COMMANDS.findIndex((command) => command.prefix.startsWith(next)));
+    setMenuOpen(typingCommand);
+    setActiveSuggestion(typingCommand ? DIRECTOR_COMMANDS.findIndex((command) => command.prefix.startsWith(next)) : -1);
   }
 
   function selectCommand(index: number) {
     updateValue(`${DIRECTOR_COMMANDS[index].prefix} `);
-    setShowCommandPalette(false);
+    setMenuOpen(false);
     textareaRef.current?.focus();
   }
 
   function send() {
     const text = value.trim();
-    if (!text || busy) return;
-    onSend(text);
+    if ((!text && !piece) || busy) return;
+    onSend(text, piece);
     setValue("");
+    setPiece(null);
     adjustHeight(true);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (showCommandPalette) {
+    if (menuOpen) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
         setActiveSuggestion((previous) => (previous < DIRECTOR_COMMANDS.length - 1 ? previous + 1 : 0));
-      } else if (event.key === "ArrowUp") {
+        return;
+      }
+      if (event.key === "ArrowUp") {
         event.preventDefault();
         setActiveSuggestion((previous) => (previous > 0 ? previous - 1 : DIRECTOR_COMMANDS.length - 1));
-      } else if ((event.key === "Tab" || event.key === "Enter") && activeSuggestion >= 0) {
+        return;
+      }
+      if ((event.key === "Tab" || event.key === "Enter") && activeSuggestion >= 0) {
         event.preventDefault();
         selectCommand(activeSuggestion);
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        setShowCommandPalette(false);
+        return;
       }
-      return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuOpen(false);
+        return;
+      }
     }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -124,103 +119,66 @@ export function DirectorComposer({
     }
   }
 
+  const canSend = (value.trim().length > 0 || piece !== null) && !busy;
+
   return (
     <div className="w-full space-y-3">
       <motion.div
-        className="relative flex items-end gap-2 rounded-[26px] border border-ink/[0.08] bg-paper px-2.5 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+        className="rounded-[26px] border border-ink/[0.08] bg-paper px-2.5 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
         initial={{ scale: 0.98 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1 }}
       >
-          {/* El menú sale del botón, flotando, en lugar de ocupar todo el ancho de la caja. */}
-          <div className="relative">
-            <motion.button
-              ref={commandButtonRef}
-              type="button"
-              onClick={() => setShowCommandPalette((previous) => !previous)}
-              whileTap={{ scale: 0.94 }}
-              aria-label="Ver comandos"
-              className={`group relative grid size-9 place-items-center rounded-full text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
-            >
-              <Command className="size-4" strokeWidth={1.7} />
-              <motion.span
-                className="absolute inset-0 rounded-full bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
-                layoutId="button-highlight"
-              />
-            </motion.button>
-            <AnimatePresence>
-              {showCommandPalette ? (
-                <motion.div
-                  ref={commandPaletteRef}
-                  className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl"
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <div role="listbox" aria-label="Comandos del Director">
-                    {DIRECTOR_COMMANDS.map((command, index) => (
-                      <motion.button
-                        type="button"
-                        role="option"
-                        aria-selected={activeSuggestion === index}
-                        key={command.prefix}
-                        className={`flex w-full cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
-                          activeSuggestion === index ? "bg-canvas" : "hover:bg-canvas/70"
-                        }`}
-                        onClick={() => selectCommand(index)}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                      >
-                        <span className="mt-0.5 flex size-5 items-center justify-center text-graphite">{command.icon}</span>
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-1.5 text-[13px]">
-                            <span className="font-medium text-ink">{command.label}</span>
-                            <span className="text-muted">{command.prefix}</span>
-                          </span>
-                          <span className="block text-[12px] text-graphite">{command.description}</span>
-                        </span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+        {piece ? (
+          <div className="mb-1.5 ml-1.5 mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-mist bg-canvas py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-ink">
+            {piece.label}
+            <button type="button" onClick={() => setPiece(null)} aria-label={`Quitar ${piece.label}`} className="grid size-5 place-items-center rounded-full text-graphite hover:bg-ink/[0.06] hover:text-ink">
+              <X className="size-3" strokeWidth={2} />
+            </button>
           </div>
-
-        <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
-        <textarea
-          id="director-input"
-          ref={textareaRef}
-          rows={1}
-          value={value}
-          onChange={(event) => {
-            updateValue(event.target.value);
-            adjustHeight();
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Preguntale al Director…"
-          className="mb-1.5 min-w-0 flex-1 resize-none overflow-hidden bg-transparent px-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
-        />
-
-        {/* Apagado sin texto; negro con la flecha blanca cuando hay algo para mandar. */}
-        <motion.button
-          type="button"
-          onClick={send}
-          whileTap={{ scale: 0.94 }}
-          disabled={busy || !value.trim()}
-          aria-label="Enviar"
-          className={`grid size-9 shrink-0 place-items-center rounded-full text-paper transition-colors ${
-            value.trim() && !busy ? "bg-ink hover:bg-ink/85" : "bg-ink/15"
-          }`}
-        >
-          {busy ? (
-            <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={2} />
-          ) : (
-            <ArrowUp className="size-[18px]" strokeWidth={2.2} />
-          )}
-        </motion.button>
+        ) : null}
+        <div className="flex items-end gap-2">
+          <ComposerMenu
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+            commands={DIRECTOR_COMMANDS}
+            activeCommand={activeSuggestion}
+            onCommand={selectCommand}
+            onPiece={(picked) => {
+              setPiece(picked);
+              textareaRef.current?.focus();
+            }}
+          />
+          <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
+          <textarea
+            id="director-input"
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            onChange={(event) => {
+              updateValue(event.target.value);
+              adjustHeight();
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={piece ? "¿Qué querés saber de esta pieza?" : "Preguntale al Director…"}
+            className="mb-1.5 min-w-0 flex-1 resize-none overflow-hidden bg-transparent px-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
+          />
+          {/* Apagado sin texto; negro con la flecha blanca cuando hay algo para mandar. */}
+          <motion.button
+            type="button"
+            onClick={send}
+            whileTap={{ scale: 0.94 }}
+            disabled={!canSend}
+            aria-label="Enviar"
+            className={`grid size-9 shrink-0 place-items-center rounded-full text-paper transition-colors ${canSend ? "bg-ink hover:bg-ink/85" : "bg-ink/15"}`}
+          >
+            {busy ? (
+              <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={2} />
+            ) : (
+              <ArrowUp className="size-[18px]" strokeWidth={2.2} />
+            )}
+          </motion.button>
+        </div>
       </motion.div>
       <p className="text-center text-[11px] text-muted">{creditsLabel}</p>
 
