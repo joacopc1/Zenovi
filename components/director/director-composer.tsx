@@ -253,7 +253,7 @@ export function DirectorComposer({
 }
 
 /** Mientras el Director piensa: va en el lugar donde aparece la respuesta, como en ChatGPT. */
-export function ThinkingIndicator() {
+export function ThinkingIndicator({ label = "Pensando…" }: { label?: string }) {
   return (
     <motion.div
       className="flex items-center gap-2.5 px-1 py-2"
@@ -272,7 +272,7 @@ export function ThinkingIndicator() {
         animate={{ opacity: [0.45, 1, 0.45] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
       >
-        Pensando…
+        {label}
       </motion.span>
     </motion.div>
   );

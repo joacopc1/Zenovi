@@ -17,6 +17,7 @@ import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/ai/models";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getBrandDna } from "@/lib/data/brand-dna";
 import { getCreditBalance } from "@/lib/data/credit-balance";
+import { buildAccountTools } from "@/lib/director/account-tools";
 import { DIRECTOR_GUIDES } from "@/lib/director/guides";
 import { readDirectorGuide } from "@/lib/director/guides/read-guide";
 import { hasAnswerText, historyForModel } from "@/lib/director/history";
@@ -75,14 +76,15 @@ export async function POST(request: Request) {
     providerOptions: CACHE,
   };
   const startedAt = Date.now();
+  const tools: ToolSet = { ...buildAccountTools(workspaceId), ...guideTools };
 
   const result = streamText({
     model: anthropic(DIRECTOR_MODEL),
     system,
-    messages: await convertToModelMessages(historyForModel(messages), { tools: directorTools }),
-    tools: directorTools,
-    // Consultar una guía y después responder: pocos pasos, para que el costo no se dispare.
-    stopWhen: stepCountIs(4),
+    messages: await convertToModelMessages(historyForModel(messages), { tools }),
+    tools,
+    // Cada paso vuelve a leer la conversación: pocos pasos, para que el costo no se dispare.
+    stopWhen: stepCountIs(5),
     maxOutputTokens: 8000,
   });
   // Aunque se cierre la pestaña, la respuesta termina y se guarda con su costo.
@@ -110,11 +112,11 @@ export async function POST(request: Request) {
 }
 
 /**
- * La única herramienta del Director: leer una guía del índice. El modelo sólo puede elegir
- * entre esos nombres, y el lector abre únicamente archivos de la carpeta de guías: no hay
- * forma de pedirle al servidor otro archivo, ni variables de entorno, ni claves.
+ * Leer una guía del índice. El modelo sólo puede elegir entre esos nombres, y el lector abre
+ * únicamente archivos de la carpeta de guías: no hay forma de pedirle al servidor otro
+ * archivo, ni variables de entorno, ni claves. Las demás herramientas leen la cuenta.
  */
-const directorTools: ToolSet | undefined = DIRECTOR_GUIDES.length > 0
+const guideTools: ToolSet = DIRECTOR_GUIDES.length > 0
   ? {
       consultar_guia: tool({
         description: "Lee una guía de Zenovi antes de responder un pedido que la necesita.",
@@ -127,7 +129,7 @@ const directorTools: ToolSet | undefined = DIRECTOR_GUIDES.length > 0
         execute: async ({ tema }) => (await readDirectorGuide(tema)) ?? "Esa guía no existe.",
       }),
     }
-  : undefined;
+  : {};
 
 /** Un título corto a partir del primer mensaje, con el modelo rápido. */
 async function nameChat(chatId: string, workspaceId: string, userId: string, message: UIMessage) {

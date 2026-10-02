@@ -317,8 +317,8 @@ Plan de construcción del Director en cuatro fases (pantalla con chat real, cono
 - [-] Chats persistentes (2026-10-02): `/director` y `/director/[chatId]`, tablas `director_chats` y `director_messages` con RLS por persona; crear, reabrir, renombrar y borrar. Título automático con Haiku 4.5. Falta archivar.
 - [x] Streaming (2026-10-02): AI SDK 6 con `useChat`, Sonnet 5.5 por el AI Gateway, el navegador manda sólo el mensaje nuevo y la conversación se lee de la base.
 - [ ] Model router.
-- [ ] RAG y tools autorizadas.
-- [ ] Citas internas.
+- [-] Tools autorizadas (2026-10-02): el Director lee la cuenta con `buscar_contenido`, `ver_pieza` y `resumen_cuenta` (las mismas cuentas que Analíticas), sólo lectura y dentro del workspace propio; consulta guías con `consultar_guia`. Falta RAG sobre transcripciones y análisis de Historias.
+- [x] Citas internas (2026-10-02): el Director cita cada pieza con su enlace y la pantalla lo muestra como un chip que la abre.
 - [ ] Adjuntos temporales.
 - [ ] Memoria/resumen.
 - [-] Créditos (2026-10-02): `ai_usage_events` guarda el costo real de cada operación; 1 crédito = US$0,01; 1.500 créditos por mes y workspace en la beta; círculo de uso en el encabezado y saldo en el Director; sin saldo, el chat no responde. Falta registrar el consumo de los análisis de Reels e Historias y el precio fijo por acción.

@@ -4,8 +4,8 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Streamdown } from "streamdown";
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
+import { Streamdown, type Components } from "streamdown";
 import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
@@ -153,7 +153,7 @@ function ChatMessage({
   initialRating: AnswerRating | null;
 }) {
   const text = message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
-  const consulted = message.parts.some((part) => part.type === "tool-consultar_guia");
+  const consulted = consultedSources(message);
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -161,13 +161,16 @@ function ChatMessage({
       </div>
     );
   }
-  // Consultó una guía pero todavía no escribió: sigue pensando.
-  if (!text) return streaming ? <ThinkingIndicator /> : null;
+  // Todavía consultando la cuenta o las guías: se dice qué, en el lugar de la respuesta.
+  if (!text) {
+    if (!streaming) return null;
+    return consulted.pending ? <ThinkingIndicator label={consulted.pending} /> : <ThinkingIndicator />;
+  }
   return (
     <div className="group/answer">
       <div className="director-answer rounded-2xl border border-mist bg-paper px-5 py-4 text-[15px] leading-7 text-ink">
-        {consulted ? <p className="mb-2 text-[12px] text-muted">Consultó las guías de Zenovi</p> : null}
-        <Streamdown isAnimating={streaming}>{text}</Streamdown>
+        {consulted.done.length ? <p className="mb-2 text-[12px] text-muted">{consulted.done.join(" · ")}</p> : null}
+        <Streamdown isAnimating={streaming} components={ANSWER_COMPONENTS}>{text}</Streamdown>
       </div>
       {streaming ? null : <AnswerActions messageId={message.id} text={text} initialRating={initialRating} />}
     </div>
@@ -198,6 +201,46 @@ function ChatRail({ onOpen }: { onOpen: () => void }) {
     </aside>
   );
 }
+
+const TOOL_LABELS: Record<string, { pending: string; done: string }> = {
+  "tool-buscar_contenido": { pending: "Revisando tu contenido…", done: "Revisó tu contenido" },
+  "tool-ver_pieza": { pending: "Mirando la pieza en detalle…", done: "Miró una pieza en detalle" },
+  "tool-resumen_cuenta": { pending: "Revisando el resumen de tu cuenta…", done: "Revisó el resumen de tu cuenta" },
+  "tool-consultar_guia": { pending: "Consultando las guías de Zenovi…", done: "Consultó las guías de Zenovi" },
+};
+
+/** Qué consultó el Director para responder: lo que está haciendo ahora y lo que ya leyó. */
+function consultedSources(message: UIMessage) {
+  const tools = message.parts.filter((part) => part.type in TOOL_LABELS) as Array<{ type: string; state?: string }>;
+  const running = tools.findLast((part) => part.state !== "output-available" && part.state !== "output-error");
+  return {
+    pending: running ? TOOL_LABELS[running.type].pending : null,
+    done: [...new Set(tools.filter((part) => part.state === "output-available").map((part) => TOOL_LABELS[part.type].done))],
+  };
+}
+
+/** Una pieza citada por el Director es un chip que la abre; un enlace externo se abre aparte. */
+function AnswerLink({ href, children }: ComponentProps<"a">) {
+  if (href?.startsWith("/content/")) {
+    return (
+      <Link
+        href={href}
+        className="inline-flex items-center rounded-full border border-mist bg-canvas px-2 py-0.5 text-[13px] font-medium text-ink no-underline transition-colors hover:border-mist-strong hover:bg-paper"
+      >
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2">
+      {children}
+    </a>
+  );
+}
+
+// `Components` de streamdown suma una firma genérica por clave que ningún componente tipado
+// cumple; el mapa se declara con su tipo para que `a` reciba las props de un enlace.
+const ANSWER_COMPONENTS = { a: AnswerLink } as Components;
 
 /** Copiar y calificar, debajo de cada respuesta terminada. */
 function AnswerActions({ messageId, text, initialRating }: { messageId: string; text: string; initialRating: AnswerRating | null }) {
@@ -307,7 +350,7 @@ function BrandDnaNotice({ share }: { share: number }) {
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-mist bg-paper px-4 py-3">
       <p className="text-[13px] leading-5 text-graphite">
         <span className="font-medium text-ink">El Director todavía no conoce tu marca.</span>{" "}
-        Completá tu ADN ({Math.round(share * 100)} % hecho) y va a responder sobre tu negocio, no en general.
+        Completá tu ADN ({Math.round(share * 100)} % hecho).
       </p>
       <Link
         href="/brand"
