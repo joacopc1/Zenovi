@@ -205,7 +205,7 @@ function ChatRail({ onOpen }: { onOpen: () => void }) {
         type="button"
         onClick={onOpen}
         aria-label="Mostrar chats"
-        className="group/tip relative grid size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+        className="group/tip relative grid size-8 place-items-center rounded-control text-ink hover:bg-ink/[0.045]"
       >
         <CollapseSidebarIcon className="size-4 -scale-x-100 rotate-180" />
         <HoverLabel side="left">Mostrar chats</HoverLabel>
@@ -213,7 +213,7 @@ function ChatRail({ onOpen }: { onOpen: () => void }) {
       <Link
         href="/director"
         aria-label="Chat nuevo"
-        className="group/tip relative grid size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+        className="group/tip relative grid size-8 place-items-center rounded-control text-ink hover:bg-ink/[0.045]"
       >
         <Plus className="size-4" strokeWidth={1.75} />
         <HoverLabel side="left">Chat nuevo</HoverLabel>
@@ -337,7 +337,7 @@ function ActionButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`group/tip relative grid size-8 place-items-center rounded-control transition-colors hover:bg-ink/[0.045] ${active ? "text-ink" : "text-graphite hover:text-ink"}`}
+      className={`group/tip relative grid size-8 place-items-center rounded-control text-ink transition-colors hover:bg-ink/[0.045] ${active ? "bg-ink/[0.06]" : ""}`}
     >
       {children}
       <HoverLabel>{label}</HoverLabel>

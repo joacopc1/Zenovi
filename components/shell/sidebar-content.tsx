@@ -29,7 +29,7 @@ export function SidebarContent({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="group/tip relative grid size-7 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+            className="group/tip relative grid size-7 place-items-center rounded-control text-ink hover:bg-ink/[0.045]"
             aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
           >
             <CollapseSidebarIcon className={`size-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />

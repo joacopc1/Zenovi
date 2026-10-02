@@ -26,7 +26,7 @@ export function ChatList({
           type="button"
           onClick={onClose}
           aria-label="Ocultar chats"
-          className="group/tip relative grid size-8 place-items-center rounded-control text-graphite hover:bg-ink/[0.045] hover:text-ink"
+          className="group/tip relative grid size-8 place-items-center rounded-control text-ink hover:bg-ink/[0.045]"
         >
           <CollapseSidebarIcon className="size-4 -scale-x-100" />
           <HoverLabel>Ocultar chats</HoverLabel>

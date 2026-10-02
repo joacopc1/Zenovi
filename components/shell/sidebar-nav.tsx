@@ -53,7 +53,7 @@ const groups: NavGroup[] = [
 const homeItem: NavItem = { href: "/", label: "Inicio", icon: House, exact: true };
 
 const expandedItemClass =
-  "font-support flex min-h-8 items-center gap-2.5 rounded-navigation px-2.5 text-[13px] leading-5 font-normal text-ink transition-colors hover:bg-ink/[0.035]";
+  "font-support flex min-h-8 items-center gap-2.5 rounded-navigation px-2.5 text-[14px] leading-5 font-medium text-ink transition-colors hover:bg-ink/[0.035]";
 const collapsedItemClass =
   "flex min-h-8 items-center justify-center rounded-navigation px-1 text-ink transition-colors hover:bg-ink/[0.035]";
 
@@ -87,7 +87,7 @@ export function SidebarNav({
             <p
               className={collapsed
                 ? "sr-only"
-                : "font-support mb-0.5 px-2.5 text-xs leading-4 font-normal tracking-[0.025em] text-muted"}
+                : "font-support mb-0.5 px-2.5 text-xs leading-4 font-medium tracking-[0.025em] text-muted"}
             >
               {group.label}
             </p>
@@ -130,7 +130,7 @@ export function SidebarNav({
                                   href={child.href}
                                   onClick={onNavigate}
                                   aria-current={childSelected ? "page" : undefined}
-                                  className={`font-support flex min-h-7 items-center rounded-control px-2.5 text-[13px] leading-5 font-normal transition-colors ${childSelected ? "bg-ink/[0.065] text-ink" : "text-ink hover:bg-ink/[0.035]"}`}
+                                  className={`font-support flex min-h-7 items-center rounded-control px-2.5 text-[14px] leading-5 font-medium transition-colors ${childSelected ? "bg-ink/[0.065] text-ink" : "text-ink hover:bg-ink/[0.035]"}`}
                                 >
                                   {child.label}
                                 </Link>
