@@ -8,11 +8,13 @@ import {
   streamText,
   tool,
   validateUIMessages,
+  type FileUIPart,
   type SystemModelMessage,
   type ToolSet,
   type UIMessage,
 } from "ai";
 import { recordAiUsage } from "@/lib/credits/record-usage";
+import { RATE_LIMITED_MESSAGE, takeRateLimit } from "@/lib/security/rate-limit";
 import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/ai/models";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getBrandDna } from "@/lib/data/brand-dna";
@@ -21,7 +23,9 @@ import { buildAccountTools } from "@/lib/director/account-tools";
 import { DIRECTOR_GUIDES } from "@/lib/director/guides";
 import { readDirectorGuide } from "@/lib/director/guides/read-guide";
 import { validTimeZone } from "@/lib/director/account-snapshots";
-import { hasAnswerText, historyForModel } from "@/lib/director/history";
+import { attachmentIdFromUrl, attachmentMediaType, attachmentUrl, MAX_ATTACHMENTS_PER_MESSAGE } from "@/lib/director/attachment-refs";
+import { inlineAttachments } from "@/lib/director/attachments";
+import { hasAnswerText, historyForModel, withCachedHistory } from "@/lib/director/history";
 import { proposeIdeaTool } from "@/lib/director/idea-tool";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -43,6 +47,9 @@ export async function POST(request: Request) {
   const account = await getAccountContext();
   if (!account?.workspace) return failure(401, "Tu sesión venció. Volvé a iniciar sesión.");
   const workspaceId = account.workspace.id;
+  // Una persona escribe a lo sumo unos pocos mensajes por minuto; un script, cientos.
+  const allowed = (await takeRateLimit("director_chat", account.userId)) && (await takeRateLimit("director_chat_hourly", account.userId));
+  if (!allowed) return failure(429, RATE_LIMITED_MESSAGE);
 
   const body = await request.json().catch(() => null);
   const chatId = typeof body?.id === "string" && UUID.test(body.id) ? body.id : null;
@@ -86,7 +93,9 @@ export async function POST(request: Request) {
     model: anthropic(DIRECTOR_MODEL),
     // La fecha va aparte y después de lo cacheado: si estuviera adentro, rompería la caché cada día.
     system: [system, { role: "system", content: `Hoy es ${today(timeZone)} (zona horaria del creador: ${timeZone}).` }],
-    messages: await convertToModelMessages(historyForModel(messages), { tools }),
+    messages: withCachedHistory(
+      await convertToModelMessages(await inlineAttachments(historyForModel(messages), workspaceId, account.userId), { tools }),
+    ),
     tools,
     // Cada paso vuelve a leer la conversación: pocos pasos, para que el costo no se dispare.
     stopWhen: stepCountIs(5),
@@ -104,7 +113,8 @@ export async function POST(request: Request) {
         [row(chatId, message, startedAt), ...(hasAnswerText(responseMessage) ? [row(chatId, responseMessage, startedAt + 1)] : [])],
         { onConflict: "id" },
       );
-      await admin.from("director_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
+      // Seguir un chat archivado lo devuelve a Recientes: está en uso otra vez.
+      await admin.from("director_chats").update({ updated_at: new Date().toISOString(), archived_at: null }).eq("id", chatId);
       // Si el modelo falló no hay uso que leer; lo que sí se consumió queda en la consola de Anthropic.
       const usage = await Promise.resolve(result.totalUsage).catch(() => null);
       if (usage) {
@@ -141,7 +151,7 @@ async function nameChat(chatId: string, workspaceId: string, userId: string, mes
   try {
     const { text, usage } = await generateText({
       model: anthropic(UTILITY_MODEL),
-      prompt: `Escribí un título de 2 a 6 palabras, en español, sin comillas ni punto final, para una conversación que empieza con este mensaje:\n\n${textOf(message).slice(0, 1000)}`,
+      prompt: `Escribí un título de 2 a 6 palabras, en español, sin comillas ni punto final, para una conversación que empieza con este mensaje:\n\n${(textOf(message).trim() || "(sólo adjuntó un archivo)").slice(0, 1000)}`,
       maxOutputTokens: 30,
     });
     const title = text.replace(/["“”.]/g, "").trim().slice(0, 120);
@@ -161,13 +171,25 @@ function readUserMessage(value: unknown): UIMessage | null {
   const candidate = value as UIMessage;
   if (candidate.role !== "user") return null;
   if (!Array.isArray(candidate.parts) || candidate.parts.length === 0) return null;
-  // Por ahora sólo texto: los adjuntos llegan en otra fase y con su propio control.
-  if (!candidate.parts.every((part) => part.type === "text" && typeof part.text === "string")) return null;
+  // Texto y adjuntos propios; cualquier otra parte (o un archivo con otra dirección) se rechaza.
+  const files: FileUIPart[] = [];
+  for (const part of candidate.parts) {
+    if (part.type === "text" && typeof part.text === "string") continue;
+    if (part.type !== "file") return null;
+    const id = attachmentIdFromUrl(part.url);
+    if (!id) return null;
+    files.push({ type: "file", mediaType: attachmentMediaType(id), url: attachmentUrl(id), filename: cleanFilename(part.filename) });
+  }
+  if (files.length > MAX_ATTACHMENTS_PER_MESSAGE) return null;
   const text = textOf(candidate).trim();
-  if (!text || text.length > MAX_MESSAGE_CHARACTERS) return null;
+  if ((!text && files.length === 0) || text.length > MAX_MESSAGE_CHARACTERS) return null;
   // El id lo pone el servidor: los mensajes se guardan con la clave de servicio, y un id
   // elegido por el navegador podría pisar un mensaje de otra conversación.
-  return { id: generateId(), role: "user", parts: [{ type: "text", text }] };
+  return { id: generateId(), role: "user", parts: [...files, ...(text ? [{ type: "text" as const, text }] : [])] };
+}
+
+function cleanFilename(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, 120) : "archivo";
 }
 
 function textOf(message: UIMessage) {

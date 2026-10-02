@@ -3,21 +3,28 @@ import "server-only";
 import type { UIMessage } from "ai";
 import { createClient } from "@/lib/supabase/server";
 
-export type DirectorChatSummary = { id: string; title: string | null; updatedAt: string };
+export type DirectorChatSummary = { id: string; title: string | null; updatedAt: string; archived: boolean };
 
-/** Los chats de la persona en este workspace, del más reciente al más viejo. RLS deja ver sólo los propios. */
+/**
+ * Los chats de la persona en este workspace, del más reciente al más viejo, archivados
+ * incluidos (la lista los muestra aparte). RLS deja ver sólo los propios.
+ */
 export async function listDirectorChats(workspaceId: string): Promise<DirectorChatSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("director_chats")
-    .select("id, title, updated_at")
+    .select("id, title, updated_at, archived_at")
     .eq("workspace_id", workspaceId)
-    .is("archived_at", null)
     .order("updated_at", { ascending: false })
-    .limit(100);
+    .limit(200);
 
   if (error) throw new Error("No pudimos cargar tus chats.");
-  return (data ?? []).map((chat) => ({ id: chat.id, title: chat.title, updatedAt: chat.updated_at }));
+  return (data ?? []).map((chat) => ({
+    id: chat.id,
+    title: chat.title,
+    updatedAt: chat.updated_at,
+    archived: chat.archived_at !== null,
+  }));
 }
 
 /** Los mensajes de un chat propio, en orden. Null si el chat no existe o no es de quien pide. */

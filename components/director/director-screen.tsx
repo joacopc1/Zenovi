@@ -1,22 +1,30 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { AnimatePresence, motion } from "motion/react";
+import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
+import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
-import { Streamdown, type Components } from "streamdown";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
 import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { useShellIdentity } from "@/components/shell/shell-identity";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
 import { ChatList } from "./chat-list";
 import { rateDirectorAnswer, type AnswerRating, type DirectorPieceOption } from "@/app/(dashboard)/director/actions";
 import Link from "next/link";
+import { AnswerLink } from "./answer-link";
 import { Check, Copy, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
 import { HoverLabel } from "@/components/ui/hover-label";
 import { DirectorComposer, ThinkingIndicator } from "./director-composer";
+import { SentAttachment } from "./attachments";
 import { IdeaCard } from "./idea-card";
 import type { ProposedIdea } from "@/lib/director/idea-tool";
+import { Notice } from "@/components/ui/notice";
+
+// Los chats guardados llegan con las respuestas ya armadas desde el servidor; en un chat
+// nuevo el lector de Markdown se pide al mandar el primer mensaje, mientras el Director piensa.
+const loadAnswerMarkdown = () => import("./answer-markdown");
+const AnswerMarkdown = dynamic(loadAnswerMarkdown);
 
 const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
 
@@ -74,12 +82,13 @@ export function DirectorScreen({
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages, status]);
 
-  function send(text: string, piece: DirectorPieceOption | null) {
+  function send(text: string, piece: DirectorPieceOption | null, files: FileUIPart[]) {
     setErrorMessage(null);
+    void loadAnswerMarkdown();
     // La pieza viaja como un enlace al principio del mensaje: el Director la abre con ver_pieza,
     // que sólo la encuentra dentro de la biblioteca propia.
-    const body = text || "¿Qué ves en esta pieza?";
-    sendMessage({ text: piece ? `[${piece.label}](${piece.href})\n\n${body}` : body });
+    const body = text || (piece ? "¿Qué ves en esta pieza?" : "");
+    sendMessage({ text: piece ? `[${piece.label}](${piece.href})\n\n${body}` : body, files });
   }
 
   const composer = (
@@ -98,32 +107,22 @@ export function DirectorScreen({
       <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversación con el Director">
         {empty ? (
           <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-10">
-            <motion.div
-              className="relative z-10 w-full max-w-2xl space-y-12"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
+            <div className="rise-in relative z-10 w-full max-w-2xl space-y-12">
               <div className="space-y-3 text-center">
-                <motion.div className="inline-block" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}>
-                  <h1 className="bg-gradient-to-r from-ink/90 to-ink/40 bg-clip-text pb-1 text-3xl font-medium tracking-tight text-transparent">
+                <div className="rise-in inline-block [--rise-from:10px] [animation-delay:200ms]">
+                  <h1 className="pb-1 text-3xl font-semibold tracking-tight text-ink">
                     ¿En qué te ayudo hoy?
                   </h1>
-                  <motion.div
-                    className="h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent"
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "100%", opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.8 }}
-                  />
-                </motion.div>
-                <motion.p className="text-sm text-ink/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <div className="line-grow h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent" />
+                </div>
+                <p className="rise-in text-sm text-graphite [--rise-from:0px] [animation-delay:300ms]">
                   Pedí ideas, guiones o un plan, o escribí / para ver los comandos
-                </motion.p>
+                </p>
               </div>
               {brandDnaShare < 0.5 ? <BrandDnaNotice share={brandDnaShare} /> : null}
               {composer}
               {errorMessage ? <ErrorNotice message={errorMessage} /> : null}
-            </motion.div>
+            </div>
           </div>
         ) : (
           <>
@@ -170,10 +169,18 @@ function ChatMessage({
   const consulted = consultedSources(message);
   if (message.role === "user") {
     const { piece, body } = splitAttachedPiece(text);
+    const files = message.parts.filter((part): part is FileUIPart => part.type === "file");
     return (
       <div className="flex flex-col items-end gap-1.5">
+        {files.length ? (
+          <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
+            {files.map((file) => <SentAttachment key={file.url} part={file} />)}
+          </div>
+        ) : null}
         {piece ? <AnswerLink href={piece.href}>{piece.label}</AnswerLink> : null}
-        <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-canvas px-4 py-2.5 text-[15px] leading-6 text-ink">{body}</p>
+        {body ? (
+          <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-canvas px-4 py-2.5 text-[15px] leading-6 text-ink">{body}</p>
+        ) : null}
       </div>
     );
   }
@@ -187,7 +194,7 @@ function ChatMessage({
     <div className="group/answer">
       <div className="director-answer rounded-2xl border border-mist bg-paper px-5 py-4 text-[15px] leading-7 text-ink">
         {consulted.done.length ? <p className="mb-2 text-[12px] text-muted">{consulted.done.join(" · ")}</p> : null}
-        {text ? <Streamdown isAnimating={streaming} components={ANSWER_COMPONENTS}>{text}</Streamdown> : null}
+        {text ? <AnswerMarkdown text={text} streaming={streaming} /> : null}
         {ideas.map((idea) => (
           <IdeaCard key={idea.toolCallId} messageId={message.id} toolCallId={idea.toolCallId} idea={idea.input} savedItemId={idea.savedItemId} />
         ))}
@@ -236,6 +243,7 @@ function proposedIdeas(message: UIMessage) {
 const TOOL_LABELS: Record<string, { pending: string; done: string }> = {
   "tool-buscar_contenido": { pending: "Revisando tu contenido…", done: "Revisó tu contenido" },
   "tool-ver_pieza": { pending: "Mirando la pieza en detalle…", done: "Miró una pieza en detalle" },
+  "tool-ver_historias": { pending: "Revisando tus Historias…", done: "Revisó tus Historias" },
   "tool-resumen_cuenta": { pending: "Revisando el resumen de tu cuenta…", done: "Revisó el resumen de tu cuenta" },
   "tool-consultar_guia": { pending: "Consultando las guías de Zenovi…", done: "Consultó las guías de Zenovi" },
   "tool-proponer_idea": { pending: "Armando la idea…", done: "" },
@@ -259,28 +267,6 @@ function splitAttachedPiece(text: string) {
   return match ? { piece: { label: match[1], href: match[2] }, body: text.slice(match[0].length) } : { piece: null, body: text };
 }
 
-/** Una pieza citada por el Director es un chip que la abre; un enlace externo se abre aparte. */
-function AnswerLink({ href, children }: ComponentProps<"a">) {
-  if (href?.startsWith("/content/")) {
-    return (
-      <Link
-        href={href}
-        className="inline-flex items-center rounded-full border border-mist bg-canvas px-2 py-0.5 text-[13px] font-medium text-ink no-underline transition-colors hover:border-mist-strong hover:bg-paper"
-      >
-        {children}
-      </Link>
-    );
-  }
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2">
-      {children}
-    </a>
-  );
-}
-
-// `Components` de streamdown suma una firma genérica por clave que ningún componente tipado
-// cumple; el mapa se declara con su tipo para que `a` reciba las props de un enlace.
-const ANSWER_COMPONENTS = { a: AnswerLink } as Components;
 
 /** Copiar y calificar, debajo de cada respuesta terminada. */
 function AnswerActions({ messageId, text, initialRating }: { messageId: string; text: string; initialRating: AnswerRating | null }) {
@@ -403,7 +389,7 @@ function BrandDnaNotice({ share }: { share: number }) {
 }
 
 function ErrorNotice({ message }: { message: string }) {
-  return <p role="alert" className="rounded-control border border-danger/20 bg-danger/5 px-3 py-2 text-[13px] text-danger">{message}</p>;
+  return <Notice>{message}</Notice>;
 }
 
 /** El servidor responde los errores esperables como `{ error }`; el resto se dice en general. */

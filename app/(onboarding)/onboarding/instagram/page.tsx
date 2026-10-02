@@ -26,6 +26,7 @@ const oauthErrors: Record<string, string> = {
   authorization_expired: "La autorización venció. Conectá Instagram nuevamente.",
   authorization_revoked: "Instagram ya no da acceso a Zenovi, por ejemplo porque se quitó la app desde Instagram. Conectala de nuevo para seguir.",
   initial_sync_failed: "La cuenta está autorizada, pero no pudimos sincronizarla. Intentá nuevamente.",
+  rate_limited: "Hubo demasiados intentos seguidos. Esperá unos minutos y probá de nuevo.",
 };
 
 export default async function InstagramOnboardingPage({

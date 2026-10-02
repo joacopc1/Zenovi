@@ -15,8 +15,8 @@
   --color-canvas: #f1f1f2;
   --color-paper: #ffffff;
   --color-ink: #000000;
-  --color-graphite: #6e6e73;
-  --color-muted: #86868b;
+  --color-graphite: #66666b;
+  --color-muted: #737378;
   --color-mist: rgba(0, 0, 0, 0.1);
   --color-mist-strong: rgba(0, 0, 0, 0.16);
   --color-control: #ededf0;
@@ -99,7 +99,42 @@
   }
 }
 
+/*
+ * Entrar subiendo un poco. Arranca en 0,01 y no en 0 a propósito: el navegador no cuenta
+ * como pintado algo invisible, y esperar a que termine la animación demoraba la carga medida.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0.01;
+    transform: translateY(var(--rise-from, 12px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes line-grow {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
 @layer utilities {
+  /* Una entrada de pantalla en CSS: se ve desde el primer pintado, sin esperar el JavaScript. */
+  .rise-in {
+    animation: rise-in 600ms ease-out both;
+  }
+
+  .line-grow {
+    animation: line-grow 800ms ease-out 500ms both;
+  }
+
   /* Las barras crecen desde la base al entrar; cada una con su retraso, en cascada. */
   .bar-grow {
     transform-origin: bottom;
@@ -116,7 +151,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bar-grow {
+  .bar-grow,
+  .rise-in,
+  .line-grow {
     animation: none;
   }
 

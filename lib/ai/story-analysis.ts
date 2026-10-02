@@ -12,8 +12,9 @@ import {
 } from "@/lib/content/story-analysis";
 import type { StorySequence } from "@/lib/content/story-sequences";
 import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source";
+import { ANALYSIS_MODEL } from "@/lib/ai/models";
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = ANALYSIS_MODEL;
 
 export async function analyzeStorySequence(
   workspaceId: string,

@@ -1,4 +1,4 @@
-import type { UIMessage } from "ai";
+import type { ModelMessage, UIMessage } from "ai";
 
 /**
  * Lo que se reenvía al modelo de la conversación guardada.
@@ -24,4 +24,21 @@ export function hasAnswerText(message: UIMessage) {
   return message.parts.some(
     (part) => (part.type === "text" && part.text.trim().length > 0) || part.type === "tool-proponer_idea",
   );
+}
+
+const CACHE_BREAKPOINT = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
+
+/**
+ * Marca el final de la conversación para la caché de Anthropic. Cada mensaje reenvía todo
+ * lo anterior; con la marca, eso se lee de la caché al 10 % del precio, tanto en los pasos
+ * con herramientas de esta respuesta como en el próximo mensaje. No resume ni recorta nada:
+ * el Director sigue leyendo la conversación entera, sólo que más barata.
+ */
+export function withCachedHistory(messages: ModelMessage[]): ModelMessage[] {
+  if (messages.length === 0) return messages;
+  const last = messages.at(-1)!;
+  return [
+    ...messages.slice(0, -1),
+    { ...last, providerOptions: { ...last.providerOptions, ...CACHE_BREAKPOINT } } as ModelMessage,
+  ];
 }

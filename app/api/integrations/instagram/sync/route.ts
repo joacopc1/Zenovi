@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ANALYTICS_TABS, RANGE_OPTIONS } from "@/lib/analytics/range";
 import { syncStoredInstagramConnection } from "@/lib/meta/stored-sync";
+import { isSameOriginRequest } from "@/lib/http/same-origin";
 import { requiresReauthorization } from "@/lib/meta/meta-error";
+import { takeRateLimit } from "@/lib/security/rate-limit";
 import { ONBOARDING_PATH, resolveSyncReturnPath } from "@/lib/meta/sync-return-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +12,11 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  // Igual que conectar y desconectar: sólo un formulario de Zenovi puede pedir una sincronización.
+  if (!isSameOriginRequest(request)) {
+    return new Response("Origen no permitido.", { status: 403 });
+  }
+
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
@@ -27,6 +34,11 @@ export async function POST(request: NextRequest) {
 
   if (workspaceError || !workspace) {
     return redirectWithError(request, redirectPath, "workspace_unavailable");
+  }
+
+  // Cada sincronización son decenas de pedidos a Meta, que limita por hora a la cuenta.
+  if (!(await takeRateLimit("instagram_sync", workspace.id))) {
+    return redirectWithError(request, redirectPath, "rate_limited");
   }
 
   const admin = createAdminClient();

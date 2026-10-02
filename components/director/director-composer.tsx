@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import type { FileUIPart } from "ai";
 import { motion } from "motion/react";
 import { ArrowUp, CalendarRange, FileText, Lightbulb, LoaderIcon, ScanSearch, X } from "lucide-react";
 import type { DirectorPieceOption } from "@/app/(dashboard)/director/actions";
+import { ATTACHMENT_ACCEPT, PendingAttachments, useAttachments } from "./attachments";
 import { ComposerMenu, type DirectorCommand } from "./composer-menu";
+import { Notice } from "@/components/ui/notice";
 
 /**
  * La caja para hablar con el Director. Parte del componente `animated-ai-chat` de la
@@ -56,8 +59,8 @@ export function DirectorComposer({
   initialPiece = null,
   initialText = "",
 }: {
-  /** El texto y, si se adjuntó, la pieza que el Director tiene que mirar. */
-  onSend: (text: string, piece: DirectorPieceOption | null) => void;
+  /** El texto y lo adjuntado: una pieza de la cuenta y archivos ya subidos. */
+  onSend: (text: string, piece: DirectorPieceOption | null, files: FileUIPart[]) => void;
   busy: boolean;
   /** "Te quedan 1.320 créditos": el uso también se ve donde se gasta. */
   creditsLabel: string;
@@ -70,6 +73,8 @@ export function DirectorComposer({
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 24, maxHeight: 192 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachments = useAttachments();
 
   // Un texto precargado (desde Producción) puede ocupar varios renglones: la caja se ajusta.
   useEffect(() => {
@@ -90,13 +95,31 @@ export function DirectorComposer({
     textareaRef.current?.focus();
   }
 
+  const hasContent = value.trim().length > 0 || piece !== null || attachments.parts.length > 0;
+  const canSend = hasContent && !busy && !attachments.uploading;
+
   function send() {
-    const text = value.trim();
-    if ((!text && !piece) || busy) return;
-    onSend(text, piece);
+    if (!canSend) return;
+    onSend(value.trim(), piece, attachments.parts);
     setValue("");
     setPiece(null);
+    attachments.clear();
     adjustHeight(true);
+  }
+
+  // Una captura pegada o un archivo arrastrado se adjunta igual que desde el "+".
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = [...event.clipboardData.files];
+    if (files.length === 0) return;
+    event.preventDefault();
+    attachments.add(files);
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    const files = [...event.dataTransfer.files];
+    if (files.length === 0) return;
+    event.preventDefault();
+    attachments.add(files);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -128,16 +151,17 @@ export function DirectorComposer({
     }
   }
 
-  const canSend = (value.trim().length > 0 || piece !== null) && !busy;
-
   return (
     <div className="w-full space-y-3">
       <motion.div
-        className="rounded-[26px] border border-ink/[0.08] bg-paper px-2.5 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+        className="rounded-[26px] border border-ink/[0.08] bg-paper px-2.5 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]"
         initial={{ scale: 0.98 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1 }}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
       >
+        <PendingAttachments items={attachments.items} onRemove={attachments.remove} />
         {piece ? (
           <div className="mb-1.5 ml-1.5 mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-mist bg-canvas py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-ink">
             {piece.label}
@@ -157,6 +181,20 @@ export function DirectorComposer({
               setPiece(picked);
               textareaRef.current?.focus();
             }}
+            onAttach={() => fileInputRef.current?.click()}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ATTACHMENT_ACCEPT}
+            multiple
+            hidden
+            onChange={(event) => {
+              attachments.add([...(event.target.files ?? [])]);
+              // Vaciarlo deja volver a elegir el mismo archivo.
+              event.target.value = "";
+              textareaRef.current?.focus();
+            }}
           />
           <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
           <textarea
@@ -169,6 +207,7 @@ export function DirectorComposer({
               adjustHeight();
             }}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={piece ? "¿Qué querés saber de esta pieza?" : "Preguntale al Director…"}
             className="mb-1.5 min-w-0 flex-1 resize-none overflow-hidden bg-transparent px-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
           />
@@ -189,7 +228,11 @@ export function DirectorComposer({
           </motion.button>
         </div>
       </motion.div>
-      <p className="text-center text-[11px] text-muted">{creditsLabel}</p>
+      {attachments.error ? (
+        <Notice onDismiss={attachments.dismissError}>{attachments.error}</Notice>
+      ) : (
+        <p className="text-center text-[11px] text-muted">{creditsLabel}</p>
+      )}
 
       {showSuggestions ? (
         <div className="flex flex-wrap items-center justify-center gap-2">

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { analyzeReel } from "@/lib/ai/reel-analysis";
 import { reelAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import { generateReelScript } from "@/lib/ai/reel-script";
+import { ANALYSIS_MODEL } from "@/lib/ai/models";
 import { userMessageForAiFailure } from "@/lib/ai/provider-error";
 import {
   isAnalysisStale,
@@ -13,6 +14,10 @@ import {
 import { parseReelScript } from "@/lib/content/script";
 import { buildCohort, type RankedContentItem } from "@/lib/content/library";
 import { durationMsFromSeconds } from "@/lib/content/media-duration";
+import { ACTION_CREDITS } from "@/lib/credits/pricing";
+import { actionCreditsBlocker, chargeAction } from "@/lib/credits/record-usage";
+import { meterAiUsage } from "@/lib/credits/usage-meter";
+import { RATE_LIMITED_MESSAGE, takeRateLimit } from "@/lib/security/rate-limit";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -68,7 +73,7 @@ export async function requestReelScript(
   const context = await getAuthorizedReel(mediaId);
   if (!context.ok) return context.error;
 
-  const { workspaceId, item, supabase } = context;
+  const { workspaceId, userId, item, supabase } = context;
   const admin = createAdminClient();
   const { data: current, error: currentError } = await admin
     .from("content_scripts")
@@ -88,6 +93,9 @@ export async function requestReelScript(
   if (current?.status === "failed" && !current.can_retry) {
     return { status: "error", message: "Este guion no se puede volver a intentar." };
   }
+  const noCredits = await actionCreditsBlocker(workspaceId, "reel_script");
+  if (noCredits) return { status: "error", message: noCredits };
+  if (!(await takeRateLimit("ai_action", workspaceId))) return { status: "error", message: RATE_LIMITED_MESSAGE };
 
   const startedAt = new Date().toISOString();
   const startError = current
@@ -137,10 +145,8 @@ export async function requestReelScript(
       .eq("status", "ready")
       .maybeSingle();
     const storedAnalysis = parseReelAnalysis(analysisRow?.result);
-    const script = await generateReelScript(
-      workspaceId,
-      item,
-      storedScript?.transcript ?? storedAnalysis?.transcript,
+    const { value: script, costUsd } = await meterAiUsage(() =>
+      generateReelScript(workspaceId, item, storedScript?.transcript ?? storedAnalysis?.transcript),
     );
     const { error } = await admin
       .from("content_scripts")
@@ -159,6 +165,7 @@ export async function requestReelScript(
       await markScriptFailed(admin, workspaceId, mediaId, "El guion terminó, pero no pudimos guardarlo.");
       return databaseError("script_save_failed", mediaId);
     }
+    await chargeAction({ workspaceId, userId, action: "reel_script", model: ANALYSIS_MODEL, costUsd, referenceId: mediaId });
     revalidatePath(`/content/${mediaId}`);
     return { status: "ready" };
   } catch (error) {
@@ -192,7 +199,7 @@ export async function requestReelAnalysis(
 
   const context = await getAuthorizedReel(mediaId);
   if (!context.ok) return context.error;
-  const { workspaceId, item, supabase } = context;
+  const { workspaceId, userId, item, supabase } = context;
   const blocker = reelAnalysisBlocker(item.views);
   if (blocker) return { status: "error", message: blocker };
 
@@ -215,6 +222,9 @@ export async function requestReelAnalysis(
   if (current?.status === "failed" && !current.can_retry) {
     return { status: "error", message: "Este análisis no se puede volver a intentar." };
   }
+  const noCredits = await actionCreditsBlocker(workspaceId, "reel_analysis");
+  if (noCredits) return { status: "error", message: noCredits };
+  if (!(await takeRateLimit("ai_action", workspaceId))) return { status: "error", message: RATE_LIMITED_MESSAGE };
 
   const refreshingReadyAnalysis = current?.status === "ready" && refresh;
   const startedAt = new Date().toISOString();
@@ -263,7 +273,7 @@ export async function requestReelAnalysis(
       .eq("status", "ready")
       .maybeSingle();
     const storedScript = parseReelScript(scriptRow?.result);
-    const analysis = await analyzeReel(workspaceId, item, storedScript?.transcript);
+    const { value: analysis, costUsd } = await meterAiUsage(() => analyzeReel(workspaceId, item, storedScript?.transcript));
     const { error } = await admin
       .from("content_analyses")
       .update({
@@ -272,7 +282,7 @@ export async function requestReelAnalysis(
         result: analysis,
         failure_reason: null,
         can_retry: true,
-        credits_spent: 0,
+        credits_spent: ACTION_CREDITS.reel_analysis,
         completed_at: analysis.completedAt,
       })
       .eq("workspace_id", workspaceId)
@@ -291,16 +301,25 @@ export async function requestReelAnalysis(
       return databaseError("save_failed", mediaId);
     }
 
-    if (!storedScript) {
-      await persistScriptGeneratedByAnalysis({
-        admin,
-        workspaceId,
-        mediaId,
-        item,
-        transcript: analysis.transcript,
-        startedAt,
-      });
-    }
+    // El guion sale de regalo con el análisis: su costo real se suma al del análisis.
+    const scriptCostUsd = storedScript
+      ? 0
+      : (await meterAiUsage(() => persistScriptGeneratedByAnalysis({
+          admin,
+          workspaceId,
+          mediaId,
+          item,
+          transcript: analysis.transcript,
+          startedAt,
+        }))).costUsd;
+    await chargeAction({
+      workspaceId,
+      userId,
+      action: "reel_analysis",
+      model: ANALYSIS_MODEL,
+      costUsd: costUsd + scriptCostUsd,
+      referenceId: mediaId,
+    });
     revalidatePath(`/content/${mediaId}`);
     return { status: "ready" };
   } catch (error) {
@@ -400,6 +419,7 @@ type AuthorizedReelResult =
   | {
       ok: true;
       workspaceId: string;
+      userId: string;
       item: RankedContentItem;
       supabase: Awaited<ReturnType<typeof createClient>>;
     };
@@ -434,7 +454,7 @@ async function getAuthorizedReel(mediaId: string): Promise<AuthorizedReelResult>
     return { ok: false, error: { status: "error", message: "No pudimos preparar ese Reel." } };
   }
 
-  return { ok: true, workspaceId: workspace.id, item, supabase };
+  return { ok: true, workspaceId: workspace.id, userId: authData.user.id, item, supabase };
 }
 
 async function markScriptFailed(

@@ -14,8 +14,9 @@ import {
 } from "@/lib/content/analysis";
 import type { RankedContentItem } from "@/lib/content/library";
 import { getFreshInstagramMediaSource } from "@/lib/data/instagram-media-source";
+import { ANALYSIS_MODEL } from "@/lib/ai/models";
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = ANALYSIS_MODEL;
 
 export async function analyzeReel(
   workspaceId: string,

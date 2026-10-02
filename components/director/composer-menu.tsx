@@ -19,6 +19,7 @@ export function ComposerMenu({
   activeCommand,
   onCommand,
   onPiece,
+  onAttach,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,6 +28,7 @@ export function ComposerMenu({
   activeCommand: number;
   onCommand: (index: number) => void;
   onPiece: (piece: DirectorPieceOption) => void;
+  onAttach: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"main" | "pieces">("main");
@@ -58,7 +60,7 @@ export function ComposerMenu({
       <AnimatePresence>
         {open ? (
           <motion.div
-            className="absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+            className={`absolute bottom-full left-0 z-50 mb-2 ${view === "pieces" ? "w-72" : "w-52"} overflow-hidden rounded-xl border border-mist bg-paper/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl`}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
@@ -75,7 +77,14 @@ export function ComposerMenu({
             ) : (
               <div role="menu">
                 <MenuRow icon={<LayoutGrid className="size-4" strokeWidth={1.7} />} label="Elegir una pieza" onClick={() => setView("pieces")} />
-                <MenuRow icon={<Paperclip className="size-4" strokeWidth={1.7} />} label="Adjuntar archivo" badge="Pronto" disabled />
+                <MenuRow
+                  icon={<Paperclip className="size-4" strokeWidth={1.7} />}
+                  label="Adjuntar archivo"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onAttach();
+                  }}
+                />
                 <div className="mx-2 my-1 border-t border-mist" />
                 {commands.map((command, index) => (
                   <MenuRow
@@ -98,14 +107,12 @@ export function ComposerMenu({
 function MenuRow({
   icon,
   label,
-  badge,
   active = false,
   disabled = false,
   onClick,
 }: {
   icon: ReactNode;
   label: string;
-  badge?: string;
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
@@ -116,13 +123,12 @@ function MenuRow({
       role="menuitem"
       disabled={disabled}
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] text-ink transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         active ? "bg-canvas" : "enabled:hover:bg-canvas/70"
       }`}
     >
-      <span className="flex size-5 items-center justify-center text-ink">{icon}</span>
+      <span className="flex size-4 items-center justify-center text-ink">{icon}</span>
       <span className="flex-1">{label}</span>
-      {badge ? <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] text-graphite">{badge}</span> : null}
     </button>
   );
 }

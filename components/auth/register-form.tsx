@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import { useCaptcha } from "./captcha";
+import { EmailCodeForm } from "./email-code-form";
 import { AuthDivider, GoogleAuthButton } from "./google-auth-button";
 import { PasswordInput } from "./password-input";
 import {
@@ -13,12 +15,12 @@ import {
 import {
   PASSWORD_MIN_LENGTH,
   SIGN_UP_FAILURE_MESSAGE,
-  SIGN_UP_RESULT_MESSAGE,
 } from "@/lib/auth/messages";
 import { createClient } from "@/lib/supabase/client";
 
 export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
+  const captcha = useCaptcha();
   const [status, setStatus] = useState<AuthFeedbackState>({ kind: "idle" });
   const [confirmationEmail, setConfirmationEmail] = useState("");
 
@@ -61,11 +63,13 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
       password,
       options: {
         data: { full_name: displayName },
+        captchaToken: captcha.token,
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/workspace`,
       },
     });
 
     if (error) {
+      captcha.reset();
       setStatus({ kind: "error", message: SIGN_UP_FAILURE_MESSAGE });
       return;
     }
@@ -78,21 +82,14 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
 
     form.reset();
     setConfirmationEmail(email);
-    setStatus({ kind: "success", message: SIGN_UP_RESULT_MESSAGE });
+    setStatus({ kind: "idle" });
   }
 
   const isLoading = status.kind === "loading";
 
-  if (status.kind === "success") {
-    return (
-      <div className="border-y border-mist py-5 text-center" role="status">
-        <p className="text-sm font-semibold text-ink">Revisá tu correo</p>
-        <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-5 text-graphite">
-          {status.message}
-        </p>
-        <p className="mt-2 break-all text-xs font-medium text-ink">{confirmationEmail}</p>
-      </div>
-    );
+  // Sin sesión todavía: falta confirmar el correo con el código que le llegó.
+  if (confirmationEmail) {
+    return <EmailCodeForm email={confirmationEmail} onBack={() => setConfirmationEmail("")} />;
   }
 
   return (
@@ -146,10 +143,12 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
           />
         </AuthField>
 
+        {captcha.widget}
+
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !captcha.ready}
         >
           {isLoading ? "Creando…" : "Crear cuenta"}
         </button>

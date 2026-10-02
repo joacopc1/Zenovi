@@ -314,14 +314,19 @@ Plan de construcción del Director en cuatro fases (pantalla con chat real, cono
 
 - [-] ADN mínimo: sección `/brand` con mapa radial ("cerebro") como hero centrado y editor del nodo activo debajo (identidad, voz, diferenciación, objetivo, ofertas y cliente ideal), respaldada por `brand_profiles`, `offers` y `audience_profiles` con RLS de workspace. El guardado es un reemplazo completo de ofertas y audiencia en cada envío. Falta conectar el Director para que consuma este contexto y validar los textos con usuarios. Responsable: Joaco/Claude.
 - [ ] Definir la separación estructural entre el ADN de marca y la capacitación del Director: el ADN es data por cuenta (cambia por usuario, se guarda en las tablas de arriba) mientras que el system prompt del Director es la "capacitación" de cómo crear contenido, común a todos los workspaces y versionado por el equipo. No mezclar: un dato del ADN nunca se vuelca al system prompt global, y una regla de capacitación nunca se guarda por cuenta. Falta documentar dónde vive cada uno y cómo se combinan en el prompt final (ver decisión 2026-09-21).
-- [-] Chats persistentes (2026-10-02): `/director` y `/director/[chatId]`, tablas `director_chats` y `director_messages` con RLS por persona; crear, reabrir, renombrar y borrar. Título automático con Haiku 4.5. Falta archivar.
-- [x] Streaming (2026-10-02): AI SDK 6 con `useChat`, Sonnet 5.5 por el AI Gateway, el navegador manda sólo el mensaje nuevo y la conversación se lee de la base.
+- [x] Chats persistentes (2026-10-02): `/director` y `/director/[chatId]`, tablas `director_chats` y `director_messages` con RLS por persona; crear, reabrir, renombrar, archivar y borrar. Título automático con Haiku 4.5. Los archivados quedan en una sección plegada de la lista; seguir uno lo devuelve a Recientes. Borrar un chat borra sus adjuntos.
+- [x] Streaming (2026-10-02): AI SDK 6 con `useChat`, Sonnet 5.5 directo con Anthropic (el AI Gateway se sacó), el navegador manda sólo el mensaje nuevo y la conversación se lee de la base.
 - [ ] Model router.
-- [-] Tools autorizadas (2026-10-02): el Director lee la cuenta con `buscar_contenido`, `ver_pieza` y `resumen_cuenta` (las mismas cuentas que Analíticas), sólo lectura y dentro del workspace propio; consulta guías con `consultar_guia`. Falta RAG sobre transcripciones y análisis de Historias.
+- [x] Tools autorizadas (2026-10-02/03): el Director lee la cuenta con `buscar_contenido` (también encuentra un Reel por lo que se dice en él), `ver_pieza` (retención, salteo y el guion partido en gancho, desarrollo y cierre), `ver_historias` (secuencias por día con retención y cada KPI contra lo habitual, más su análisis) y `resumen_cuenta`; todo sólo lectura y dentro del workspace propio. Consulta guías con `consultar_guia`. Sin RAG: los guiones de una cuenta entran enteros en una búsqueda de texto; se revisa si una cuenta llega a cientos de Reels transcriptos.
 - [x] Citas internas (2026-10-02): el Director cita cada pieza con su enlace y la pantalla lo muestra como un chip que la abre.
-- [ ] Adjuntos temporales.
-- [ ] Memoria/resumen.
-- [-] Créditos (2026-10-02): `ai_usage_events` guarda el costo real de cada operación; 1 crédito = US$0,01; 1.500 créditos por mes y workspace en la beta; círculo de uso en el encabezado y saldo en el Director; sin saldo, el chat no responde. Falta registrar el consumo de los análisis de Reels e Historias y el precio fijo por acción.
+- [x] Adjuntos en el Director (2026-10-03): imágenes y PDF desde el "+", pegando o arrastrando; hasta 4 por mensaje y 4 MB cada uno. Las imágenes se guardan como WebP de 1568 px como máximo (lo que Claude lee), en el bucket privado `director-attachments`, por workspace y persona; el mensaje guarda una dirección propia que el servidor resuelve dentro de la carpeta de la sesión.
+- [x] Costo de los chats largos (2026-10-03): la conversación entera queda en la caché de Anthropic, así lo ya leído se cobra al 10 % en cada paso y en el próximo mensaje. No se resume: el Director sigue leyendo todo. La memoria entre chats queda para cuando haya uso real que la justifique.
+- [x] Adjuntos temporales: cubierto por los adjuntos del Director (2026-10-03).
+- [ ] Memoria/resumen: el resumen no hace falta por costo (caché); la memoria entre chats se diseña con uso real.
+- [ ] Guías `.md` del Director (Joaco las arma): tipos de contenido, Trial Reels, marca personal, infoproductos. El lector y el índice ya existen (`lib/director/guides`); falta el contenido.
+- [ ] Evaluar al Director (2026-10-02): un set fijo de 20–30 preguntas reales (ideas, guiones, "¿por qué funcionó este Reel?", Historias) con la respuesta esperada, para medir cada cambio de prompt, guía o modelo antes de subirlo.
+- [ ] Director flotante (ver idea en Producción): decidir después de la beta.
+- [x] Créditos (2026-10-02/03): `ai_usage_events` guarda el costo real de cada operación; 1 crédito = US$0,01; 1.500 créditos por mes y workspace en la beta; círculo de uso en el encabezado y saldo en el Director; sin saldo, el chat no responde. Analizar un Reel, analizar una secuencia y generar una transcripción cuestan 3 créditos fijos, a la vista en el botón, y se cobran sólo si terminan bien; su costo real (Gemini y el respaldo de Claude) se mide igual para ajustar el precio. Falta medir Groq (centavos por hora de audio).
 
 ### Sprint 5 - Producción y Stories
 
@@ -529,8 +534,9 @@ Sondeado contra la API real con el token de @elcostarrica (`npm run probe:trial`
 
 ### Sprint 6 - Hardening
 
-- [ ] Tests E2E críticos.
-- [ ] Auditoría RLS/IDOR.
+- [-] Tests E2E críticos (2026-10-03): Playwright con el Chrome instalado (`npm run test:e2e`), 17 pruebas: login sin usuario inventado, error de login que no revela qué falló, cada pantalla privada manda al login, API del Director, adjuntos, cron y sincronización cerrados sin permiso, encabezados de seguridad, y el primer uso completo de una cuenta nueva (entrar, crear el espacio, llegar a conectar Instagram, abrir el Director). Cada corrida crea una cuenta temporal y la borra. Falta el recorrido con Instagram conectado (necesita una cuenta de prueba de Meta).
+- [x] Auditoría RLS/IDOR (2026-10-03): `npm run test:security` crea una cuenta B temporal y prueba contra la base real que no lee, crea, cambia ni borra nada de otra cuenta, por listado y por id, ni llama funciones o lista buckets del servidor. Sin fallas. Correrlo después de cada migración.
+- [-] Rendimiento (2026-10-03): `scripts/lighthouse.mjs` mide cada pantalla con sesión sobre la versión de producción. Escritorio 98–100 en todas; celular 70–90. Hecho: Streamdown se descarga recién con la primera respuesta (Director −150 KB), la entrada del Director es CSS y se pinta sin esperar el JavaScript, grises con contraste suficiente, nombre accesible en el botón del Director y orden de títulos en Producción. Falta: el Director en celular (70) carga el runtime de chat del AI SDK y motion al entrar (~180 KB); se podría diferir hasta el primer mensaje.
 - [ ] Prompt injection/tool abuse.
 - [ ] Performance y accesibilidad.
 - [ ] Estados de error y retry.
@@ -538,6 +544,18 @@ Sondeado contra la API real con el token de @elcostarrica (`npm run probe:trial`
 - [ ] Política, términos y eliminación.
 - [ ] Panel operativo.
 - [ ] Runbooks.
+
+### Antes de salir a testear (2026-10-02, Joaco)
+
+Lo que falta para poner la app en manos de los primeros creadores, en orden:
+
+1. [-] **Seguridad — importantísimo.** Primera pasada (2026-10-03): encabezados de seguridad y CSP en todas las páginas; rate limit en Postgres (`hit_rate_limit`, sólo service_role) para el chat del Director (20/min y 200/h por persona), adjuntos, análisis y transcripciones (15 cada 10 min por workspace), sincronizar a mano (6/h) y conectar Instagram; la sincronización ahora exige mismo origen; Next 16.3.8 (parche crítico de `next/og`, que no usábamos). Verificado: ninguna clave aparece en el código que baja al navegador; sin sesión no se lee, escribe ni lista nada en ninguna tabla, RPC o bucket; tokens de Instagram cifrados y sólo del servidor; cron con clave en comparación de tiempo constante; firma del webhook de borrado de Meta. Hecho después: prueba cruzada con dos cuentas (`npm run test:security`, sin fallas), rate limit verificado en la base, y el CAPTCHA (Cloudflare Turnstile) listo en login, registro y recuperación detrás de `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Falta: configuración de Supabase Auth por Joaco (URL del sitio y redirects, SMTP propio con Resend, vencimiento de enlaces, activar el CAPTCHA con la clave secreta, protección de contraseñas filtradas con el plan Pro), borrar de `.env.local` y Vercel los tokens personales viejos que ya no usa la app, seguimiento de errores, y lo de abajo. Auditoría de RLS e IDOR tabla por tabla y en cada acción de servidor; que ninguna clave salga del servidor ni llegue a la IA; límites de uso en las rutas de IA (además de los créditos); encabezados de seguridad (CSP, frame-ancestors); revisión de dependencias; buckets privados sin políticas públicas; prompt injection en captions, guiones y adjuntos; borrado de cuenta completo. Ver también Sprint 6.
+2. [ ] **Verificación del negocio en Meta.** Bloqueada por el documento del socio (ver Registro de bloqueos). Sin ella la app no sale de modo desarrollo.
+3. [ ] **Onboarding.** Primer uso guiado: conectar Instagram, esperar la primera sincronización, completar el ADN y abrir el primer chat con el Director, con estados vacíos que expliquen qué viene.
+4. [ ] **Pagos y planes con Polar.sh.** Checkout, suscripciones, prueba gratis con tope de créditos, cambio de plan y portal de facturación; los créditos del mes salen del plan en vez de `BETA_MONTHLY_CREDITS`. Criterios de planes en Fase 7 › Mes 3.
+5. [ ] **Rehacer Inicio (el overview)** con lo que ya sabemos que le sirve al creador: views e interacciones primero, lo que conviene hacer hoy y accesos al Director.
+6. [-] Confirmar el registro (2026-10-03): pantalla propia "Revisá tu correo" con reenvío cada 60 s. Supabase no deja editar las plantillas sin SMTP propio, así que hoy llega su mail con enlace y la pantalla pide abrirlo. Listo para pasar a código de 6 dígitos (casillas, pegar, envío automático) y mails con la marca Zenovi (`supabase/templates`) cuando haya SMTP (Resend): cargar las plantillas, poner el largo del código en 6 y activar `NEXT_PUBLIC_AUTH_EMAIL_CODE=true`.
+7. [x] Login: recuerda la última cuenta de Instagram del navegador ("continuar con @usuario") en vez de mostrar "@usuario" fijo (2026-10-02).
 
 ## Fase 7 - Beta privada
 
@@ -582,6 +600,7 @@ Sondeado contra la API real con el token de @elcostarrica (`npm run probe:trial`
 - [ ] Evaluar conversión a pago.
 - [ ] Preparar casos de estudio con consentimiento.
 - [ ] Definir tres planes con datos reales.
+  - Criterios de Joaco (2026-10-02): margen de al menos ~50 % sobre el costo de IA medido en la beta; los planes se diferencian por **funciones**, no sólo por créditos (ej.: cuántos competidores se analizan, 1 → 3 → 5; proyectos en lugar de chats sueltos en el plan alto, como Claude o ChatGPT). La prueba gratis (7 o 14 días) da acceso a las funciones importantes con un tope de cálculo bajo —propuesta: 300 créditos, US$3 de costo máximo— para que enganche sin que se consuma todo; es una mezcla de prueba y freemium. Números y supuestos en [Costos de IA de Zenovi](https://claude.ai/code/artifact/9b5e494f-4a02-45d9-8639-0f28ebf3324a).
 - [ ] Decidir go, pivot o stop.
 
 ## Fase 8 - Después del MVP

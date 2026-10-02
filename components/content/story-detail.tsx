@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquareText } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import { AppHeader } from "@/components/shell/app-header";
 import { storyAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import type { StoryAnalysisState } from "@/lib/content/story-analysis";
@@ -47,7 +47,7 @@ export function StoryDetail({
               href={`/director?pieza=${activeStoryId}`}
               className="font-support inline-flex min-h-8 items-center gap-1.5 rounded-control bg-ink px-3 text-[12px] font-medium text-paper hover:bg-ink/85"
             >
-              <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+              <Bot aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
               Preguntar al Director
             </Link>
           )}

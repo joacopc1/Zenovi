@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import { useCaptcha } from "./captcha";
 import { AuthDivider, GoogleAuthButton } from "./google-auth-button";
 import { PasswordInput } from "./password-input";
 import {
@@ -24,6 +25,7 @@ export function LoginForm({
   googleEnabled = false,
 }: LoginFormProps) {
   const router = useRouter();
+  const captcha = useCaptcha();
   const [status, setStatus] = useState<AuthFeedbackState>(
     initialError
       ? { kind: "error", message: SIGN_IN_FAILURE_MESSAGE }
@@ -59,9 +61,11 @@ export function LoginForm({
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: { captchaToken: captcha.token },
     });
 
     if (error) {
+      captcha.reset();
       setStatus({ kind: "error", message: SIGN_IN_FAILURE_MESSAGE });
       return;
     }
@@ -119,10 +123,12 @@ export function LoginForm({
           />
         </div>
 
+        {captcha.widget}
+
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !captcha.ready}
         >
           {isLoading ? "Entrando…" : "Iniciar sesión"}
         </button>

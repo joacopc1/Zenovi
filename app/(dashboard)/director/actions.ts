@@ -7,6 +7,7 @@ import type { ProposedIdea } from "@/lib/director/idea-tool";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { pieceHref, pieceLabel, validTimeZone } from "@/lib/director/account-snapshots";
+import { removeAttachments } from "@/lib/director/attachments";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,10 +21,23 @@ export async function renameDirectorChat(chatId: string, title: string) {
   revalidatePath("/director", "layout");
 }
 
+/** Archivar saca el chat de Recientes sin borrarlo; se puede volver a traer. */
+export async function archiveDirectorChat(chatId: string, archived: boolean) {
+  if (!UUID.test(chatId) || typeof archived !== "boolean") return;
+  const supabase = await createClient();
+  await supabase.from("director_chats").update({ archived_at: archived ? new Date().toISOString() : null }).eq("id", chatId);
+  revalidatePath("/director", "layout");
+}
+
 export async function deleteDirectorChat(chatId: string) {
   if (!UUID.test(chatId)) return;
+  const account = await getAccountContext();
+  if (!account?.workspace) return;
   const supabase = await createClient();
-  await supabase.from("director_chats").delete().eq("id", chatId);
+  // Los adjuntos se leen antes de borrar: después, los mensajes ya no existen.
+  const { data: messages } = await supabase.from("director_messages").select("parts").eq("chat_id", chatId);
+  const { error } = await supabase.from("director_chats").delete().eq("id", chatId);
+  if (!error) await removeAttachments(account.workspace.id, account.userId, messages ?? []);
   revalidatePath("/director", "layout");
 }
 

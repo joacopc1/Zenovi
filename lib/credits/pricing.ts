@@ -24,7 +24,22 @@ type ModelPrice = { input: number; cacheRead: number; cacheWrite: number; output
 const PRICES_PER_MILLION: Record<string, ModelPrice> = {
   "claude-sonnet-5-5": { input: 2, cacheRead: 0.2, cacheWrite: 2.5, output: 10 },
   "claude-haiku-4-5": { input: 1, cacheRead: 0.1, cacheWrite: 1.25, output: 5 },
+  // Gemini no usa caché en estos análisis; el razonamiento se cobra como salida.
+  "gemini-3.8-flash": { input: 0.75, cacheRead: 0.075, cacheWrite: 0.75, output: 3.75 },
 };
+
+/**
+ * Las acciones grandes tienen precio fijo y a la vista antes de hacerlas: el creador sabe
+ * cuánto le cuesta analizar algo sin depender de cuánto dura el video. Se cobran sólo si
+ * terminan bien. Su costo real se mide igual, para ajustar estos precios con datos.
+ */
+export const ACTION_CREDITS = {
+  reel_analysis: 3,
+  story_analysis: 3,
+  reel_script: 3,
+} as const;
+
+export type PricedAction = keyof typeof ACTION_CREDITS;
 
 export type TokenUsage = {
   /** Tokens de entrada sin caché. */
@@ -34,6 +49,10 @@ export type TokenUsage = {
   /** Incluye el razonamiento: se cobra igual que la respuesta. */
   outputTokens: number;
 };
+
+export function hasModelPrice(model: string) {
+  return model in PRICES_PER_MILLION;
+}
 
 export function usageCostUsd(model: string, usage: TokenUsage) {
   const price = PRICES_PER_MILLION[model];

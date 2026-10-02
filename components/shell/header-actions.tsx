@@ -3,21 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "./actions";
-import { BellIcon, DirectorIcon, SettingsIcon } from "./icons";
+import { Bot } from "lucide-react";
+import { BellIcon, SettingsIcon } from "./icons";
 import { useShellIdentity } from "./shell-identity";
 import { useDismissibleDetails } from "./use-dismissible-details";
 
 export function HeaderActions() {
   return (
     <div className="ml-auto flex items-center gap-1.5">
-      <button
-        type="button"
-        title="Director IA, próximamente"
+      <Link
+        href="/director"
+        aria-label="Director IA"
         className="flex min-h-8 items-center gap-1.5 rounded-control border border-mist bg-paper px-2.5 text-[11px] font-medium text-ink hover:bg-canvas"
       >
-        <DirectorIcon className="size-4" />
+        <Bot aria-hidden="true" className="size-4" strokeWidth={1.75} />
         <span className="hidden sm:inline">Director IA</span>
-      </button>
+      </Link>
       <NotificationMenu />
       <AccountMenu />
     </div>

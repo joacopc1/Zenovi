@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Check, Ellipsis, Pencil, Plus, Trash2, X } from "lucide-react";
-import { deleteDirectorChat, renameDirectorChat } from "@/app/(dashboard)/director/actions";
+import { Archive, ArchiveRestore, Check, ChevronRight, Ellipsis, Pencil, Plus, Trash2, X } from "lucide-react";
+import { archiveDirectorChat, deleteDirectorChat, renameDirectorChat } from "@/app/(dashboard)/director/actions";
 import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { HoverLabel } from "@/components/ui/hover-label";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
@@ -19,6 +19,11 @@ export function ChatList({
   activeChatId: string | null;
   onClose: () => void;
 }) {
+  const recent = chats.filter((chat) => !chat.archived);
+  const archived = chats.filter((chat) => chat.archived);
+  // Abierto si el chat que se está viendo es uno archivado, para que se vea dónde está.
+  const [showArchived, setShowArchived] = useState(() => archived.some((chat) => chat.id === activeChatId));
+
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-mist bg-paper lg:flex" aria-label="Tus chats">
       <div className="flex items-center justify-between gap-2 px-3 py-3">
@@ -39,13 +44,34 @@ export function ChatList({
           Nuevo
         </Link>
       </div>
-      <p className="px-5 pb-1.5 pt-2 text-[12px] font-medium text-muted">Recientes</p>
-      <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
-        {chats.length === 0 ? (
-          <p className="px-3 py-2 text-[13px] leading-5 text-muted">Tus conversaciones con el Director van a quedar acá.</p>
-        ) : (
-          chats.map((chat) => <ChatRow key={chat.id} chat={chat} active={chat.id === activeChatId} />)
-        )}
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        <p className="px-3 pb-1.5 pt-2 text-[12px] font-medium text-muted">Recientes</p>
+        <div className="space-y-0.5">
+          {recent.length === 0 ? (
+            <p className="px-3 py-2 text-[13px] leading-5 text-muted">Tus conversaciones con el Director van a quedar acá.</p>
+          ) : (
+            recent.map((chat) => <ChatRow key={chat.id} chat={chat} active={chat.id === activeChatId} />)
+          )}
+        </div>
+        {archived.length > 0 ? (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowArchived((open) => !open)}
+              aria-expanded={showArchived}
+              className="flex w-full items-center gap-1 rounded-lg px-3 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
+            >
+              Archivados
+              <span className="tabular-nums">{archived.length}</span>
+              <ChevronRight aria-hidden="true" className={`ml-auto size-3.5 transition-transform ${showArchived ? "rotate-90" : ""}`} strokeWidth={1.75} />
+            </button>
+            {showArchived ? (
+              <div className="mt-0.5 space-y-0.5">
+                {archived.map((chat) => <ChatRow key={chat.id} chat={chat} active={chat.id === activeChatId} />)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
     </aside>
   );
@@ -108,6 +134,14 @@ function ChatRow({ chat, active }: { chat: DirectorChatSummary; active: boolean 
             setDraft(chat.title ?? "");
             setRenaming(true);
           }}
+          onArchive={() =>
+            startTransition(async () => {
+              await archiveDirectorChat(chat.id, !chat.archived);
+              setMenuOpen(false);
+              if (active && !chat.archived) router.push("/director");
+            })
+          }
+          archived={chat.archived}
           onDelete={() =>
             startTransition(async () => {
               await deleteDirectorChat(chat.id);
@@ -126,11 +160,15 @@ function ChatRow({ chat, active }: { chat: DirectorChatSummary; active: boolean 
 function ChatMenu({
   onClose,
   onRename,
+  onArchive,
+  archived,
   onDelete,
   deleting,
 }: {
   onClose: () => void;
   onRename: () => void;
+  onArchive: () => void;
+  archived: boolean;
   onDelete: () => void;
   deleting: boolean;
 }) {
@@ -156,7 +194,7 @@ function ChatMenu({
     <div
       ref={ref}
       role="menu"
-      className="absolute right-1 top-full z-50 mt-1 w-48 rounded-xl border border-mist bg-paper p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
+      className="absolute right-1 top-full z-50 mt-1 w-36 rounded-xl border border-mist bg-paper p-1 shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
     >
       {confirming ? (
         <div className="px-2 py-1.5">
@@ -177,8 +215,14 @@ function ChatMenu({
         </div>
       ) : (
         <>
-          <MenuItem onClick={onRename} icon={<Pencil className="size-4" strokeWidth={1.75} />}>Renombrar</MenuItem>
-          <MenuItem onClick={() => setConfirming(true)} icon={<Trash2 className="size-4" strokeWidth={1.75} />} danger>
+          <MenuItem onClick={onRename} icon={<Pencil className="size-3.5" strokeWidth={1.75} />}>Renombrar</MenuItem>
+          <MenuItem
+            onClick={onArchive}
+            icon={archived ? <ArchiveRestore className="size-3.5" strokeWidth={1.75} /> : <Archive className="size-3.5" strokeWidth={1.75} />}
+          >
+            {archived ? "Desarchivar" : "Archivar"}
+          </MenuItem>
+          <MenuItem onClick={() => setConfirming(true)} icon={<Trash2 className="size-3.5" strokeWidth={1.75} />} danger>
             Eliminar
           </MenuItem>
         </>
@@ -203,7 +247,7 @@ function MenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-ink/[0.045] ${danger ? "text-danger" : "text-ink"}`}
+      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-ink/[0.045] ${danger ? "text-danger" : "text-ink"}`}
     >
       {icon}
       {children}

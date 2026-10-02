@@ -1,8 +1,11 @@
 export const SIGN_IN_FAILURE_MESSAGE =
   "No pudimos iniciar sesión con esos datos.";
 
-export const SIGN_UP_RESULT_MESSAGE =
-  "Te enviamos un enlace de confirmación. Al abrirlo, vas a continuar directamente con la configuración de tu marca.";
+export const EMAIL_CODE_LENGTH = 6;
+export const EMAIL_CODE_RESEND_SECONDS = 60;
+
+export const EMAIL_CODE_FAILURE_MESSAGE =
+  "El código no es correcto o ya venció. Revisalo o pedí uno nuevo.";
 
 export const SIGN_UP_FAILURE_MESSAGE =
   "No pudimos crear la cuenta en este momento. Revisá los datos e intentá nuevamente.";

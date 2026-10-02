@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSameOriginRequest } from "@/lib/http/same-origin";
 import { getInstagramOAuthConfig } from "@/lib/meta/config";
 import { buildInstagramAuthorizationUrl, createInstagramOAuthState } from "@/lib/meta/oauth";
+import { takeRateLimit } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
 
   if (!workspace) {
     return NextResponse.redirect(new URL("/onboarding/workspace", request.url), 303);
+  }
+  if (!(await takeRateLimit("instagram_oauth", authData.user.id))) {
+    return redirectWithError(request, "rate_limited");
   }
 
   try {

@@ -2,11 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { analyzeStorySequence } from "@/lib/ai/story-analysis";
+import { ANALYSIS_MODEL } from "@/lib/ai/models";
 import { userMessageForAiFailure } from "@/lib/ai/provider-error";
 import { isAnalysisStale } from "@/lib/content/analysis";
 import { buildCohort } from "@/lib/content/library";
 import { storyAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import { buildStorySequences } from "@/lib/content/story-sequences";
+import { ACTION_CREDITS } from "@/lib/credits/pricing";
+import { actionCreditsBlocker, chargeAction } from "@/lib/credits/record-usage";
+import { meterAiUsage } from "@/lib/credits/usage-meter";
+import { RATE_LIMITED_MESSAGE, takeRateLimit } from "@/lib/security/rate-limit";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +57,9 @@ export async function requestStorySequenceAnalysis(
   if (current?.status === "failed" && !current.can_retry) {
     return { status: "error", message: "Este análisis no se puede volver a intentar." };
   }
+  const noCredits = await actionCreditsBlocker(workspace.id, "story_analysis");
+  if (noCredits) return { status: "error", message: noCredits };
+  if (!(await takeRateLimit("ai_action", workspace.id))) return { status: "error", message: RATE_LIMITED_MESSAGE };
 
   const startedAt = new Date().toISOString();
   const startError = current
@@ -80,18 +88,27 @@ export async function requestStorySequenceAnalysis(
   revalidatePath(`/content/${mediaId}`);
 
   try {
-    const analysis = await analyzeStorySequence(workspace.id, sequence);
+    const { value: analysis, costUsd } = await meterAiUsage(() => analyzeStorySequence(workspace.id, sequence));
     const { error } = await admin.from("content_analyses").update({
       status: "ready",
       pipeline_version: analysis.pipelineVersion,
       result: analysis,
       failure_reason: null,
       can_retry: true,
-      credits_spent: 0,
+      credits_spent: ACTION_CREDITS.story_analysis,
       completed_at: analysis.completedAt,
     }).eq("workspace_id", workspace.id).eq("instagram_media_id", anchorId);
 
     if (error) return databaseError("save_failed", mediaId);
+    // Se cobra lo que quedó guardado: un análisis que no se pudo guardar no se paga.
+    await chargeAction({
+      workspaceId: workspace.id,
+      userId: authData.user.id,
+      action: "story_analysis",
+      model: ANALYSIS_MODEL,
+      costUsd,
+      referenceId: anchorId,
+    });
     revalidatePath(`/content/${mediaId}`);
     return { status: "ready" };
   } catch (error) {

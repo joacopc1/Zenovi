@@ -17,3 +17,16 @@ test("una respuesta vacía o que falló no cuenta como respuesta", () => {
   assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [{ type: "text", text: "Listo" }] }), true);
   assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [{ type: "tool-proponer_idea", toolCallId: "t" }] }), true);
 });
+
+test("el final de la conversación queda marcado para la caché, sin tocar lo demás", async () => {
+  const { withCachedHistory } = await import("../lib/director/history.ts");
+  const marked = withCachedHistory([
+    { role: "user", content: "Hola" },
+    { role: "assistant", content: "¡Hola!" },
+    { role: "user", content: "¿Qué publico hoy?", providerOptions: { otro: { x: 1 } } },
+  ]);
+  assert.equal(marked.length, 3);
+  assert.equal(marked[0].providerOptions, undefined);
+  assert.deepEqual(marked[2].providerOptions, { otro: { x: 1 }, anthropic: { cacheControl: { type: "ephemeral" } } });
+  assert.deepEqual(withCachedHistory([]), []);
+});

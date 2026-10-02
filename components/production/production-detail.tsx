@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Clock3,
   Link2,
-  MessageSquareText,
+  Bot,
   Pencil,
   Play,
   X,
@@ -96,7 +96,7 @@ export function ProductionDetail({
                 href={`/director?idea=${item.id}`}
                 className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-mist px-2.5 text-[12px] font-medium text-ink hover:bg-canvas"
               >
-                <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+                <Bot aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
                 Llevar al Director
               </Link>
             </div>

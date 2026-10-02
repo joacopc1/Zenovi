@@ -5,13 +5,13 @@ import { HoverLabel } from "@/components/ui/hover-label";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
+  Bot,
   ChartNoAxesCombined,
   ChevronRight,
   Clapperboard,
   Kanban,
   Fingerprint,
   House,
-  MessageSquareText,
   Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -28,7 +28,7 @@ type NavGroup = { label: string; items: NavItem[] };
 
 const groups: NavGroup[] = [
   { label: "Decidir", items: [
-    { href: "/director", label: "Director", icon: MessageSquareText },
+    { href: "/director", label: "Director IA", icon: Bot },
     { href: "/production", label: "Producción", icon: Kanban },
   ]},
   { label: "Observar", items: [
@@ -84,6 +84,8 @@ export function SidebarNav({
       <div className="mt-2.5 space-y-2.5">
         {groups.map((group) => (
           <section key={group.label}>
+            {/* Colapsada, el título del grupo se vuelve una rayita: separa sin dejar un hueco vacío. */}
+            {collapsed ? <div aria-hidden="true" className="mx-auto mb-2.5 h-px w-5 bg-ink/[0.08]" /> : null}
             <p
               className={collapsed
                 ? "sr-only"

@@ -18,6 +18,13 @@ const item = (overrides = {}) => ({
   follows: null,
   profileVisits: null,
   replies: null,
+  durationMs: null,
+  averageWatchTimeMs: null,
+  skipRate: null,
+  storyForwardTaps: null,
+  storyBackTaps: null,
+  storyExits: null,
+  storyNextSwipes: null,
   multiplier: 1.8361,
   ...overrides,
 });
@@ -72,4 +79,78 @@ test("una idea de Producción llega al Director con lo que ya tiene, lista para 
   const { ideaPrompt } = await import("../lib/director/account-snapshots.ts");
   const prompt = ideaPrompt({ title: "Errores al vender por DM", hook: "Si vendés por DM, frená", development: "", cta: "" });
   assert.equal(prompt, "Quiero desarrollar esta idea de mi Producción: «Errores al vender por DM».\nGancho: Si vendés por DM, frená\n¿Cómo la mejorarías?");
+});
+
+test("en un Reel llegan la retención y cuánto lo saltearon, en segundos y porcentaje", () => {
+  const snapshot = pieceSnapshot(item({ durationMs: 31_240, averageWatchTimeMs: 8_460, skipRate: 0.412 }));
+  assert.equal(snapshot.metricas.duracion_segundos, 31.2);
+  assert.equal(snapshot.metricas.segundos_vistos_en_promedio, 8.5);
+  assert.equal(snapshot.metricas.porcentaje_que_lo_salteo, 41.2);
+  // Instagram a veces lo manda ya en porcentaje.
+  assert.equal(pieceSnapshot(item({ skipRate: 41.2 })).metricas.porcentaje_que_lo_salteo, 41.2);
+});
+
+test("el guion llega partido en gancho, desarrollo y cierre con lo que se dijo en cada tramo", async () => {
+  const { scriptSnapshot } = await import("../lib/director/account-snapshots.ts");
+  const snapshot = scriptSnapshot({
+    segments: [
+      { role: "hook", fromMs: 0, toMs: 2000, note: "" },
+      { role: "development", fromMs: 2000, toMs: 6000, note: "" },
+      { role: "development", fromMs: 6000, toMs: 9000, note: "" },
+    ],
+    transcript: [
+      { atMs: 0, quote: "Dejá de vender por DM." },
+      { atMs: 2500, quote: "Primero," },
+      { atMs: 4000, quote: "ordená la oferta." },
+      { atMs: 7000, quote: "Después, el precio." },
+    ],
+  });
+  assert.deepEqual(snapshot, {
+    gancho: "Dejá de vender por DM.",
+    desarrollo: "Primero, ordená la oferta. Después, el precio.",
+    cierre: null,
+  });
+});
+
+test("un guion larguísimo recorta el desarrollo antes que el gancho y el cierre", async () => {
+  const { scriptSnapshot } = await import("../lib/director/account-snapshots.ts");
+  const snapshot = scriptSnapshot({
+    segments: [
+      { role: "hook", fromMs: 0, toMs: 1000, note: "" },
+      { role: "development", fromMs: 1000, toMs: 2000, note: "" },
+      { role: "cta", fromMs: 2000, toMs: 3000, note: "" },
+    ],
+    transcript: [
+      { atMs: 0, quote: "Gancho corto." },
+      { atMs: 1000, quote: "x".repeat(5000) },
+      { atMs: 2000, quote: "Seguime." },
+    ],
+  });
+  assert.equal(snapshot.gancho, "Gancho corto.");
+  assert.equal(snapshot.cierre, "Seguime.");
+  assert.ok(snapshot.desarrollo.endsWith("…"));
+  assert.ok(snapshot.gancho.length + snapshot.desarrollo.length + snapshot.cierre.length <= 2400);
+});
+
+test("una secuencia de Historias llega con su curva y cada número contra lo habitual", async () => {
+  const { sequenceSnapshot } = await import("../lib/director/account-snapshots.ts");
+  const { buildStorySequences } = await import("../lib/content/story-sequences.ts");
+  const story = (id, day, hour, reach, extra = {}) =>
+    item({ id, kind: "story", formatLabel: "Historia", postedAt: `2026-09-${day}T${hour}:00:00Z`, reach, replies: 2, profileVisits: 4, follows: 1, caption: null, ...extra });
+  const sequences = buildStorySequences([
+    story("a1", "20", "15", 100), story("a2", "20", "16", 80),
+    story("b1", "21", "15", 100), story("b2", "21", "16", 70),
+    story("c1", "22", "15", 200), story("c2", "22", "16", 150), story("c3", "22", "17", 100, { caption: "  Link en bio  " }),
+  ]);
+  const snapshot = sequenceSnapshot(sequences[0], sequences);
+  assert.equal(snapshot.id, "c1");
+  assert.equal(snapshot.enlace, "/content/c1?type=story");
+  assert.equal(snapshot.dia, "2026-09-22");
+  assert.equal(snapshot.historias, 3);
+  assert.equal(snapshot.completaron_pct, 50);
+  assert.equal(snapshot.completaron_habitual_pct, 70);
+  assert.deepEqual(snapshot.retencion_por_historia_pct, [100, 75, 50]);
+  assert.equal(snapshot.respuestas_cada_100, 3);
+  assert.deepEqual(snapshot.textos, [null, null, "Link en bio"]);
+  assert.equal(snapshot.analisis, null);
 });

@@ -3,6 +3,7 @@ import {
   classifyGeminiFailure,
   normalizeAiFailure,
 } from "./provider-error.ts";
+import { addMeteredUsage } from "../credits/usage-meter.ts";
 
 const INLINE_REQUEST_LIMIT = 20 * 1024 * 1024;
 const MAX_ATTEMPTS_PER_MODEL = 2;
@@ -169,6 +170,7 @@ async function requestGeminiJson(
 
         if (response.ok) {
           const result = readGeminiJson(payload);
+          meterGeminiUsage(model, result.usage);
           return { ...result, model };
         }
 
@@ -233,6 +235,16 @@ function readGeminiJson(payload: unknown) {
   } catch {
     throw new Error("gemini_invalid_json");
   }
+}
+
+function meterGeminiUsage(model: string, usage: GeminiUsage | null) {
+  if (!usage) return;
+  addMeteredUsage(model, {
+    inputTokens: usage.input ?? 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    outputTokens: (usage.output ?? 0) + (usage.thoughts ?? 0),
+  });
 }
 
 function readUsage(value: unknown): GeminiUsage | null {

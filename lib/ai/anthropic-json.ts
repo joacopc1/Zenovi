@@ -4,6 +4,8 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, jsonSchema, Output } from "ai";
 import { ANALYSIS_FALLBACK_MODEL } from "./models.ts";
 import { AiProviderError } from "./provider-error.ts";
+import { tokenUsageFrom } from "../credits/record-usage.ts";
+import { addMeteredUsage } from "../credits/usage-meter.ts";
 
 const FALLBACK_TIMEOUT_MS = 90_000;
 
@@ -55,6 +57,8 @@ export async function generateAnthropicJson({
       timeout: { totalMs: FALLBACK_TIMEOUT_MS },
     });
 
+    // Se mide con el modelo pedido: el id que devuelve la respuesta puede traer una fecha y no tener precio.
+    addMeteredUsage(ANALYSIS_FALLBACK_MODEL, tokenUsageFrom(result.totalUsage));
     return {
       value: result.output as unknown,
       model: result.response.modelId || ANALYSIS_FALLBACK_MODEL,

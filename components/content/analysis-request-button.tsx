@@ -8,13 +8,15 @@ import {
   type RequestAnalysisResult,
 } from "@/app/(dashboard)/content/[id]/actions";
 import { requestStorySequenceAnalysis } from "@/app/(dashboard)/content/[id]/story-actions";
+import { ACTION_CREDITS } from "@/lib/credits/pricing";
+import { CreditCost } from "./credit-cost";
 
 export type AnalysisSubject = "reel" | "story";
 
 const subjects = {
-  reel: { request: requestReelAnalysis, label: "Analizar este Reel" },
-  story: { request: requestStorySequenceAnalysis, label: "Analizar secuencia" },
-} satisfies Record<AnalysisSubject, { request: typeof requestReelAnalysis; label: string }>;
+  reel: { request: requestReelAnalysis, label: "Analizar este Reel", credits: ACTION_CREDITS.reel_analysis },
+  story: { request: requestStorySequenceAnalysis, label: "Analizar secuencia", credits: ACTION_CREDITS.story_analysis },
+} satisfies Record<AnalysisSubject, { request: typeof requestReelAnalysis; label: string; credits: number }>;
 
 export function AnalysisRequestButton({
   subject,
@@ -61,6 +63,8 @@ export function AnalysisRequestButton({
             : refresh
               ? "Actualizar análisis"
               : subjects[subject].label}
+        {/* El precio se ve antes de tocar: las acciones grandes no sorprenden en el saldo. */}
+        {pending ? null : <CreditCost credits={subjects[subject].credits} tone={refresh ? "onLight" : "onDark"} />}
       </button>
       {result.status === "error" && result.message ? (
         <p className="font-support mt-2 text-xs text-danger" role="alert">

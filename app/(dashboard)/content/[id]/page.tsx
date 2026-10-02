@@ -7,7 +7,7 @@ import {
   BadgeDollarSign,
   Clock3,
   Eye,
-  MessageSquareText,
+  Bot,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -194,7 +194,7 @@ export default async function ContentDetailPage({
                 href={`/director?pieza=${item.id}`}
                 className="font-support flex min-h-8 w-full items-center justify-center gap-1.5 rounded-control bg-ink px-3 text-[12px] font-medium text-paper transition-colors hover:bg-ink/85"
               >
-                <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+                <Bot aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
                 Preguntar al Director
               </Link>
               {item.permalink ? (

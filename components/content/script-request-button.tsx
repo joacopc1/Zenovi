@@ -7,6 +7,8 @@ import {
   requestReelScript,
   type RequestScriptResult,
 } from "@/app/(dashboard)/content/[id]/actions";
+import { ACTION_CREDITS } from "@/lib/credits/pricing";
+import { CreditCost } from "./credit-cost";
 
 export function ScriptRequestButton({
   mediaId,
@@ -41,6 +43,7 @@ export function ScriptRequestButton({
       >
         <Icon size={15} strokeWidth={2} aria-hidden className={pending ? "animate-spin" : ""} />
         {pending ? "Transcribiendo…" : retry ? "Volver a intentar" : "Generar transcripción"}
+        {pending ? null : <CreditCost credits={ACTION_CREDITS.reel_script} tone="onDark" />}
       </button>
       {showError && result.status === "error" && result.message ? (
         <p className="font-support mt-2 text-xs text-danger" role="alert">

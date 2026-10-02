@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
+import { useCaptcha } from "./captcha";
 import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
@@ -14,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export function ForgotPasswordForm() {
   const [status, setStatus] = useState<AuthFeedbackState>({ kind: "idle" });
+  const captcha = useCaptcha();
 
   async function requestReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,7 +33,9 @@ export function ForgotPasswordForm() {
     const supabase = createClient();
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+      captchaToken: captcha.token,
     });
+    captcha.reset();
 
     form.reset();
     setStatus({ kind: "success", message: PASSWORD_RESET_RESULT_MESSAGE });
@@ -57,10 +61,11 @@ export function ForgotPasswordForm() {
             required
           />
         </div>
+        {captcha.widget}
         <button
           className={AUTH_PRIMARY_BUTTON_CLASS}
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !captcha.ready}
         >
           {isLoading ? "Enviando…" : "Recuperar acceso"}
         </button>

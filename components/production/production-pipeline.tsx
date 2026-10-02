@@ -227,7 +227,7 @@ function Column({
             className="size-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: STATUS_COLORS[status] }}
           />
-          <h3 className="truncate text-[13px] font-semibold text-ink">{STATUS_LABELS[status]}</h3>
+          <h2 className="truncate text-[13px] font-semibold text-ink">{STATUS_LABELS[status]}</h2>
           <Badge>{items.length}</Badge>
         </div>
         {status === "idea" || status === "guion" ? (

@@ -21,3 +21,7 @@ supabase/.temp/
 .venv-pdf/
 *.tsbuildinfo
 next-env.d.ts
+e2e/.account.json
+test-results/
+playwright-report/
+lighthouse-reports/
