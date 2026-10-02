@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 type AuthFrameProps = {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
   activeTab?: "login" | "register";
   accountContext?: ReactNode;
@@ -27,11 +27,11 @@ export function AuthFrame({
             <span className="text-muted">{description}</span>
             {accountContext}
           </div>
-        ) : (
+        ) : description ? (
           <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-5 text-muted">
             {description}
           </p>
-        )}
+        ) : null}
       </header>
 
       {activeTab ? (

@@ -16,8 +16,9 @@ export function OnboardingFrame({
   currentStep,
 }: OnboardingFrameProps) {
   return (
-    <main className="min-h-screen bg-white px-5 py-12 text-ink">
-      <section className="mx-auto w-full max-w-[400px]">
+    // Pocas cosas en pantalla: van al centro (un poco arriba del medio, donde se ve centrado).
+    <main className="flex min-h-dvh flex-col justify-center bg-white px-5 py-12 text-ink">
+      <section className="mx-auto -mt-[8vh] w-full max-w-[400px]">
         <Link href="/" className="mx-auto flex w-fit items-center gap-2.5" aria-label="Zenovi">
           <BrandMark />
           <span className="text-[17px] font-semibold tracking-[-0.025em]">Zenovi</span>

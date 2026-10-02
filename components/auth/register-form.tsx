@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { AuthFeedback, type AuthFeedbackState } from "./auth-feedback";
 import { useCaptcha } from "./captcha";
-import { EmailCodeForm } from "./email-code-form";
 import { AuthDivider, GoogleAuthButton } from "./google-auth-button";
 import { PasswordInput } from "./password-input";
 import {
@@ -18,11 +17,17 @@ import {
 } from "@/lib/auth/messages";
 import { createClient } from "@/lib/supabase/client";
 
-export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+export function RegisterForm({
+  googleEnabled = false,
+  onConfirmationSent,
+}: {
+  googleEnabled?: boolean;
+  /** La cuenta se creó pero falta confirmar el correo: la pantalla pasa al paso del código. */
+  onConfirmationSent: (email: string) => void;
+}) {
   const router = useRouter();
   const captcha = useCaptcha();
   const [status, setStatus] = useState<AuthFeedbackState>({ kind: "idle" });
-  const [confirmationEmail, setConfirmationEmail] = useState("");
 
   async function continueWithGoogle() {
     setStatus({ kind: "loading" });
@@ -81,16 +86,11 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
     }
 
     form.reset();
-    setConfirmationEmail(email);
     setStatus({ kind: "idle" });
+    onConfirmationSent(email);
   }
 
   const isLoading = status.kind === "loading";
-
-  // Sin sesión todavía: falta confirmar el correo con el código que le llegó.
-  if (confirmationEmail) {
-    return <EmailCodeForm email={confirmationEmail} onBack={() => setConfirmationEmail("")} />;
-  }
 
   return (
     <div className="space-y-5">

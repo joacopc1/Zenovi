@@ -104,7 +104,6 @@ export function EmailCodeForm({ email, onBack }: { email: string; onBack: () => 
   return (
     <div className="space-y-6 text-center">
       <div className="space-y-1.5">
-        <p className="text-base font-semibold text-ink">Revisá tu correo</p>
         <p className="mx-auto max-w-[34ch] text-sm leading-5 text-graphite">
           {EMAIL_CODE_ENABLED
             ? `Te mandamos un código de ${EMAIL_CODE_LENGTH} dígitos a`
