@@ -20,6 +20,10 @@ export const DIRECTOR_COMMANDS: DirectorCommand[] = [
   { icon: <CalendarRange className="size-4" strokeWidth={1.7} />, label: "Plan", description: "Un plan de publicación para los próximos días", prefix: "/plan" },
 ];
 
+/**
+ * Arranca en un renglón y crece con el texto; al llegar al tope deja de crecer y hace
+ * scroll, como la caja de ChatGPT.
+ */
 function useAutoResizeTextarea({ minHeight, maxHeight }: { minHeight: number; maxHeight: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -28,8 +32,12 @@ function useAutoResizeTextarea({ minHeight, maxHeight }: { minHeight: number; ma
       const textarea = textareaRef.current;
       if (!textarea) return;
       textarea.style.height = `${minHeight}px`;
-      if (reset) return;
+      if (reset) {
+        textarea.style.overflowY = "hidden";
+        return;
+      }
       textarea.style.height = `${Math.max(minHeight, Math.min(textarea.scrollHeight, maxHeight))}px`;
+      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
     },
     [minHeight, maxHeight],
   );
@@ -56,7 +64,7 @@ export function DirectorComposer({
   const [value, setValue] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 60, maxHeight: 200 });
+  const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 24, maxHeight: 192 });
   const commandPaletteRef = useRef<HTMLDivElement>(null);
   const commandButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -117,30 +125,13 @@ export function DirectorComposer({
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       <motion.div
-        className="relative rounded-2xl border border-ink/[0.06] bg-paper/70 shadow-2xl shadow-ink/[0.06] backdrop-blur-2xl"
+        className="relative flex items-end gap-2 rounded-[26px] border border-ink/[0.08] bg-paper px-2.5 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
         initial={{ scale: 0.98 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="p-4 pb-2">
-          <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
-          <textarea
-            id="director-input"
-            ref={textareaRef}
-            value={value}
-            onChange={(event) => {
-              updateValue(event.target.value);
-              adjustHeight();
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Preguntale al Director…"
-            className="min-h-[60px] w-full resize-none overflow-hidden bg-transparent px-1 py-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-4 border-t border-ink/[0.05] p-4">
           {/* El menú sale del botón, flotando, en lugar de ocupar todo el ancho de la caja. */}
           <div className="relative">
             <motion.button
@@ -149,11 +140,11 @@ export function DirectorComposer({
               onClick={() => setShowCommandPalette((previous) => !previous)}
               whileTap={{ scale: 0.94 }}
               aria-label="Ver comandos"
-              className={`group relative rounded-lg p-2 text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
+              className={`group relative grid size-9 place-items-center rounded-full text-ink/40 transition-colors hover:text-ink/90 ${showCommandPalette ? "bg-ink/[0.06] text-ink/90" : ""}`}
             >
               <Command className="size-4" strokeWidth={1.7} />
               <motion.span
-                className="absolute inset-0 rounded-lg bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute inset-0 rounded-full bg-ink/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
                 layoutId="button-highlight"
               />
             </motion.button>
@@ -198,28 +189,40 @@ export function DirectorComposer({
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="font-support hidden text-[11px] text-muted sm:inline">{creditsLabel}</span>
-            {/* Apagado sin texto; negro con la flecha blanca cuando hay algo para mandar. */}
-            <motion.button
-              type="button"
-              onClick={send}
-              whileTap={{ scale: 0.94 }}
-              disabled={busy || !value.trim()}
-              aria-label="Enviar"
-              className={`grid size-9 place-items-center rounded-full text-paper transition-colors ${
-                value.trim() && !busy ? "bg-ink hover:bg-ink/85" : "bg-ink/15"
-              }`}
-            >
-              {busy ? (
-                <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={2} />
-              ) : (
-                <ArrowUp className="size-[18px]" strokeWidth={2.2} />
-              )}
-            </motion.button>
-          </div>
-        </div>
+        <label htmlFor="director-input" className="sr-only">Mensaje para el Director</label>
+        <textarea
+          id="director-input"
+          ref={textareaRef}
+          rows={1}
+          value={value}
+          onChange={(event) => {
+            updateValue(event.target.value);
+            adjustHeight();
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Preguntale al Director…"
+          className="mb-1.5 min-w-0 flex-1 resize-none overflow-hidden bg-transparent px-1 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
+        />
+
+        {/* Apagado sin texto; negro con la flecha blanca cuando hay algo para mandar. */}
+        <motion.button
+          type="button"
+          onClick={send}
+          whileTap={{ scale: 0.94 }}
+          disabled={busy || !value.trim()}
+          aria-label="Enviar"
+          className={`grid size-9 shrink-0 place-items-center rounded-full text-paper transition-colors ${
+            value.trim() && !busy ? "bg-ink hover:bg-ink/85" : "bg-ink/15"
+          }`}
+        >
+          {busy ? (
+            <LoaderIcon className="size-4 animate-[spin_2s_linear_infinite]" strokeWidth={2} />
+          ) : (
+            <ArrowUp className="size-[18px]" strokeWidth={2.2} />
+          )}
+        </motion.button>
       </motion.div>
+      <p className="text-center text-[11px] text-muted">{creditsLabel}</p>
 
       {showSuggestions ? (
         <div className="flex flex-wrap items-center justify-center gap-2">

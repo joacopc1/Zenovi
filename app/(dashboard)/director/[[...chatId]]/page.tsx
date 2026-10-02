@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { DirectorScreen } from "@/components/director/director-screen";
 import { AppHeader } from "@/components/shell/app-header";
+import { measureBrandDna } from "@/lib/brand/dna";
 import { getAccountContext } from "@/lib/data/account-context";
+import { getBrandDna } from "@/lib/data/brand-dna";
 import { listDirectorChats, loadDirectorChat } from "@/lib/data/director-chats";
 
 export const metadata: Metadata = { title: "Director · Zenovi" };
@@ -20,10 +22,12 @@ export default async function DirectorPage({ params }: { params: Promise<{ chatI
   if (segments && segments.length > 1) notFound();
   const requestedId = segments?.[0] ?? null;
 
-  const [chat, chats] = await Promise.all([
+  const [chat, chats, dna] = await Promise.all([
     requestedId ? loadDirectorChat(requestedId) : null,
     listDirectorChats(account.workspace.id),
+    getBrandDna(account.workspace.id),
   ]);
+  const completeness = measureBrandDna(dna);
   if (requestedId && !chat) notFound();
 
   // Un chat nuevo nace con su id desde el servidor; existe en la base recién con el primer mensaje.
@@ -38,6 +42,7 @@ export default async function DirectorPage({ params }: { params: Promise<{ chatI
         isNew={!chat}
         initialMessages={chat?.messages ?? []}
         initialRatings={chat?.ratings ?? {}}
+        brandDnaShare={completeness.total > 0 ? completeness.completed / completeness.total : 0}
         chats={chats}
       />
     </>

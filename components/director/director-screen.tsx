@@ -23,6 +23,7 @@ export function DirectorScreen({
   isNew,
   initialMessages,
   initialRatings,
+  brandDnaShare,
   chats,
 }: {
   chatId: string;
@@ -30,6 +31,8 @@ export function DirectorScreen({
   isNew: boolean;
   initialMessages: UIMessage[];
   initialRatings: Record<string, AnswerRating>;
+  /** Qué parte del ADN de marca está completa, de 0 a 1: sin ADN, el Director no conoce el negocio. */
+  brandDnaShare: number;
   chats: DirectorChatSummary[];
 }) {
   const router = useRouter();
@@ -103,6 +106,7 @@ export function DirectorScreen({
                   Pedí ideas, guiones o un plan, o escribí / para ver los comandos
                 </motion.p>
               </div>
+              {brandDnaShare < 0.5 ? <BrandDnaNotice share={brandDnaShare} /> : null}
               {composer}
               {errorMessage ? <ErrorNotice message={errorMessage} /> : null}
             </motion.div>
@@ -295,6 +299,24 @@ function useChatsPanelPreference() {
   }
 
   return [open, update] as const;
+}
+
+/** Sin ADN, el Director responde en general; con él, habla del negocio de cada creador. */
+function BrandDnaNotice({ share }: { share: number }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-mist bg-paper px-4 py-3">
+      <p className="text-[13px] leading-5 text-graphite">
+        <span className="font-medium text-ink">El Director todavía no conoce tu marca.</span>{" "}
+        Completá tu ADN ({Math.round(share * 100)} % hecho) y va a responder sobre tu negocio, no en general.
+      </p>
+      <Link
+        href="/brand"
+        className="shrink-0 rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-medium text-paper hover:bg-ink/85"
+      >
+        Completar ADN
+      </Link>
+    </div>
+  );
 }
 
 function ErrorNotice({ message }: { message: string }) {
