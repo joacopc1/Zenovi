@@ -49,10 +49,14 @@ if (!created.ok) throw new Error(`No se pudo crear la cuenta B: ${created.status
 const userB = await created.json();
 
 try {
-  const session = await fetch(`${URL_BASE}/auth/v1/token?grant_type=password`, {
+  // Supabase exige CAPTCHA al entrar con contraseña: B entra con un enlace que genera el
+  // servidor, y desde ahí usa sólo la clave pública y su sesión, como el navegador.
+  const link = await admin("/auth/v1/admin/generate_link", { method: "POST", body: JSON.stringify({ type: "magiclink", email }) })
+    .then((response) => response.json());
+  const session = await fetch(`${URL_BASE}/auth/v1/verify`, {
     method: "POST",
     headers: { apikey: PUBLIC_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token ?? link.properties?.hashed_token }),
   }).then((response) => response.json());
   if (!session.access_token) throw new Error("La cuenta B no pudo iniciar sesión.");
 

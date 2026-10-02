@@ -37,7 +37,9 @@ try {
   const supabase = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: { getAll: () => [], setAll: (values) => sessionCookies.push(...values) },
   });
-  await supabase.auth.signInWithPassword({ email, password });
+  // Supabase exige CAPTCHA también con contraseña: se entra con un enlace generado por el servidor.
+  const link = await admin("/auth/v1/admin/generate_link", { method: "POST", body: JSON.stringify({ type: "magiclink", email }) }).then((r) => r.json());
+  await supabase.auth.verifyOtp({ token_hash: link.hashed_token ?? link.properties?.hashed_token, type: "magiclink" });
   const browser = await chromium.launch({ channel: "chrome" });
   const context = await browser.newContext();
   await context.addCookies(sessionCookies.map(({ name, value }) => ({ name, value, url: BASE })));

@@ -10,6 +10,7 @@ import { syncInstagramConnection } from "@/lib/meta/sync";
 import { encryptMetaToken } from "@/lib/meta/token-crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { claimInstagramTrial } from "@/lib/billing/trial-claims";
 
 export const runtime = "nodejs";
 
@@ -150,6 +151,10 @@ export async function GET(request: NextRequest) {
     await markConnectionFailure(admin, attempt, "account_persistence_failed", "failed");
     return redirectWithError(request, attempt.redirect_path, "account_unavailable");
   }
+
+  // Queda anotado desde ahora, aunque todavía no haya planes: cuando la prueba gratis exista,
+  // un Instagram que ya pasó por otra cuenta de Zenovi no vuelve a tenerla.
+  await claimInstagramTrial(admin, attempt.workspace_id, socialAccount.provider_account_id);
 
   const { error: credentialError } = await admin.from("instagram_connection_credentials").upsert({
     connection_id: connection.id,
