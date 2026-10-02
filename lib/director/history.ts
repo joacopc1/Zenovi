@@ -16,7 +16,12 @@ export function historyForModel(messages: readonly UIMessage[]): UIMessage[] {
   );
 }
 
-/** Una respuesta sin texto (falló o se cortó antes de escribir) no se guarda: dejaría un hueco en el chat. */
+/**
+ * Una respuesta que no dejó nada para mostrar (falló o se cortó antes de escribir) no se
+ * guarda: dejaría un hueco en el chat. Una idea propuesta cuenta, aunque venga sin texto.
+ */
 export function hasAnswerText(message: UIMessage) {
-  return message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
+  return message.parts.some(
+    (part) => (part.type === "text" && part.text.trim().length > 0) || part.type === "tool-proponer_idea",
+  );
 }

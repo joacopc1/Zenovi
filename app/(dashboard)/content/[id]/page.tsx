@@ -7,6 +7,7 @@ import {
   BadgeDollarSign,
   Clock3,
   Eye,
+  MessageSquareText,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -187,8 +188,16 @@ export default async function ContentDetailPage({
                 </div>
               ) : null}
             </div>
-            {item.permalink ? (
-              <div className="border-t border-mist p-3">
+            <div className="space-y-2 border-t border-mist p-3">
+              {/* Abre un chat nuevo con esta pieza ya cargada en la caja. */}
+              <Link
+                href={`/director?pieza=${item.id}`}
+                className="font-support flex min-h-8 w-full items-center justify-center gap-1.5 rounded-control bg-ink px-3 text-[12px] font-medium text-paper transition-colors hover:bg-ink/85"
+              >
+                <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+                Preguntar al Director
+              </Link>
+              {item.permalink ? (
                 <a
                   href={item.permalink}
                   target="_blank"
@@ -198,8 +207,8 @@ export default async function ContentDetailPage({
                   Ver en Instagram
                   <ArrowUpRight aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
                 </a>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </section>
 
           <div className="min-w-0 space-y-5">

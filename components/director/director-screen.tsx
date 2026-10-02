@@ -15,6 +15,8 @@ import Link from "next/link";
 import { Check, Copy, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
 import { HoverLabel } from "@/components/ui/hover-label";
 import { DirectorComposer, ThinkingIndicator } from "./director-composer";
+import { IdeaCard } from "./idea-card";
+import type { ProposedIdea } from "@/lib/director/idea-tool";
 
 const creditFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
 
@@ -24,6 +26,8 @@ export function DirectorScreen({
   initialMessages,
   initialRatings,
   brandDnaShare,
+  initialPiece,
+  initialText,
   chats,
 }: {
   chatId: string;
@@ -33,6 +37,9 @@ export function DirectorScreen({
   initialRatings: Record<string, AnswerRating>;
   /** Qué parte del ADN de marca está completa, de 0 a 1: sin ADN, el Director no conoce el negocio. */
   brandDnaShare: number;
+  /** Lo que trae quien llega desde una pieza o una tarjeta de Producción. */
+  initialPiece: DirectorPieceOption | null;
+  initialText: string;
   chats: DirectorChatSummary[];
 }) {
   const router = useRouter();
@@ -80,6 +87,8 @@ export function DirectorScreen({
       onSend={send}
       busy={busy}
       showSuggestions={empty}
+      initialPiece={initialPiece}
+      initialText={initialText}
       creditsLabel={credits.remaining > 0 ? `Te quedan ${creditFormatter.format(credits.remaining)} créditos` : "Sin créditos este mes"}
     />
   );
@@ -168,8 +177,9 @@ function ChatMessage({
       </div>
     );
   }
+  const ideas = proposedIdeas(message);
   // Todavía consultando la cuenta o las guías: se dice qué, en el lugar de la respuesta.
-  if (!text) {
+  if (!text && ideas.length === 0) {
     if (!streaming) return null;
     return consulted.pending ? <ThinkingIndicator label={consulted.pending} /> : <ThinkingIndicator />;
   }
@@ -177,7 +187,10 @@ function ChatMessage({
     <div className="group/answer">
       <div className="director-answer rounded-2xl border border-mist bg-paper px-5 py-4 text-[15px] leading-7 text-ink">
         {consulted.done.length ? <p className="mb-2 text-[12px] text-muted">{consulted.done.join(" · ")}</p> : null}
-        <Streamdown isAnimating={streaming} components={ANSWER_COMPONENTS}>{text}</Streamdown>
+        {text ? <Streamdown isAnimating={streaming} components={ANSWER_COMPONENTS}>{text}</Streamdown> : null}
+        {ideas.map((idea) => (
+          <IdeaCard key={idea.toolCallId} messageId={message.id} toolCallId={idea.toolCallId} idea={idea.input} savedItemId={idea.savedItemId} />
+        ))}
       </div>
       {streaming ? null : <AnswerActions messageId={message.id} text={text} initialRating={initialRating} />}
     </div>
@@ -209,11 +222,23 @@ function ChatRail({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+/** Las ideas que el Director propuso en esta respuesta, ya completas, y si se guardaron. */
+function proposedIdeas(message: UIMessage) {
+  return message.parts.flatMap((part) => {
+    if (part.type !== "tool-proponer_idea") return [];
+    const call = part as unknown as { toolCallId: string; state?: string; input?: ProposedIdea; output?: { guardada?: string } };
+    return call.input && (call.state === "output-available" || call.state === undefined)
+      ? [{ toolCallId: call.toolCallId, input: call.input, savedItemId: call.output?.guardada ?? null }]
+      : [];
+  });
+}
+
 const TOOL_LABELS: Record<string, { pending: string; done: string }> = {
   "tool-buscar_contenido": { pending: "Revisando tu contenido…", done: "Revisó tu contenido" },
   "tool-ver_pieza": { pending: "Mirando la pieza en detalle…", done: "Miró una pieza en detalle" },
   "tool-resumen_cuenta": { pending: "Revisando el resumen de tu cuenta…", done: "Revisó el resumen de tu cuenta" },
   "tool-consultar_guia": { pending: "Consultando las guías de Zenovi…", done: "Consultó las guías de Zenovi" },
+  "tool-proponer_idea": { pending: "Armando la idea…", done: "" },
 };
 
 /** Qué consultó el Director para responder: lo que está haciendo ahora y lo que ya leyó. */
@@ -222,7 +247,7 @@ function consultedSources(message: UIMessage) {
   const running = tools.findLast((part) => part.state !== "output-available" && part.state !== "output-error");
   return {
     pending: running ? TOOL_LABELS[running.type].pending : null,
-    done: [...new Set(tools.filter((part) => part.state === "output-available").map((part) => TOOL_LABELS[part.type].done))],
+    done: [...new Set(tools.filter((part) => part.state === "output-available").map((part) => TOOL_LABELS[part.type].done))].filter(Boolean),
   };
 }
 

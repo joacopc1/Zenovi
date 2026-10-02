@@ -3,7 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { DirectorScreen } from "@/components/director/director-screen";
 import { AppHeader } from "@/components/shell/app-header";
 import { measureBrandDna } from "@/lib/brand/dna";
+import type { DirectorPieceOption } from "@/app/(dashboard)/director/actions";
+import { ideaPrompt, pieceHref, pieceLabel } from "@/lib/director/account-snapshots";
 import { getAccountContext } from "@/lib/data/account-context";
+import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
+import { getContentItems } from "@/lib/data/production";
 import { getBrandDna } from "@/lib/data/brand-dna";
 import { listDirectorChats, loadDirectorChat } from "@/lib/data/director-chats";
 
@@ -14,7 +18,14 @@ export const metadata: Metadata = { title: "Director · Zenovi" };
  * cambia la dirección y se refresca una vez, sin navegar a otra página a mitad de camino
  * (eso dejaba la lista de chats desactualizada).
  */
-export default async function DirectorPage({ params }: { params: Promise<{ chatId?: string[] }> }) {
+export default async function DirectorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ chatId?: string[] }>;
+  /** Desde una pieza (`pieza`) o una tarjeta de Producción (`idea`): el chat nuevo arranca con eso cargado. */
+  searchParams: Promise<{ pieza?: string; idea?: string }>;
+}) {
   const account = await getAccountContext();
   if (!account?.workspace) redirect("/login");
 
@@ -32,6 +43,11 @@ export default async function DirectorPage({ params }: { params: Promise<{ chatI
 
   // Un chat nuevo nace con su id desde el servidor; existe en la base recién con el primer mensaje.
   const chatId = chat?.id ?? crypto.randomUUID();
+  const { pieza, idea } = await searchParams;
+  const [initialPiece, initialText] = chat ? [null, ""] : await Promise.all([
+    findPiece(account.workspace.id, pieza),
+    findIdeaPrompt(account.workspace.id, idea),
+  ]);
 
   return (
     <>
@@ -43,8 +59,32 @@ export default async function DirectorPage({ params }: { params: Promise<{ chatI
         initialMessages={chat?.messages ?? []}
         initialRatings={chat?.ratings ?? {}}
         brandDnaShare={completeness.total > 0 ? completeness.completed / completeness.total : 0}
+        initialPiece={initialPiece}
+        initialText={initialText}
         chats={chats}
       />
     </>
   );
+}
+
+/** La pieza se busca dentro de la biblioteca propia: un id ajeno no encuentra nada. */
+async function findPiece(workspaceId: string, id: string | undefined): Promise<DirectorPieceOption | null> {
+  if (!id) return null;
+  const library = await getInstagramContentLibrary(workspaceId);
+  const item = library?.items.find((candidate) => candidate.id === id);
+  if (!item) return null;
+  return {
+    id: item.id,
+    label: pieceLabel(item),
+    href: pieceHref(item),
+    caption: item.caption ? item.caption.slice(0, 90) : null,
+    thumbnailUrl: item.thumbnailUrl ?? item.mediaUrl,
+  };
+}
+
+/** La idea se busca entre las tarjetas del workspace propio, igual que en Producción. */
+async function findIdeaPrompt(workspaceId: string, id: string | undefined) {
+  if (!id) return "";
+  const item = (await getContentItems(workspaceId)).find((candidate) => candidate.id === id);
+  return item ? ideaPrompt(item) : "";
 }

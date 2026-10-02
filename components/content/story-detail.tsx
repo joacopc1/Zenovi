@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageSquareText } from "lucide-react";
 import { AppHeader } from "@/components/shell/app-header";
 import { storyAnalysisBlocker } from "@/lib/content/analysis-readiness";
 import type { StoryAnalysisState } from "@/lib/content/story-analysis";
@@ -34,13 +34,24 @@ export function StoryDetail({
     <>
       <AppHeader />
       <main className="mx-auto w-full max-w-[1160px] px-5 py-6 md:px-8 md:py-8 lg:px-10">
-        <Link
-          href="/content?type=story"
-          className="font-support inline-flex min-h-8 items-center gap-2 text-[13px] text-graphite hover:text-ink"
-        >
-          <ArrowLeft aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
-          Volver a Historias
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href="/content?type=story"
+            className="font-support inline-flex min-h-8 items-center gap-2 text-[13px] text-graphite hover:text-ink"
+          >
+            <ArrowLeft aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+            Volver a Historias
+          </Link>
+          {readOnly ? null : (
+            <Link
+              href={`/director?pieza=${activeStoryId}`}
+              className="font-support inline-flex min-h-8 items-center gap-1.5 rounded-control bg-ink px-3 text-[12px] font-medium text-paper hover:bg-ink/85"
+            >
+              <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+              Preguntar al Director
+            </Link>
+          )}
+        </div>
         {notice}
 
         <div className="mt-5 space-y-6">

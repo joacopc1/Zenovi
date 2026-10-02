@@ -120,3 +120,16 @@ export function isWithinDays(postedAt: string, from?: string, to?: string, timeZ
 function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
+
+/**
+ * El mensaje con el que se abre el Director desde una tarjeta de Producción: queda en la
+ * caja para que el creador lo ajuste antes de mandarlo.
+ */
+export function ideaPrompt(idea: { title: string; hook: string; development: string; cta: string }) {
+  const parts = [`Quiero desarrollar esta idea de mi Producción: «${idea.title.trim() || "sin título"}».`];
+  if (idea.hook.trim()) parts.push(`Gancho: ${idea.hook.trim()}`);
+  if (idea.development.trim()) parts.push(`Lo que tengo hasta ahora: ${truncate(idea.development.trim(), 600)}`);
+  if (idea.cta.trim()) parts.push(`Cierre: ${idea.cta.trim()}`);
+  parts.push("¿Cómo la mejorarías?");
+  return parts.join("\n");
+}

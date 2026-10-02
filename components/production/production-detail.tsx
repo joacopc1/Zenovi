@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import {
   ArrowLeft,
@@ -8,6 +9,7 @@ import {
   ChevronRight,
   Clock3,
   Link2,
+  MessageSquareText,
   Pencil,
   Play,
   X,
@@ -89,6 +91,14 @@ export function ProductionDetail({
             <div className="mb-2.5 flex flex-wrap items-center gap-2 pr-9">
               <StatusPill item={item} />
               <DateControl item={item} />
+              {/* Desarrollar la idea con el Director: abre un chat nuevo con la idea cargada. */}
+              <Link
+                href={`/director?idea=${item.id}`}
+                className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-mist px-2.5 text-[12px] font-medium text-ink hover:bg-canvas"
+              >
+                <MessageSquareText aria-hidden="true" className="size-3.5" strokeWidth={1.7} />
+                Llevar al Director
+              </Link>
             </div>
           )}
 

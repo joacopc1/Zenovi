@@ -22,6 +22,7 @@ import { DIRECTOR_GUIDES } from "@/lib/director/guides";
 import { readDirectorGuide } from "@/lib/director/guides/read-guide";
 import { validTimeZone } from "@/lib/director/account-snapshots";
 import { hasAnswerText, historyForModel } from "@/lib/director/history";
+import { proposeIdeaTool } from "@/lib/director/idea-tool";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     providerOptions: CACHE,
   };
   const startedAt = Date.now();
-  const tools: ToolSet = { ...buildAccountTools(workspaceId, timeZone), ...guideTools };
+  const tools: ToolSet = { ...buildAccountTools(workspaceId, timeZone), proponer_idea: proposeIdeaTool, ...guideTools };
 
   const result = streamText({
     model: anthropic(DIRECTOR_MODEL),

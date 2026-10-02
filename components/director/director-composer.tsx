@@ -53,6 +53,8 @@ export function DirectorComposer({
   busy,
   creditsLabel,
   showSuggestions,
+  initialPiece = null,
+  initialText = "",
 }: {
   /** El texto y, si se adjuntó, la pieza que el Director tiene que mirar. */
   onSend: (text: string, piece: DirectorPieceOption | null) => void;
@@ -60,12 +62,19 @@ export function DirectorComposer({
   /** "Te quedan 1.320 créditos": el uso también se ve donde se gasta. */
   creditsLabel: string;
   showSuggestions: boolean;
+  initialPiece?: DirectorPieceOption | null;
+  initialText?: string;
 }) {
-  const [value, setValue] = useState("");
-  const [piece, setPiece] = useState<DirectorPieceOption | null>(null);
+  const [value, setValue] = useState(initialText);
+  const [piece, setPiece] = useState<DirectorPieceOption | null>(initialPiece);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 24, maxHeight: 192 });
+
+  // Un texto precargado (desde Producción) puede ocupar varios renglones: la caja se ajusta.
+  useEffect(() => {
+    if (initialText) adjustHeight();
+  }, [initialText, adjustHeight]);
 
   function updateValue(next: string) {
     setValue(next);

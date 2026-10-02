@@ -15,4 +15,5 @@ test("una respuesta vacía o que falló no cuenta como respuesta", () => {
   assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [] }), false);
   assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [{ type: "reasoning", text: "x" }, { type: "text", text: "  " }] }), false);
   assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [{ type: "text", text: "Listo" }] }), true);
+  assert.equal(hasAnswerText({ id: "a", role: "assistant", parts: [{ type: "tool-proponer_idea", toolCallId: "t" }] }), true);
 });

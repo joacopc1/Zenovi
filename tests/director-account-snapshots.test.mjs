@@ -67,3 +67,9 @@ test("una pieza se nombra por su formato y su día", async () => {
   const { pieceLabel } = await import("../lib/director/account-snapshots.ts");
   assert.equal(pieceLabel({ formatLabel: "Reel", postedAt: "2026-09-29T01:30:00Z" }), "Reel del 28 de setiembre");
 });
+
+test("una idea de Producción llega al Director con lo que ya tiene, lista para ajustar", async () => {
+  const { ideaPrompt } = await import("../lib/director/account-snapshots.ts");
+  const prompt = ideaPrompt({ title: "Errores al vender por DM", hook: "Si vendés por DM, frená", development: "", cta: "" });
+  assert.equal(prompt, "Quiero desarrollar esta idea de mi Producción: «Errores al vender por DM».\nGancho: Si vendés por DM, frená\n¿Cómo la mejorarías?");
+});
