@@ -18,7 +18,7 @@ export default async function WorkspaceOnboardingPage() {
     <OnboardingFrame
       title="Nombrá tu marca"
       description="Así la vas a identificar dentro de Zenovi."
-      currentStep={1}
+      step="workspace"
     >
       <WorkspaceForm />
     </OnboardingFrame>

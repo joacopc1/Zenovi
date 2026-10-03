@@ -67,7 +67,7 @@ export default async function InstagramOnboardingPage({
             ? "El permiso está listo. Ahora importá tus publicaciones y métricas."
           : "Elegí la cuenta profesional que querés analizar."
       }
-      currentStep={2}
+      step="instagram"
     >
       {connectionCompleted ? (
         <ConnectionComplete />
@@ -185,7 +185,7 @@ function ConnectionComplete() {
         href="/"
         className="mt-5 grid h-12 w-full place-items-center rounded-[12px] bg-ink px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
       >
-        Ir al inicio
+        Entrar a Zenovi
       </Link>
     </div>
   );

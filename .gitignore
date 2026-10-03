@@ -25,3 +25,6 @@ e2e/.account.json
 test-results/
 playwright-report/
 lighthouse-reports/
+
+# Documentos personales que no van al repositorio.
+/Reference_Letter_Request.pdf

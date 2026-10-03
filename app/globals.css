@@ -125,7 +125,22 @@
   }
 }
 
+/* Un paso hecho se tacha de izquierda a derecha, como quien lo raya a mano. */
+@keyframes strike-through {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @layer utilities {
+  .checklist-strike {
+    transform-origin: left;
+    animation: strike-through 500ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+  }
+
   /* Una entrada de pantalla en CSS: se ve desde el primer pintado, sin esperar el JavaScript. */
   .rise-in {
     animation: rise-in 600ms ease-out both;
@@ -153,7 +168,8 @@
 @media (prefers-reduced-motion: reduce) {
   .bar-grow,
   .rise-in,
-  .line-grow {
+  .line-grow,
+  .checklist-strike {
     animation: none;
   }
 

@@ -22,9 +22,12 @@ const numberFormatter = new Intl.NumberFormat("es-UY");
 export function ConnectedDashboard({
   dashboard,
   syncStatus,
+  gettingStarted,
 }: {
   dashboard: InstagramDashboardData;
   syncStatus?: string;
+  /** Los primeros pasos de una cuenta nueva: van debajo del título, no encima. */
+  gettingStarted?: React.ReactNode;
 }) {
   const priority = dashboard.priority;
 
@@ -104,6 +107,8 @@ export function ConnectedDashboard({
         </div>
         <SyncButton redirectTo="/" />
       </header>
+
+      {gettingStarted}
 
       <section aria-label="Resumen de rendimiento" className="mt-6 grid gap-4 lg:grid-cols-3">
         {metrics.map((metric) => (

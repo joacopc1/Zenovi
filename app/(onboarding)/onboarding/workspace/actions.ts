@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { nextOnboardingPath } from "@/lib/onboarding/steps";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateWorkspaceState = {
@@ -33,5 +34,5 @@ export async function createWorkspace(
     return { error: "No pudimos crear el workspace. Intentá nuevamente." };
   }
 
-  redirect("/onboarding/instagram");
+  redirect(nextOnboardingPath("workspace"));
 }

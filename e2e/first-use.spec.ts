@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signIn } from "./sign-in";
 import { readTestAccount } from "./test-account";
 
-test("una cuenta nueva entra, crea su espacio y llega a conectar Instagram", async ({ page, context, baseURL }) => {
+test("una cuenta nueva entra, crea su espacio, saltea las preguntas y llega a conectar Instagram", async ({ page, context, baseURL }) => {
   const account = readTestAccount();
   await signIn(context, account, baseURL!);
   await page.goto("/");
@@ -13,7 +13,11 @@ test("una cuenta nueva entra, crea su espacio y llega a conectar Instagram", asy
   await page.getByLabel(/nombre/i).fill("Prueba E2E");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/onboarding\/instagram/, { timeout: 20_000 });
+  // Las preguntas sobre la persona se pueden saltear.
+  await expect(page).toHaveURL(/\/onboarding\/about/, { timeout: 60_000 });
+  await page.getByRole("button", { name: "Saltear" }).click();
+
+  await expect(page).toHaveURL(/\/onboarding\/instagram/, { timeout: 60_000 });
   await expect(page.getByRole("button", { name: /instagram/i }).first()).toBeVisible();
 
   // Con sesión, otro sitio igual no puede pedir una sincronización en nombre de la persona.
