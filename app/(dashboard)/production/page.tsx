@@ -6,7 +6,12 @@ import { getRecentPublications } from "@/lib/data/posting-rhythm";
 import { AppHeader } from "@/components/shell/app-header";
 import { ProductionView } from "@/components/production/production-view";
 
-export default async function ProductionPage() {
+export default async function ProductionPage({
+  searchParams,
+}: {
+  /** `item`: abre esa tarjeta al entrar, como cuando se llega desde el Inicio. */
+  searchParams: Promise<{ item?: string }>;
+}) {
   const account = await getAccountContext();
 
   if (!account) redirect("/login");
@@ -19,6 +24,9 @@ export default async function ProductionPage() {
     getRecentPublications(account.workspace.id),
   ]);
   const links = await getProductionLinks(account.workspace.id, items);
+  const { item: requestedItem } = await searchParams;
+  // Sólo se abre si es una tarjeta propia: un id ajeno o inventado no abre nada.
+  const initialOpenId = items.some((item) => item.id === requestedItem) ? requestedItem! : null;
 
   return (
     <>
@@ -31,6 +39,7 @@ export default async function ProductionPage() {
           links={links}
           published={published}
           instagramConnected={account.instagram?.status === "connected"}
+          initialOpenId={initialOpenId}
         />
       </main>
     </>

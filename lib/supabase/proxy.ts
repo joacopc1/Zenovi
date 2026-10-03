@@ -5,6 +5,8 @@ import { getSupabaseConfig } from "./config";
 const PUBLIC_PATHS = [
   "/api/integrations/instagram/data-deletion",
   "/data-deletion",
+  // Los avisos de error del navegador llegan acá aunque la persona no haya entrado (login).
+  "/monitoring",
   "/privacy",
   "/terms",
 ];

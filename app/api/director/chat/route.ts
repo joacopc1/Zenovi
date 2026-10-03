@@ -1,4 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
+import * as Sentry from "@sentry/nextjs";
 import {
   convertToModelMessages,
   generateId,
@@ -25,7 +26,8 @@ import { readDirectorGuide } from "@/lib/director/guides/read-guide";
 import { validTimeZone } from "@/lib/director/account-snapshots";
 import { attachmentIdFromUrl, attachmentMediaType, attachmentUrl, MAX_ATTACHMENTS_PER_MESSAGE } from "@/lib/director/attachment-refs";
 import { inlineAttachments } from "@/lib/director/attachments";
-import { hasAnswerText, historyForModel, withCachedHistory } from "@/lib/director/history";
+import { hasAnswerText, historyForModel, withCachedHistory, withRefusalAnswer } from "@/lib/director/history";
+import { countInjectionAttempts, detectInjectionSignals, MAX_INJECTION_ATTEMPTS_PER_CHAT } from "@/lib/director/injection-signals";
 import { proposeIdeaTool } from "@/lib/director/idea-tool";
 import { buildDirectorSystem } from "@/lib/director/prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -35,6 +37,8 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MAX_MESSAGE_CHARACTERS = 8000;
+const CHAT_LOCKED_MESSAGE =
+  "Pausamos esta conversación porque hubo varios pedidos para cambiar cómo funciona el Director. Para seguir con tu contenido, abrí un chat nuevo más tarde.";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** La capacitación y el ADN se repiten en cada mensaje: en caché cuestan un 10 %. */
 const CACHE = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
@@ -57,6 +61,7 @@ export async function POST(request: Request) {
   // Las fechas ("hoy", "el Reel del 19") se leen en la zona del creador, que informa su navegador.
   const timeZone = validTimeZone(body?.timeZone);
   if (!chatId || !message) return failure(400, "No pudimos leer el mensaje.");
+  reportInjectionSignals(message, chatId);
 
   const balance = await getCreditBalance(workspaceId);
   if (balance.remaining <= 0) {
@@ -77,6 +82,21 @@ export async function POST(request: Request) {
     .select("id, role, parts")
     .eq("chat_id", chatId)
     .order("created_at");
+  // La persuasión de a muchos mensajes la frena el servidor, no el modelo: al tercer intento
+  // en un chat, o al sexto en una hora entre todos sus chats, el Director deja de responder.
+  const attempted = detectInjectionSignals(textOf(message)).length > 0;
+  const priorAttempts = countInjectionAttempts(
+    ((stored ?? []) as UIMessage[]).filter((item) => item.role === "user").map(textOf),
+  );
+  if (priorAttempts + (attempted ? 1 : 0) >= MAX_INJECTION_ATTEMPTS_PER_CHAT) {
+    Sentry.captureMessage("director_chat_locked", { level: "error", extra: { chatId } });
+    return failure(403, CHAT_LOCKED_MESSAGE);
+  }
+  if (attempted && !(await takeRateLimit("director_injection", account.userId))) {
+    Sentry.captureMessage("director_injection_rate_limited", { level: "error", extra: { chatId } });
+    return failure(429, CHAT_LOCKED_MESSAGE);
+  }
+
   // Lo guardado lo escribió este servidor; se valida la forma, no cada herramienta.
   const messages = await validateUIMessages({ messages: [...((stored ?? []) as UIMessage[]), message] });
 
@@ -107,7 +127,11 @@ export async function POST(request: Request) {
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     generateMessageId: generateId,
-    onFinish: async ({ responseMessage }) => {
+    // El cliente sabe por qué terminó la respuesta: si la cortó el filtro, muestra la frase de rechazo.
+    messageMetadata: ({ part }) => (part.type === "finish" ? { finishReason: part.finishReason } : undefined),
+    onFinish: async ({ responseMessage: finished }) => {
+      const refused = !hasAnswerText(finished) && (await Promise.resolve(result.finishReason).catch(() => null)) === "content-filter";
+      const responseMessage = refused ? withRefusalAnswer(finished) : finished;
       // Lo que escribió el creador se guarda siempre; la respuesta, sólo si tiene texto.
       await admin.from("director_messages").upsert(
         [row(chatId, message, startedAt), ...(hasAnswerText(responseMessage) ? [row(chatId, responseMessage, startedAt + 1)] : [])],
@@ -186,6 +210,17 @@ function readUserMessage(value: unknown): UIMessage | null {
   // El id lo pone el servidor: los mensajes se guardan con la clave de servicio, y un id
   // elegido por el navegador podría pisar un mensaje de otra conversación.
   return { id: generateId(), role: "user", parts: [...files, ...(text ? [{ type: "text" as const, text }] : [])] };
+}
+
+/**
+ * Un intento de manipular al Director no se bloquea (puede ser una frase inocente), pero se
+ * avisa: queda en los logs y llega a Sentry con qué tipo de intento fue, sin el texto.
+ */
+function reportInjectionSignals(message: UIMessage, chatId: string) {
+  const signals = detectInjectionSignals(textOf(message));
+  if (signals.length === 0) return;
+  console.warn(JSON.stringify({ event: "director_injection_signal", signals, chatId }));
+  Sentry.captureMessage("director_injection_signal", { level: "warning", tags: { signals: signals.join(",") }, extra: { chatId } });
 }
 
 function cleanFilename(value: unknown) {

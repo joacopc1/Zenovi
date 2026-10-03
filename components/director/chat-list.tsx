@@ -8,6 +8,7 @@ import { archiveDirectorChat, deleteDirectorChat, renameDirectorChat } from "@/a
 import { CollapseSidebarIcon } from "@/components/shell/icons";
 import { HoverLabel } from "@/components/ui/hover-label";
 import type { DirectorChatSummary } from "@/lib/data/director-chats";
+import { EmptyState } from "@/components/ui/empty-state";
 
 /** Los chats a la derecha (a la izquierda ya está la barra lateral), como la lista de ChatGPT. */
 export function ChatList({
@@ -48,7 +49,12 @@ export function ChatList({
         <p className="px-3 pb-1.5 pt-2 text-[12px] font-medium text-muted">Recientes</p>
         <div className="space-y-0.5">
           {recent.length === 0 ? (
-            <p className="px-3 py-2 text-[13px] leading-5 text-muted">Tus conversaciones con el Director van a quedar acá.</p>
+            <EmptyState
+            illustration="chat"
+            title="Todavía sin chats"
+            description="Tus conversaciones con el Director van a quedar acá."
+            className="px-2"
+          />
           ) : (
             recent.map((chat) => <ChatRow key={chat.id} chat={chat} active={chat.id === activeChatId} />)
           )}

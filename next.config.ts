@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const isDev = process.env.NODE_ENV === "development";
 const supabase = "https://*.supabase.co";
@@ -61,4 +62,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Sentry avisa los errores de producción. Los reportes del navegador pasan por /monitoring,
+ * una ruta propia: así no los frena un bloqueador de anuncios y no hace falta abrir la CSP.
+ * Con SENTRY_AUTH_TOKEN (sólo en Vercel) sube los mapas de código para ver la línea exacta.
+ */
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+});

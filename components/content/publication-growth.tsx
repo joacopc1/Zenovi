@@ -1,6 +1,7 @@
 import { Activity, UserPlus, UserRoundSearch } from "lucide-react";
 import type { ContentLibraryItem } from "@/lib/content/library";
 import { HelpHint } from "@/components/ui/help-hint";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const numberFormatter = new Intl.NumberFormat("es-UY");
 
@@ -55,9 +56,11 @@ export function PublicationGrowth({ item }: { item: ContentLibraryItem }) {
           ))}
         </dl>
       ) : (
-        <p className="font-support mt-4 text-[13px] leading-5 text-muted">
-          Instagram todavía no devolvió datos de crecimiento para este post.
-        </p>
+        <EmptyState
+          illustration="audience"
+          title="Todavía sin datos de crecimiento"
+          description="Instagram no devolvió todavía cuántos seguidores o visitas trajo este post."
+        />
       )}
     </section>
   );

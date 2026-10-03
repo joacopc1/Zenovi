@@ -5,6 +5,7 @@ import { formatDecimal, formatNumber } from "@/lib/format/numbers";
 import { DailyChart } from "../daily-chart";
 import { ReportCard, StatChips } from "../report-blocks";
 import { signed, toPoints } from "../report-view";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function CommunitySection({ model }: { model: ReportModel }) {
   const { followers, strongest, weekdays } = model;
@@ -63,9 +64,12 @@ export function CommunitySection({ model }: { model: ReportModel }) {
           />
         ) : (
           // Un día sin datos dibujado en cero deformaría la figura: mejor no dibujarla.
-          <p className="flex h-[260px] items-center justify-center rounded-control bg-canvas px-6 text-center text-xs leading-5 text-muted">
-            Todavía no hay datos de todos los días de la semana en el período.
-          </p>
+          <EmptyState
+            illustration="chart"
+            title="Faltan días de la semana"
+            description="La figura aparece cuando haya datos de todos los días del período."
+            className="h-[260px] py-0"
+          />
         )}
         <p className="mt-4 text-xs leading-5 text-muted">
           {strongest

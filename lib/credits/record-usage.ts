@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCreditBalance } from "@/lib/data/credit-balance";
 import { ACTION_CREDITS, usageCostUsd, usdToCredits, type PricedAction, type TokenUsage } from "./pricing";
 
-export type AiFeature = "director_chat" | "director_title" | "reel_analysis" | "story_analysis" | "reel_script";
+export type AiFeature = "director_chat" | "director_title" | "reel_analysis" | "story_analysis" | "reel_script" | "home_insight";
 
 /** Lo que informa el SDK, en la forma que cobra el precio: sin caché, leído y escrito por separado. */
 export function tokenUsageFrom(usage: LanguageModelUsage): TokenUsage {

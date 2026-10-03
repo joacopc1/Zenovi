@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
 import { formatCompact, formatNumber } from "@/lib/format/numbers";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type ChartSeries = { key: string; label: string; color: string };
 export type ChartPoint = { date: string; label: string; values: Record<string, number | null> };
@@ -24,13 +25,17 @@ export function DailyChart({
   points,
   series,
   mode,
+  fadeArea = false,
 }: {
   label: string;
   points: ChartPoint[];
   series: ChartSeries[];
   mode: "line" | "stacked";
+  /** Con una sola línea, el área de abajo se desvanece hacia la base en vez de ser plana. */
+  fadeArea?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const fadeId = `fade-${useId().replace(/:/g, "")}`;
   const width = useElementWidth(containerRef);
   const [active, setActive] = useState<number | null>(null);
 
@@ -38,9 +43,12 @@ export function DailyChart({
 
   if (!hasData) {
     return (
-      <p className="flex h-[204px] items-center justify-center rounded-control bg-canvas px-6 text-center text-xs leading-5 text-muted">
-        Instagram todavía no informó este dato en el período. Se completa con las próximas sincronizaciones.
-      </p>
+      <EmptyState
+        illustration="chart"
+        title="Todavía sin datos en este período"
+        description="Instagram no informó este dato todavía. Se completa con las próximas sincronizaciones."
+        className="h-[204px] py-0"
+      />
     );
   }
 
@@ -100,6 +108,14 @@ export function DailyChart({
             onKeyDown={step}
             className="block overflow-visible outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
           >
+            {fadeArea ? (
+              <defs>
+                <linearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={series[0]?.color} stopOpacity="0.24" />
+                  <stop offset="100%" stopColor={series[0]?.color} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            ) : null}
             {ticks.map((tick) => (
               <g key={tick}>
                 <line x1={LEFT} x2={width - RIGHT} y1={yOf(tick)} y2={yOf(tick)} stroke="var(--color-mist)" />
@@ -144,8 +160,8 @@ export function DailyChart({
                         {series.length === 1 && run.length > 1 ? (
                           <path
                             d={`M ${coordinates.join(" L ")} L ${xOf(last.index)},${baseline} L ${xOf(first.index)},${baseline} Z`}
-                            fill={item.color}
-                            opacity="0.1"
+                            fill={fadeArea ? `url(#${fadeId})` : item.color}
+                            opacity={fadeArea ? undefined : "0.1"}
                           />
                         ) : null}
                         {run.length > 1 ? (

@@ -1,5 +1,7 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
+import { useEffect } from "react";
 import { AppHeader } from "@/components/shell/app-header";
 
 /**
@@ -12,12 +14,19 @@ import { AppHeader } from "@/components/shell/app-header";
 export function RouteError({
   title,
   description,
+  error,
   retry,
 }: {
   title: string;
   description: string;
+  /** El error que mostró esta pantalla: se avisa a Sentry, la persona ve el mensaje de arriba. */
+  error: Error & { digest?: string };
   retry: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <>
       <AppHeader />

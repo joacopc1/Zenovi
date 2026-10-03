@@ -21,14 +21,16 @@ export function ProductionView({
   links,
   published,
   instagramConnected,
+  initialOpenId = null,
 }: {
   items: ContentItem[];
   links: ProductionLinks;
   published: PublishedPiece[];
   instagramConnected: boolean;
+  initialOpenId?: string | null;
 }) {
   const [view, setView] = useState<"pipeline" | "calendar">("pipeline");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpenId);
   const [createGuion, setCreateGuion] = useState<boolean | null>(null);
   const [createDate, setCreateDate] = useState<string | null>(null);
   const [openEditing, setOpenEditing] = useState(false);

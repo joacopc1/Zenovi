@@ -23,8 +23,11 @@ export default async function DirectorPage({
   searchParams,
 }: {
   params: Promise<{ chatId?: string[] }>;
-  /** Desde una pieza (`pieza`) o una tarjeta de Producción (`idea`): el chat nuevo arranca con eso cargado. */
-  searchParams: Promise<{ pieza?: string; idea?: string }>;
+  /**
+   * Desde una pieza (`pieza`), una tarjeta de Producción (`idea`) o una pregunta sugerida en
+   * el Inicio (`pregunta`): el chat nuevo arranca con eso cargado en la caja, sin mandarlo.
+   */
+  searchParams: Promise<{ pieza?: string; idea?: string; pregunta?: string }>;
 }) {
   const account = await getAccountContext();
   if (!account?.workspace) redirect("/login");
@@ -43,11 +46,13 @@ export default async function DirectorPage({
 
   // Un chat nuevo nace con su id desde el servidor; existe en la base recién con el primer mensaje.
   const chatId = chat?.id ?? crypto.randomUUID();
-  const { pieza, idea } = await searchParams;
-  const [initialPiece, initialText] = chat ? [null, ""] : await Promise.all([
+  const { pieza, idea, pregunta } = await searchParams;
+  const [initialPiece, ideaText] = chat ? [null, ""] : await Promise.all([
     findPiece(account.workspace.id, pieza),
     findIdeaPrompt(account.workspace.id, idea),
   ]);
+  // La pregunta sólo se escribe en la caja: la persona la lee y decide si la manda.
+  const initialText = ideaText || (chat ? "" : suggestedQuestion(pregunta));
 
   return (
     <>
@@ -87,4 +92,10 @@ async function findIdeaPrompt(workspaceId: string, id: string | undefined) {
   if (!id) return "";
   const item = (await getContentItems(workspaceId)).find((candidate) => candidate.id === id);
   return item ? ideaPrompt(item) : "";
+}
+
+const MAX_SUGGESTED_QUESTION = 300;
+
+function suggestedQuestion(value: string | undefined) {
+  return typeof value === "string" ? value.trim().slice(0, MAX_SUGGESTED_QUESTION) : "";
 }

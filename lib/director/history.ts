@@ -26,6 +26,19 @@ export function hasAnswerText(message: UIMessage) {
   );
 }
 
+/**
+ * Lo que dice el Director cuando el filtro de seguridad de Anthropic corta un pedido (un
+ * intento de sacarle sus pautas, por ejemplo) y el modelo no llega a escribir nada. Sin
+ * esto, la persona ve que piensa y después nada.
+ */
+export const REFUSAL_ANSWER =
+  "Eso no lo puedo responder. Si querés, seguimos con tu contenido: ideas, guiones o cómo te fue esta semana.";
+
+/** Una respuesta cortada por el filtro, lista para mostrar y guardar como cualquier otra. */
+export function withRefusalAnswer(message: UIMessage): UIMessage {
+  return { ...message, parts: [{ type: "text", text: REFUSAL_ANSWER }] };
+}
+
 const CACHE_BREAKPOINT = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
 
 /**

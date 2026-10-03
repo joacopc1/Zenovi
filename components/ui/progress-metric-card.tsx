@@ -25,6 +25,7 @@ import {
   type SeriesPoint,
 } from "./metric-chart";
 import { ViewToggle } from "./metric-controls";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type { SeriesPoint, MetricSeries, MetricAccent, ChartView };
 
@@ -195,12 +196,11 @@ export default function ProgressMetricCard({
       <div className={shell}>
         <div className={`flex flex-1 flex-col ${sz.pad}`}>
           <h3 className={`${sz.title} font-semibold tracking-tight text-ink`}>{title}</h3>
-          <div className="flex flex-1 flex-col items-center justify-center gap-1 py-10 text-center">
-            <p className="text-sm font-medium text-ink">Todavía no hay datos</p>
-            <p className="text-xs text-muted">
-              La métrica aparece cuando Instagram informe al menos dos días del período.
-            </p>
-          </div>
+          <EmptyState
+            illustration="chart"
+            title="Todavía no hay datos"
+            description="Aparece cuando Instagram informe al menos dos días del período."
+          />
         </div>
       </div>
     );

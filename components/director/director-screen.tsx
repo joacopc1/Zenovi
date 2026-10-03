@@ -18,6 +18,7 @@ import { HoverLabel } from "@/components/ui/hover-label";
 import { DirectorComposer, ThinkingIndicator } from "./director-composer";
 import { SentAttachment } from "./attachments";
 import { IdeaCard } from "./idea-card";
+import { REFUSAL_ANSWER } from "@/lib/director/history";
 import type { ProposedIdea } from "@/lib/director/idea-tool";
 import { Notice } from "@/components/ui/notice";
 
@@ -186,6 +187,10 @@ function ChatMessage({
   }
   const ideas = proposedIdeas(message);
   // Todavía consultando la cuenta o las guías: se dice qué, en el lugar de la respuesta.
+  // Cortada por el filtro de seguridad: se muestra la misma frase que queda guardada.
+  if (!text && ideas.length === 0 && !streaming && (message.metadata as { finishReason?: string } | undefined)?.finishReason === "content-filter") {
+    return <div className="director-answer rounded-2xl border border-mist bg-paper px-5 py-4 text-[15px] leading-7 text-ink">{REFUSAL_ANSWER}</div>;
+  }
   if (!text && ideas.length === 0) {
     if (!streaming) return null;
     return consulted.pending ? <ThinkingIndicator label={consulted.pending} /> : <ThinkingIndicator />;

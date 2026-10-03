@@ -75,7 +75,7 @@ export function GettingStarted({ items }: { items: ChecklistItem[] }) {
           {items.map((item, index) => (
             <li key={item.id} className="flex min-w-0">
               {item.done ? (
-                <div className="flex w-full min-w-0 items-center gap-2.5 rounded-lg border border-success/25 bg-success/[0.04] px-3 py-2.5">
+                <div className="flex w-full min-w-0 items-center gap-2.5 rounded-lg border border-mist px-3 py-2.5">
                   <span className="grid size-5 shrink-0 place-items-center rounded-full bg-success text-paper">
                     <Check className="size-3" strokeWidth={3} aria-hidden="true" />
                   </span>

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { RankedContentItem } from "@/lib/content/library";
 import { formatCompact, formatDecimal } from "@/lib/format/numbers";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const columns = [
   { key: "views", label: "Visualizaciones" },
@@ -18,9 +19,13 @@ const columns = [
 export function TopContent({ items }: { items: RankedContentItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="font-support rounded-card border border-mist bg-canvas px-6 py-10 text-center text-xs leading-5 text-muted">
-        No hay piezas publicadas en este período con visualizaciones informadas.
-      </p>
+      <div className="flex rounded-card border border-mist bg-paper">
+        <EmptyState
+          illustration="spotlight"
+          title="Sin piezas en este período"
+          description="Cuando publiques, acá aparecen ordenadas por visualizaciones."
+        />
+      </div>
     );
   }
 

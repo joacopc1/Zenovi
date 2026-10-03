@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { countryFlag, type DemographicSlice } from "@/lib/data/follower-demographics";
 import type { ReportModel } from "@/lib/analytics/report-model";
-import { ProportionBar, SharePie, ShareColumns } from "../proportion-blocks";
+import { LabeledBars, SharePie, ShareColumns } from "../proportion-blocks";
 import { PendingPanel, ReportCard } from "../report-blocks";
 import { HUNDRED_FOLLOWERS } from "../report-view";
 
@@ -54,11 +54,11 @@ export function AudienceSection({ model }: { model: ReportModel }) {
           title="País"
           hint="Instagram entrega sólo los 45 países más grandes; acá se muestran los seis primeros."
         >
-          <ProportionBar slices={places(demographics.country, (slice) => flagOf(slice))} />
+          <LabeledBars slices={places(demographics.country, (slice) => flagOf(slice))} />
         </ReportCard>
 
         <ReportCard title="Ciudad">
-          <ProportionBar slices={places(demographics.city, () => null)} />
+          <LabeledBars slices={places(demographics.city, () => null)} />
         </ReportCard>
       </div>
     </>

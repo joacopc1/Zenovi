@@ -28,6 +28,7 @@ import {
 } from "@/lib/content/story-sequences";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type ContentSearchParams = {
   type?: string | string[];
@@ -196,25 +197,28 @@ function EmptyLibrary({
 }) {
   const isStories = selectedType === "story";
   return (
-    <section className="mt-5 rounded-card border border-mist px-6 py-14 text-center">
-      <h2 className="text-base font-semibold">
-        {isStories ? "Todavía no hay Historias disponibles" : filtered ? "No encontramos coincidencias" : "Todavía no hay contenido sincronizado"}
-      </h2>
-      <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-graphite">
-        {isStories
-          ? "Zenovi sólo mostrará Historias capturadas después de habilitar su sincronización; no promete recuperar el archivo histórico privado."
-          : filtered
-            ? "Probá otro texto, formato u orden para volver a ver piezas."
-            : "Actualizá la cuenta para traer los posts disponibles desde Instagram."}
-      </p>
-      {isStories && showStoryPreview ? (
-        <Link
-          href="/content/story-preview"
-          className="font-support mt-5 inline-flex min-h-9 items-center rounded-control border border-mist bg-paper px-4 text-[13px] font-semibold text-ink transition-colors hover:border-mist-strong hover:bg-canvas"
-        >
-          Ver ejemplo de una secuencia
-        </Link>
-      ) : null}
+    <section className="mt-5 flex rounded-card border border-mist py-6">
+      <EmptyState
+        illustration={filtered ? "chart" : "spotlight"}
+        title={isStories ? "Todavía no hay Historias disponibles" : filtered ? "No encontramos coincidencias" : "Todavía no hay contenido sincronizado"}
+        description={
+          isStories
+            ? "Zenovi muestra las Historias que captura desde que su sincronización está activa."
+            : filtered
+              ? "Probá otro texto, formato u orden para volver a ver piezas."
+              : "Actualizá la cuenta para traer tus posts desde Instagram."
+        }
+        action={
+          isStories && showStoryPreview ? (
+            <Link
+              href="/content/story-preview"
+              className="font-support inline-flex min-h-9 items-center rounded-control border border-mist bg-paper px-4 text-[13px] font-semibold text-ink transition-colors hover:border-mist-strong hover:bg-canvas"
+            >
+              Ver ejemplo de una secuencia
+            </Link>
+          ) : undefined
+        }
+      />
     </section>
   );
 }

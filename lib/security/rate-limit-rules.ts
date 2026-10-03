@@ -13,6 +13,11 @@ export const RATE_LIMITS = {
   ai_action: { limit: 15, windowSeconds: 600 },
   /** Sincronizar a mano con Instagram, por workspace: cada una son decenas de pedidos a Meta. */
   instagram_sync: { limit: 6, windowSeconds: 3600 },
+  /**
+   * Intentos de manipular al Director, por persona: abrir chats nuevos para seguir
+   * insistiendo no reinicia la cuenta.
+   */
+  director_injection: { limit: 6, windowSeconds: 3600 },
   /** Empezar una conexión con Instagram, por persona. */
   instagram_oauth: { limit: 10, windowSeconds: 600 },
 } as const satisfies Record<string, { limit: number; windowSeconds: number }>;

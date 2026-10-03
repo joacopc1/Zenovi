@@ -50,6 +50,37 @@ export function ProportionBar({ slices }: { slices: ProportionSlice[] }) {
 
 
 /**
+ * Un ranking donde la barra es la fila: el nombre va adentro de la franja y el número a la
+ * derecha, como "Sessions by source" de Efferd. La franja más larga es la primera y las
+ * demás se miden contra ella, así la diferencia entre puestos se ve aunque todas sean chicas.
+ */
+export function LabeledBars({ slices }: { slices: ProportionSlice[] }) {
+  const top = Math.max(...slices.map((slice) => slice.share), 0);
+  return (
+    <dl className="space-y-1.5">
+      {slices.map((slice) => (
+        <div key={slice.key} className="relative flex h-11 items-center overflow-hidden rounded-lg">
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0 rounded-lg border-r-2 border-ink/20 bg-[linear-gradient(90deg,rgba(0,0,0,0.025),rgba(0,0,0,0.08))]"
+            style={{ width: `${top > 0 ? Math.max((slice.share / top) * 100, 3) : 0}%` }}
+          />
+          <dt className="relative flex min-w-0 flex-1 items-center gap-2 px-3 text-[13px] font-medium text-ink">
+            {slice.icon ? <span aria-hidden="true" className="flex">{slice.icon}</span> : null}
+            <span className="truncate">{slice.label}</span>
+          </dt>
+          <dd className="font-numeric relative shrink-0 px-3 text-[13px] font-semibold tabular-nums text-ink">
+            {formatPercent(slice.share)}
+            <span className="ml-2 font-normal text-muted">{formatNumber(slice.value)}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+
+/**
  * Una torta para un reparto de pocas partes con tamaños claramente distintos.
  *
  * Es la excepción a la regla de la casa —para partes parecidas los ángulos se comparan

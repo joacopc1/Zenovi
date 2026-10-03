@@ -4,6 +4,7 @@ import { formatNumber } from "@/lib/format/numbers";
 import { ReportCard } from "../report-blocks";
 import { contentIcon } from "../report-view";
 import { TopContent } from "../top-content";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function ContentSection({ model }: { model: ReportModel }) {
   return (
@@ -23,9 +24,11 @@ export function ContentSection({ model }: { model: ReportModel }) {
         hint="La mediana, no el promedio: una pieza que explotó levantaría el promedio y haría parecer que el formato rinde siempre así. Hacen falta tres piezas del formato para afirmar una mediana."
       >
         {model.formats.length === 0 ? (
-          <p className="font-support text-xs leading-5 text-muted">
-            Todavía no publicaste nada en el período.
-          </p>
+          <EmptyState
+            illustration="spotlight"
+            title="Todavía no publicaste en este período"
+            description="Con tres piezas de un formato aparece cuánto rinde ese formato."
+          />
         ) : (
           <dl className="grid gap-3 sm:grid-cols-3">
             {model.formats.map((format) => (

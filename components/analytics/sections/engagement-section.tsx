@@ -12,6 +12,7 @@ import {
   metricCard,
   toPoints,
 } from "../report-view";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function EngagementSection({ model }: { model: ReportModel }) {
   const composition = engagementSlices(model.composition);
@@ -68,9 +69,11 @@ export function EngagementSection({ model }: { model: ReportModel }) {
           {composition ? (
             <ProportionBar slices={composition} />
           ) : (
-            <p className="font-support text-xs leading-5 text-muted">
-              Todavía no hay interacciones informadas en el período.
-            </p>
+            <EmptyState
+              illustration="chart"
+              title="Todavía sin interacciones"
+              description="Cuando lleguen, acá ves cómo se reparten entre me gusta, comentarios, guardados y compartidos."
+            />
           )}
           <p className="font-support mt-5 border-t border-mist pt-4 text-[13px] leading-6 text-graphite">
             {model.reading ??

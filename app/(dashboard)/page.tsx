@@ -1,17 +1,21 @@
 import Link from "next/link";
-import { ConnectedDashboard } from "@/components/home/connected-dashboard";
 import { GettingStarted } from "@/components/home/getting-started";
+import { HomeOverview } from "@/components/home/home-overview";
+import { SyncNotice } from "@/components/home/sync-notice";
 import { SyncButton } from "@/components/home/sync-button";
 import { AppHeader } from "@/components/shell/app-header";
 import { InstagramConnectionNotice } from "@/components/states/instagram-connection-notice";
+import { parseRangeDays } from "@/lib/analytics/range";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getGettingStarted } from "@/lib/data/getting-started";
+import { getHomeOverview } from "@/lib/data/home";
+import { greetingFor } from "@/lib/home/home-model";
 import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ sync?: string | string[] }>;
+  searchParams: Promise<{ sync?: string | string[]; days?: string | string[] }>;
 }) {
   const account = await getAccountContext();
   const query = await searchParams;
@@ -25,6 +29,7 @@ export default async function Home({
         ),
       ])
     : [null, null];
+  const overview = account?.workspace && dashboard?.priority ? await getHomeOverview(account.workspace.id, account.userId, dashboard, parseRangeDays(query.days)) : null;
   const checklist = gettingStarted ? (
     <GettingStarted items={gettingStarted} />
   ) : null;
@@ -43,12 +48,22 @@ export default async function Home({
             <InstagramConnectionNotice status={unhealthy} redirectTo="/" />
             {checklist}
           </>
-        ) : dashboard?.priority ? (
-          <ConnectedDashboard
-            dashboard={dashboard}
-            syncStatus={typeof query.sync === "string" ? query.sync : undefined}
-            gettingStarted={checklist}
-          />
+        ) : dashboard && overview ? (
+          <>
+            <SyncNotice key={typeof query.sync === "string" ? query.sync : undefined} status={typeof query.sync === "string" ? query.sync : undefined} />
+            <header className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="text-xl font-semibold tracking-[-0.02em]">{greeting(firstName(account?.displayName))}</h1>
+                <p className="mt-1 text-[13px] text-muted">
+                  @{dashboard.username}
+                  {dashboard.lastSyncedAt ? ` · actualizado ${formatSyncDate(dashboard.lastSyncedAt)}` : ""}
+                </p>
+              </div>
+              <SyncButton redirectTo="/" />
+            </header>
+            {checklist}
+            <HomeOverview {...overview} />
+          </>
         ) : (
           <EmptyDashboard
             connected={Boolean(dashboard)}
@@ -97,4 +112,24 @@ function EmptyDashboard({
       {gettingStarted}
     </>
   );
+}
+
+/** "Buenas tardes, Joaco" según la hora; sin nombre, sólo el saludo. */
+function greeting(name: string | null) {
+  const salute = greetingFor(new Date());
+  return name ? `${salute}, ${name}` : salute;
+}
+
+function firstName(displayName: string | undefined) {
+  return displayName?.trim().split(/\s+/)[0] || null;
+}
+
+function formatSyncDate(value: string) {
+  return new Intl.DateTimeFormat("es-UY", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Montevideo",
+  }).format(new Date(value));
 }

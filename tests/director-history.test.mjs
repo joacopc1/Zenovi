@@ -30,3 +30,11 @@ test("el final de la conversación queda marcado para la caché, sin tocar lo de
   assert.deepEqual(marked[2].providerOptions, { otro: { x: 1 }, anthropic: { cacheControl: { type: "ephemeral" } } });
   assert.deepEqual(withCachedHistory([]), []);
 });
+
+test("una respuesta cortada por el filtro de seguridad queda con la frase de rechazo", async () => {
+  const { withRefusalAnswer, hasAnswerText, REFUSAL_ANSWER } = await import("../lib/director/history.ts");
+  const refused = withRefusalAnswer({ id: "a", role: "assistant", parts: [] });
+  assert.equal(refused.id, "a");
+  assert.equal(hasAnswerText(refused), true);
+  assert.equal(refused.parts[0].text, REFUSAL_ANSWER);
+});
