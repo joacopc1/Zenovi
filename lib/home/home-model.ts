@@ -190,7 +190,7 @@ export function needsAttention({
     { id: "posting", label: "Días sin publicar", count: daysSinceLast !== null && daysSinceLast >= 3 ? daysSinceLast : 0, href: "/production" },
     // Aparece aunque esté en 0 %: justo ahí es cuando más falta.
     { id: "brand", label: "ADN de marca incompleto", count: brandDnaPercent < BRAND_DNA_READY_PERCENT ? 1 : 0, badge: `${brandDnaPercent}%`, href: "/brand" },
-    { id: "credits", label: "Créditos por agotarse", count: lowCredits ? 1 : 0, badge: String(Math.floor(credits.remaining)), href: "/settings" },
+    { id: "credits", label: "Créditos por agotarse", count: lowCredits ? 1 : 0, badge: String(Math.floor(credits.remaining)), href: "/settings/billing" },
   ];
   return items
     .filter((item) => item.count > 0)

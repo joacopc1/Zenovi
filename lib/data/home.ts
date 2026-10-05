@@ -83,7 +83,6 @@ export async function getHomeOverview(
     week: [
       {
         label: "Visualizaciones",
-        hint: "Cuántas veces se vio tu contenido en los últimos 7 días.",
         current: week.views.current,
         previous: week.views.previous,
       },
@@ -94,11 +93,10 @@ export async function getHomeOverview(
         previous: week.interactions.previous,
       },
       {
-        label: "Seguidores ganados",
-        hint: "Cuántos seguidores sumaste en los últimos 7 días.",
-        current: week.followers?.change ?? null,
+        label: "Seguidores",
+        current: week.followersTotal,
         previous: null,
-        note: week.followersTotal === null ? undefined : `${new Intl.NumberFormat("es-UY").format(week.followersTotal)} en total`,
+        note: followersChangeNote(week.followers?.change ?? null),
       },
     ],
     topPieces,
@@ -153,4 +151,11 @@ async function getAnalysisStates(workspaceId: string) {
     ready: new Set(rows.filter((row) => row.status === "ready").map((row) => row.instagram_media_id as string)),
     failed: rows.filter((row) => row.status === "failed" && row.can_retry).length,
   };
+}
+
+/** Debajo del total de seguidores, cuánto cambió en la semana: "+12 en los últimos 7 días". */
+function followersChangeNote(change: number | null) {
+  if (change === null) return undefined;
+  const sign = change > 0 ? "+" : change < 0 ? "−" : "";
+  return `${sign}${new Intl.NumberFormat("es-UY").format(Math.abs(change))} en los últimos 7 días`;
 }

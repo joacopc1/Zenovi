@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { CreditBalance } from "@/lib/credits/pricing";
 import type { InstagramAccountIdentity } from "@/lib/meta/connection-state";
+import type { AppNotification } from "@/lib/notifications/model";
 
 export type ShellIdentity = {
   accountAvatarUrl: string | null;
@@ -11,6 +12,7 @@ export type ShellIdentity = {
   workspaceName: string;
   instagram: InstagramAccountIdentity | null;
   credits: CreditBalance;
+  notifications: AppNotification[];
 };
 
 const ShellIdentityContext = createContext<ShellIdentity | null>(null);

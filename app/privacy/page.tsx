@@ -147,6 +147,13 @@ export default function PrivacyPage() {
                 respaldo que puedan contenerlos rotan y desaparecen en un plazo máximo de 30 días.
                 Los videos que se procesan para un análisis se borran apenas termina.
               </p>
+              <p>
+                Para que la prueba gratis y los créditos de IA se den una sola vez por cuenta de
+                Instagram, guardamos una huella cifrada del identificador de tu cuenta: no es tu
+                usuario ni tu identificador, y no permite ver ninguno de tus datos. Sólo sirve para
+                saber si esa cuenta ya tuvo su prueba, y por eso se conserva aunque desconectes
+                Instagram o borres tus datos.
+              </p>
             </>
           ),
         },
@@ -159,7 +166,7 @@ export default function PrivacyPage() {
               <ul>
                 <li>
                   <strong>Desde Zenovi:</strong> en{" "}
-                  <Link href="/settings" className="text-ink underline">Ajustes</Link>, elegí
+                  <Link href="/settings/data" className="text-ink underline">Ajustes › Datos</Link>, elegí
                   “Desconectar Instagram”. Borramos al instante el perfil, el contenido, las métricas
                   y el acceso a tu cuenta.
                 </li>

@@ -14,6 +14,7 @@ import {
   type ToolSet,
   type UIMessage,
 } from "ai";
+import { CREDIT_LOCK_MESSAGES } from "@/lib/credits/pricing";
 import { recordAiUsage } from "@/lib/credits/record-usage";
 import { RATE_LIMITED_MESSAGE, takeRateLimit } from "@/lib/security/rate-limit";
 import { DIRECTOR_MODEL, UTILITY_MODEL } from "@/lib/ai/models";
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
   reportInjectionSignals(message, chatId);
 
   const balance = await getCreditBalance(workspaceId);
+  if (balance.locked) return failure(402, CREDIT_LOCK_MESSAGES[balance.locked]);
   if (balance.remaining <= 0) {
     return failure(402, "Usaste todos los créditos de este mes. Se renuevan el primer día del mes que viene.");
   }

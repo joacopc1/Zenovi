@@ -154,3 +154,20 @@ test("una secuencia de Historias llega con su curva y cada número contra lo hab
   assert.deepEqual(snapshot.textos, [null, null, "Link en bio"]);
   assert.equal(snapshot.analisis, null);
 });
+
+test("Producción para el Director: sin lo publicado salvo que lo pida, buscable y recortada", async () => {
+  const { productionSnapshot } = await import("../lib/director/account-snapshots.ts");
+  const base = { format: "reel", contentType: "", targetDate: null, hook: "", development: "", cta: "" };
+  const items = [
+    { ...base, id: "a", title: "Las 3 ladronas", status: "idea", hook: "Hay tres ladronas" },
+    { ...base, id: "b", title: "Precios", status: "guion", development: "x".repeat(2000) },
+    { ...base, id: "c", title: "Ya salió", status: "publicada" },
+  ];
+  const all = productionSnapshot(items, {});
+  assert.equal(all.total, 2);
+  assert.equal(all.piezas[0].enlace, "/production?item=a");
+  assert.equal(all.piezas[1].desarrollo.length, 1200);
+  assert.equal(productionSnapshot(items, { texto: "LADRONAS" }).total, 1);
+  assert.equal(productionSnapshot(items, { estado: "publicada" }).piezas[0].titulo, "Ya salió");
+  assert.equal(productionSnapshot(items, { estado: "todos" }).total, 3);
+});

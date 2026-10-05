@@ -18,6 +18,8 @@ export const RATE_LIMITS = {
    * insistiendo no reinicia la cuenta.
    */
   director_injection: { limit: 6, windowSeconds: 3600 },
+  /** Mensajes de feedback, por persona. */
+  feedback: { limit: 10, windowSeconds: 3600 },
   /** Empezar una conexión con Instagram, por persona. */
   instagram_oauth: { limit: 10, windowSeconds: 600 },
 } as const satisfies Record<string, { limit: number; windowSeconds: number }>;

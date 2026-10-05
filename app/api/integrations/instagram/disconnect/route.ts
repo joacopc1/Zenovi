@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const SETTINGS_PATH = "/settings";
+const SETTINGS_PATH = "/settings/data";
 
 /**
  * Desconecta Instagram y borra todos sus datos del workspace de quien lo pide.

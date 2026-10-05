@@ -70,7 +70,22 @@ export function usdToCredits(usd: number) {
   return Math.round((usd / USD_PER_CREDIT) * 100) / 100;
 }
 
+/**
+ * Por qué un workspace no tiene créditos aunque no haya gastado nada. Los créditos los da
+ * la cuenta de Instagram, no la de Zenovi: sin eso, crear cuentas con mails distintos
+ * alcanzaba para gastar IA sin límite.
+ */
+export type CreditLock = "no_instagram" | "trial_used" | "email_used";
+
+export const CREDIT_LOCK_MESSAGES: Record<CreditLock, string> = {
+  no_instagram: "Conectá tu Instagram para empezar a usar la IA.",
+  trial_used: "Este Instagram ya usó su prueba en otra cuenta de Zenovi.",
+  email_used: "Tu mail ya usó la prueba gratis con otro Instagram.",
+};
+
 export type CreditBalance = {
+  /** Si no hay créditos por cómo está la cuenta, no por haberlos gastado. */
+  locked: CreditLock | null;
   used: number;
   total: number;
   remaining: number;
@@ -80,9 +95,11 @@ export type CreditBalance = {
   resetsAt: string;
 };
 
-export function creditBalance(used: number, now = new Date(), total = BETA_MONTHLY_CREDITS): CreditBalance {
+export function creditBalance(used: number, now = new Date(), total = BETA_MONTHLY_CREDITS, locked: CreditLock | null = null): CreditBalance {
   const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  if (locked) return { locked, used, total: 0, remaining: 0, usedShare: 0, resetsAt: resetsAt.toISOString() };
   return {
+    locked: null,
     used,
     total,
     remaining: Math.max(0, total - used),

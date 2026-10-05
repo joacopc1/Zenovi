@@ -15,8 +15,8 @@ export function DisconnectInstagram({ username }: { username: string | null }) {
   const status = useSearchParams().get("disconnect");
 
   return (
-    <section className="mt-8 max-w-3xl rounded-card border border-mist bg-paper p-5">
-      <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Desconectar Instagram</h2>
+    <section className="rounded-card border border-mist bg-paper p-5">
+      <h2 className="text-[18px] font-semibold tracking-[-0.015em]">Desconectar Instagram</h2>
 
       {status === "done" ? (
         <p className="font-support mt-2 text-sm leading-6 text-success">

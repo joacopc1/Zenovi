@@ -12,6 +12,7 @@ import {
   Kanban,
   Fingerprint,
   House,
+  LifeBuoy,
   Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -46,7 +47,6 @@ const groups: NavGroup[] = [
   ]},
   { label: "Setup", items: [
     { href: "/brand", label: "ADN de marca", icon: Fingerprint },
-    { href: "/settings", label: "Ajustes", icon: Settings },
   ]},
 ];
 
@@ -162,6 +162,22 @@ export function SidebarNav({
           </section>
         ))}
       </div>
+    </nav>
+  );
+}
+
+/** Lo de abajo de la barra, debajo de Upgrade: pedir ayuda y los ajustes. */
+export function SidebarFooterNav({ collapsed = false, onNavigate, supportHref }: { collapsed?: boolean; onNavigate?: () => void; supportHref: string }) {
+  const pathname = usePathname();
+  const settings: NavItem = { href: "/settings", label: "Ajustes", icon: Settings };
+  return (
+    <nav aria-label="Ayuda y ajustes" className="mt-2 space-y-0.5">
+      <a href={supportHref} className={`group/tip relative ${collapsed ? collapsedItemClass : expandedItemClass}`}>
+        <LifeBuoy aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
+        <span className={collapsed ? "sr-only" : "block"}>Soporte</span>
+        {collapsed ? <HoverLabel side="right">Soporte</HoverLabel> : null}
+      </a>
+      <NavigationLink item={settings} collapsed={collapsed} selected={pathname === "/settings" || pathname.startsWith("/settings/")} onNavigate={onNavigate} />
     </nav>
   );
 }

@@ -1,54 +1,55 @@
-"use client";
+import { LogOut } from "lucide-react";
+import { SettingsCard } from "@/components/settings/settings-card";
+import { InstagramGlyph } from "@/components/ui/instagram-glyph";
+import { signOut } from "@/components/shell/actions";
+import { ProfileEditor } from "@/components/settings/profile-editor";
+import { BETA_PLAN_NAME } from "@/lib/billing/plans";
+import { getAccountContext } from "@/lib/data/account-context";
+import { createClient } from "@/lib/supabase/server";
 
-import Link from "next/link";
-import { Suspense } from "react";
-import { DisconnectInstagram } from "@/components/settings/disconnect-instagram";
-import { AppHeader } from "@/components/shell/app-header";
-import { useShellIdentity } from "@/components/shell/shell-identity";
+export const metadata = { title: "Cuenta · Ajustes" };
 
-export default function SettingsPage() {
-  const identity = useShellIdentity();
-  const instagramAccount = identity.instagram?.username
-    ? `@${identity.instagram.username}`
-    : "Sin cuenta conectada";
+export default async function AccountSettingsPage() {
+  const account = await getAccountContext();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
 
   return (
     <>
-      <AppHeader />
-      <div className="w-full px-5 py-8 md:px-8 md:py-10 lg:px-10">
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Ajustes</h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-graphite">
-          Administrá la identidad de tu cuenta, la marca activa y sus conexiones.
-        </p>
+      <SettingsCard
+        title="Perfil"
+        footer={
+          <form action={signOut}>
+            <button type="submit" className="inline-flex items-center gap-1.5 text-[13px] text-graphite hover:text-ink">
+              <LogOut aria-hidden="true" className="size-4" strokeWidth={1.75} />
+              Cerrar sesión
+            </button>
+          </form>
+        }
+      >
+        <ProfileEditor
+          name={account?.displayName ?? ""}
+          email={data.user?.email ?? null}
+          avatarUrl={account?.avatarUrl ?? null}
+          planLabel={`Plan ${BETA_PLAN_NAME}`}
+        />
+      </SettingsCard>
 
-        <section className="mt-8 max-w-3xl overflow-hidden rounded-card border border-mist bg-paper">
-          <SettingRow label="Nombre" value={identity.displayName} />
-          <SettingRow label="Marca activa" value={identity.workspaceName} />
-          <div className="grid gap-3 border-t border-mist p-5 sm:grid-cols-[10rem_1fr_auto] sm:items-center">
-            <span className="text-xs text-muted">Instagram</span>
-            <span className="text-sm text-ink">{instagramAccount}</span>
-            <Link
-              href="/onboarding/instagram"
-              className="text-xs font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink"
-            >
-              Gestionar
-            </Link>
+      <SettingsCard title="Marca">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-support text-xs text-graphite">Nombre de la marca</p>
+            <p className="text-[15px] font-medium text-ink">{account?.workspace?.name ?? "—"}</p>
           </div>
-        </section>
-
-        <Suspense>
-          <DisconnectInstagram username={identity.instagram?.username ? instagramAccount : null} />
-        </Suspense>
-      </div>
+          {account?.instagram?.username ? (
+            <span className="inline-flex items-center gap-1.5 rounded-control border border-mist px-2.5 py-1.5 text-[13px] text-ink">
+              <InstagramGlyph />@{account.instagram.username}
+            </span>
+          ) : (
+            <span className="font-support text-[13px] text-graphite">Sin Instagram conectado</span>
+          )}
+        </div>
+      </SettingsCard>
     </>
-  );
-}
-
-function SettingRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid gap-2 border-t border-mist p-5 first:border-t-0 sm:grid-cols-[10rem_1fr] sm:items-center">
-      <span className="text-xs text-muted">{label}</span>
-      <span className="text-sm text-ink">{value}</span>
-    </div>
   );
 }

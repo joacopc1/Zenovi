@@ -12,3 +12,26 @@ export function trialFingerprintKey(tokenEncryptionKey: Buffer) {
 export function instagramTrialFingerprint(providerAccountId: string, key: Buffer) {
   return createHmac("sha256", key).update(`instagram:${providerAccountId}`).digest("hex");
 }
+
+const GMAIL_DOMAINS = new Set(["gmail.com", "googlemail.com"]);
+
+/**
+ * El mail tal como llega a una casilla: sin lo que va después de un "+" (cualquier
+ * proveedor lo ignora) y, en Gmail, sin puntos, que Gmail también ignora. Así
+ * "J.uan+2@GoogleMail.com" y "juan@gmail.com" son la misma persona para la prueba.
+ */
+export function normalizeTrialEmail(email: string) {
+  const [rawLocal, rawDomain] = email.trim().toLowerCase().split("@");
+  if (!rawLocal || !rawDomain) return null;
+  let local = rawLocal.split("+")[0];
+  let domain = rawDomain;
+  if (GMAIL_DOMAINS.has(domain)) {
+    local = local.replaceAll(".", "");
+    domain = "gmail.com";
+  }
+  return local ? `${local}@${domain}` : null;
+}
+
+export function emailTrialFingerprint(normalizedEmail: string, key: Buffer) {
+  return createHmac("sha256", key).update(`email:${normalizedEmail}`).digest("hex");
+}

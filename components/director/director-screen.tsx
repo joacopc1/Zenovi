@@ -21,6 +21,7 @@ import { IdeaCard } from "./idea-card";
 import { REFUSAL_ANSWER } from "@/lib/director/history";
 import type { ProposedIdea } from "@/lib/director/idea-tool";
 import { Notice } from "@/components/ui/notice";
+import { CREDIT_LOCK_MESSAGES } from "@/lib/credits/pricing";
 
 // Los chats guardados llegan con las respuestas ya armadas desde el servidor; en un chat
 // nuevo el lector de Markdown se pide al mandar el primer mensaje, mientras el Director piensa.
@@ -99,7 +100,7 @@ export function DirectorScreen({
       showSuggestions={empty}
       initialPiece={initialPiece}
       initialText={initialText}
-      creditsLabel={credits.remaining > 0 ? `Te quedan ${creditFormatter.format(credits.remaining)} créditos` : "Sin créditos este mes"}
+      creditsLabel={credits.locked ? CREDIT_LOCK_MESSAGES[credits.locked] : credits.remaining > 0 ? `Te quedan ${creditFormatter.format(credits.remaining)} créditos` : "Sin créditos este mes"}
     />
   );
 

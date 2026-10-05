@@ -3,7 +3,7 @@ import "server-only";
 import type { LanguageModelUsage } from "ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCreditBalance } from "@/lib/data/credit-balance";
-import { ACTION_CREDITS, usageCostUsd, usdToCredits, type PricedAction, type TokenUsage } from "./pricing";
+import { ACTION_CREDITS, CREDIT_LOCK_MESSAGES, usageCostUsd, usdToCredits, type PricedAction, type TokenUsage } from "./pricing";
 
 export type AiFeature = "director_chat" | "director_title" | "reel_analysis" | "story_analysis" | "reel_script" | "home_insight";
 
@@ -95,6 +95,7 @@ export async function chargeAction({
 /** Si al workspace le alcanza para una acción de precio fijo; el mensaje, si no. */
 export async function actionCreditsBlocker(workspaceId: string, action: PricedAction) {
   const balance = await getCreditBalance(workspaceId);
+  if (balance.locked) return CREDIT_LOCK_MESSAGES[balance.locked];
   if (balance.remaining >= ACTION_CREDITS[action]) return null;
   return `Necesitás ${ACTION_CREDITS[action]} créditos y te quedan ${formatCredits(balance.remaining)}. Se renuevan el primer día del mes que viene.`;
 }

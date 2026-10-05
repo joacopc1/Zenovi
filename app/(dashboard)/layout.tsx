@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { getAccountContext } from "@/lib/data/account-context";
 import { getCreditBalance } from "@/lib/data/credit-balance";
+import { getNotifications } from "@/lib/notifications/data";
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +17,10 @@ export default async function DashboardLayout({
     redirect("/onboarding/workspace");
   }
 
-  const credits = await getCreditBalance(account.workspace.id);
+  const [credits, notifications] = await Promise.all([
+    getCreditBalance(account.workspace.id),
+    getNotifications(account.userId),
+  ]);
 
   return (
     <AppShell
@@ -27,6 +31,7 @@ export default async function DashboardLayout({
         workspaceName: account.workspace.name,
         instagram: account.instagram,
         credits,
+        notifications,
       }}
     >
       {children}

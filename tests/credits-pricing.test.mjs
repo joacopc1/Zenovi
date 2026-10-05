@@ -26,3 +26,16 @@ test("el saldo se cuenta por mes y no baja de cero", () => {
   assert.equal(balance.resetsAt, "2026-11-01T00:00:00.000Z");
   assert.equal(creditBalance(375, now, 1500).usedShare, 0.25);
 });
+
+test("sin Instagram, o con un Instagram que ya tuvo su prueba, no hay créditos", () => {
+  const now = new Date("2026-10-15T12:00:00Z");
+  for (const locked of ["no_instagram", "trial_used"]) {
+    const balance = creditBalance(0, now, 1500, locked);
+    assert.equal(balance.locked, locked);
+    assert.equal(balance.total, 0);
+    assert.equal(balance.remaining, 0);
+    assert.equal(balance.usedShare, 0);
+  }
+  assert.equal(creditBalance(100, now, 1500).locked, null);
+  assert.equal(creditBalance(100, now, 1500).remaining, 1400);
+});

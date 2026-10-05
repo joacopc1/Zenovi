@@ -18,12 +18,15 @@ import { getContentAnalysis } from "@/lib/data/content-analysis";
 import { getContentScript, getReadyScripts } from "@/lib/data/content-script";
 import { getInstagramContentLibrary } from "@/lib/data/instagram-content";
 import { getInstagramDashboardData } from "@/lib/data/instagram-dashboard";
+import { getContentItems } from "@/lib/data/production";
+import { CONTENT_STATUSES } from "@/lib/production/content";
 import { getReadyStoryAnalyses } from "@/lib/data/story-analysis";
 import {
   accountSnapshot,
   analysisSnapshot,
   isWithinDays,
   pieceSnapshot,
+  productionSnapshot,
   scriptSnapshot,
   sequenceSnapshot,
 } from "./account-snapshots";
@@ -152,6 +155,23 @@ export function buildAccountTools(workspaceId: string, timeZone: string): ToolSe
         if (!dashboard) return { error: "Todavía no hay métricas sincronizadas de la cuenta." };
         const days = PERIODS.includes(dias) ? dias : 30;
         return accountSnapshot(buildReportModel({ dashboard, contentItems: loaded?.items ?? [], days }), timeZone);
+      },
+    }),
+    ver_produccion: tool({
+      description:
+        "Las ideas y guiones que el creador guardó en Producción (por defecto, todo lo que no se publicó todavía), con gancho, desarrollo y acción final. Usala cuando hable de una idea o un guion que tiene guardado, o para no proponer algo que ya tiene en la lista.",
+      inputSchema: jsonSchema<{ estado?: string; texto?: string }>({
+        type: "object",
+        properties: {
+          estado: { type: "string", enum: [...CONTENT_STATUSES, "todos"], description: "idea, guion, produccion, publicada o todos; sin estado, todo lo que no se publicó" },
+          texto: { type: "string", maxLength: 80, description: "Palabras del título o del texto, para encontrar una idea puntual" },
+        },
+        additionalProperties: false,
+      }),
+      execute: async ({ estado, texto }) => {
+        const items = await getContentItems(workspaceId).catch(() => null);
+        if (!items) return { error: "No pudimos leer Producción." };
+        return productionSnapshot(items, { estado, texto });
       },
     }),
   };

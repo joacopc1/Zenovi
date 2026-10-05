@@ -239,3 +239,48 @@ export function ideaPrompt(idea: { title: string; hook: string; development: str
   parts.push("¿Cómo la mejorarías?");
   return parts.join("\n");
 }
+
+export type ProductionSnapshotInput = {
+  id: string;
+  title: string;
+  status: string;
+  format: string;
+  contentType: string;
+  targetDate: string | null;
+  hook: string;
+  development: string;
+  cta: string;
+};
+
+const PRODUCTION_SHOWN = 15;
+
+/**
+ * Las ideas y guiones de Producción como los lee el Director: lo publicado queda afuera
+ * salvo que lo pida, y los textos van recortados para no pagar tokens de más.
+ */
+export function productionSnapshot(items: ProductionSnapshotInput[], { estado, texto }: { estado?: string; texto?: string }) {
+  const needle = texto?.trim().toLocaleLowerCase("es") ?? "";
+  const matches = items
+    .filter((item) => (estado === "todos" ? true : estado ? item.status === estado : item.status !== "publicada"))
+    .filter((item) => !needle || `${item.title} ${item.hook} ${item.development}`.toLocaleLowerCase("es").includes(needle));
+  return {
+    total: matches.length,
+    piezas: matches.slice(0, PRODUCTION_SHOWN).map((item) => ({
+      enlace: `/production?item=${item.id}`,
+      titulo: item.title || "Sin título",
+      estado: item.status,
+      formato: item.format,
+      tipo: item.contentType || null,
+      fecha: item.targetDate,
+      gancho: clip(item.hook, 300),
+      desarrollo: clip(item.development, 1200),
+      cta: clip(item.cta, 300),
+    })),
+  };
+}
+
+function clip(value: string, max: number) {
+  const text = value.trim();
+  if (!text) return null;
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}

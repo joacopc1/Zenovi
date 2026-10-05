@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
 
-export const LEGAL_UPDATED_AT = "16 de septiembre de 2026";
+export const LEGAL_UPDATED_AT = "3 de octubre de 2026";
 
 export const LEGAL_CONTACT = {
   email: "scaleupbrandplus@gmail.com",

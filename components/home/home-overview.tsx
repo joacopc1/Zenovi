@@ -44,7 +44,8 @@ import { WeekAgenda, type AgendaItem } from "./week-agenda";
 
 export type WeekStat = {
   label: string;
-  hint: string;
+  /** Sólo donde el número no se explica solo (qué suma "Interacciones"). */
+  hint?: string;
   current: number | null;
   previous: number | null;
   /** Lo que se muestra debajo cuando no hay semana anterior con qué comparar. */
@@ -189,7 +190,6 @@ function ViewsTrendCard({ month }: { month: ReportModel }) {
     <Card>
       <CardTitle
         title="Visualizaciones"
-        hint="Cuántas veces se vio tu contenido cada día."
         trailing={<RangeToggle days={month.days as RangeDays} />}
       />
       <div className="mt-3 flex items-center gap-2">
